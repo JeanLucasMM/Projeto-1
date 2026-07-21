@@ -1,0 +1,54 @@
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+use App\Repositories\Contracts\NpcRepositoryInterface;
+use App\Repositories\Eloquent\NpcRepository;
+use App\Repositories\Contracts\CombatRepositoryInterface;
+use App\Repositories\Eloquent\CombatRepository;
+use App\Repositories\Contracts\CombatNpcRepositoryInterface;
+use App\Repositories\Eloquent\CombatNpcRepository;
+use App\Repositories\Contracts\CombatPlayerRepositoryInterface;
+use App\Repositories\Eloquent\CombatPlayerRepository;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+            $this->app->bind(
+                NpcRepositoryInterface::class,
+                NpcRepository::class
+    
+        );
+
+        $this->app->bind(
+            CombatRepositoryInterface::class,
+            CombatRepository::class
+        );
+
+        $this->app->bind(
+            CombatNpcRepositoryInterface::class,
+            CombatNpcRepository::class
+        );
+
+        $this->app->bind(
+            CombatPlayerRepositoryInterface::class,
+            CombatPlayerRepository::class
+        );
+
+        
+    }
+
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        //
+    }
+}

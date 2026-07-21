@@ -1,0 +1,95 @@
+/* --- CONTAINER PRINCIPAL --- */
+.stat-block {
+    background-color: #fdfbf7;
+    border: 2px solid #58180d;
+    border-radius: 8px;
+    padding: 1.25rem;
+    font-family: 'Georgia', 'Cambria', serif;
+    color: #333;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+/* --- TIPOGRAFIA --- */
+.stat-title {
+    font-size: 1.75rem;
+    color: #58180d;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+}
+
+.stat-subtitle {
+    font-style: italic;
+    color: #555;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+.stat-divider {
+    border: 0;
+    border-top: 1px solid #58180d;
+    margin: 0.5rem 0;
+}
+
+/* --- GRID DE ATRIBUTOS --- */
+.ability-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.ability-cell {
+    padding: 6px;
+    text-align: left;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.ability-cell:nth-child(even) {
+    background-color: #edeae2;
+}
+
+.ability-name {
+    font-weight: bold;
+    color: #58180d;
+    font-size: 0.9rem;
+}
+
+.ability-vals {
+    display: flex;
+    gap: 12px;
+}
+
+.ability-val {
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.save-val {
+    font-weight: bold;
+    color: #58180d;
+}
+
+/* --- ELEMENTOS DE APOIO --- */
+.sheet-toggle-btn {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.5rem;
+    border: 1px solid #58180d;
+    color: #58180d;
+    background: rgba(255, 255, 255, 0.4);
+    font-family: Georgia, serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.sheet-toggle-btn:hover {
+    background: #edeae2;
+}

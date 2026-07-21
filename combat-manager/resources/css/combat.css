@@ -1,0 +1,122 @@
+/* resources/css/combat.css - Estilos do Combat Manager (Tema Grimório) */
+
+/* O Card Principal */
+.npc-card {
+    /* Fundo bege claro (bg-[#f4f1e8]), Borda sutil (border-[#cdbb9f]/40), Cantos arredondados (rounded-2xl) */
+    @apply w-full bg-[#f4f1e8] border border-[#cdbb9f]/40 rounded-2xl p-5 mb-4 shadow-sm transition-all duration-300;
+}
+
+/* Estado de Hover do Card */
+.npc-card:hover {
+    /* Borda mais escura no hover (border-[#6b1d14]/30) */
+    @apply border-[#6b1d14]/30 shadow-md;
+}
+
+/* Header do Card (Onde fica a foto e info principal) */
+.npc-card-header {
+    @apply flex flex-col lg:flex-row lg:items-center justify-between gap-5;
+}
+
+/* O Avatar Circular */
+.npc-avatar {
+    /* Tamanho definido, Borda vinho (border-2 border-[#6b1d14]) */
+    @apply w-20 h-20 rounded-full overflow-hidden border-2 border-[#6b1d14] shadow-md flex items-center justify-center shrink-0;
+}
+
+/* Onde fica o nome e tipo */
+.npc-name-area {
+    @apply flex-1 space-y-1 text-center sm:text-left w-full;
+}
+
+/* Título do NPC (Fonte Serifada, Cor Vinho) */
+.npc-title {
+    @apply text-xl font-serif font-bold text-[#6b1d14] leading-tight;
+}
+
+/* Subtítulo (Tamanho pequeno, Itálico, Cor Marrom Claro) */
+.npc-subtitle {
+    @apply italic text-[10px] text-[#8c6239]/80 font-semibold uppercase tracking-wider mt-0.5;
+}
+
+/* Área Central de Informações (Vida, CA, Inic) */
+.npc-stats-container {
+    /* Esse container vai alinhar as informações perfeitamente */
+    @apply flex-grow min-w-0 flex flex-col gap-4 items-center lg:items-start;
+}
+
+/* Painel de Atributos (Copiado do exemplo: fundo claro, borda, sombra interna) */
+.stat-panel {
+    @apply inline-flex items-center gap-3.5 bg-[#efe9dc]/50 border border-[#cdbb9f]/30 px-3 py-1.5 rounded-xl shadow-inner;
+}
+
+/* Estilo individual para cada label/valor dentro do painel */
+.stat-item {
+    @apply flex items-center gap-1.5;
+}
+
+/* Label (VIDA, CA, INIC) - Fonte Serifada, Maiúsculas, Cor âmbar/marrom */
+.stat-label {
+    @apply text-[9px] font-serif font-bold uppercase tracking-wider;
+}
+/* Cores específicas para os valores */
+.stat-value-hp { @apply text-xs font-mono font-bold text-red-700 leading-none; }
+.stat-value-ca { @apply text-xs font-mono font-bold text-blue-700 leading-none; }
+.stat-value-inic { @apply text-xs font-mono font-bold text-stone-800 leading-none; }
+.stat-label-hp { @apply text-red-800; }
+.stat-label-ca { @apply text-blue-800; }
+.stat-label-inic { @apply text-amber-800; }
+
+/* Barra de Vida (Arredondada, Fundo claro) */
+.hp-bar-container {
+    @apply w-full h-2.5 rounded-full bg-stone-100 border border-stone-200 overflow-hidden;
+}
+.hp-bar-fill {
+    @apply h-full bg-emerald-600 transition-all duration-500 rounded-full;
+}
+
+/* Área de Ações (Botões) */
+.npc-actions {
+    @apply flex sm:flex-row lg:flex-col items-center justify-center gap-2 shrink-0 w-full lg:w-auto self-stretch lg:self-center;
+}
+
+/* Botões de Ação (Arredondados, Fonte serifada) */
+.btn-action {
+    /* Troque transition-polished por estas três classes: */
+    @apply flex-1 lg:flex-none px-5 py-2 rounded-xl text-center font-serif font-bold text-xs uppercase tracking-wider transition-all duration-300 ease-in-out shadow-sm;
+}
+
+/* Estilos Específicos de Botão */
+.btn-dano {
+    /* Fundo Vinho (bg-[#6b1d14]) */
+    @apply bg-[#6b1d14] text-[#f4f1e8] hover:bg-[#53150f];
+}
+
+.btn-cura {
+    /* Fundo Verde (Pode usar o mesmo verde da barra) */
+    @apply bg-emerald-600 text-white hover:bg-emerald-700;
+}
+
+.btn-ficha {
+    /* Fundo Neutro Claro, Borda Vinho Sutil */
+    @apply bg-[#efe9dc] border border-[#cdbb9f]/60 text-[#6b1d14] hover:bg-[#e8dfcf];
+}
+
+.btn-remover {
+    /* Fundo Claro, Texto Vermelho */
+    @apply bg-[#efe9dc] border border-red-200/60 text-red-700 hover:bg-red-50;
+}
+
+/* A Ficha Expandida (Container) */
+.npc-sheet-expanded {
+    @apply mt-6 pt-6 border-t border-[#cdbb9f]/40 w-full;
+}
+
+/* O conteúdo interno da ficha expandida (Fundo ligeiramente diferente para destacar) */
+.npc-sheet-content {
+    @apply bg-[#fefcf5] p-6 rounded-xl border border-[#cdbb9f]/20 shadow-inner;
+}
+
+/* Divisor Rúnico (Horizontal) */
+.rune-divider {
+    @apply h-[1px] bg-gradient-to-r from-[#6b1d14]/20 via-[#cdbb9f]/30 to-transparent w-full my-3;
+}
