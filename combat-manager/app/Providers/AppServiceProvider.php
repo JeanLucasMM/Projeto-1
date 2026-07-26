@@ -11,6 +11,8 @@ use App\Repositories\Contracts\CombatNpcRepositoryInterface;
 use App\Repositories\Eloquent\CombatNpcRepository;
 use App\Repositories\Contracts\CombatPlayerRepositoryInterface;
 use App\Repositories\Eloquent\CombatPlayerRepository;
+use App\Repositories\Contracts\FolderRepositoryInterface;
+use App\Repositories\Eloquent\FolderRepository;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -40,6 +42,10 @@ class AppServiceProvider extends ServiceProvider
             CombatPlayerRepository::class
         );
 
+        $this->app->bind(
+            FolderRepositoryInterface::class,
+            FolderRepository::class
+        );
         
     }
 

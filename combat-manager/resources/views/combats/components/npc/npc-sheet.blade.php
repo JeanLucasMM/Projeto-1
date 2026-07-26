@@ -160,7 +160,13 @@
                             <button type="button" @click="if(current < max) current++" class="hover:text-white/70 active:text-white/40 transition font-bold text-xs focus:outline-none cursor-pointer border-none bg-transparent p-0 m-0 text-[#f4f1e8]">+</button>
                         </span>@endif
                     </strong>
-                    <span class="text-black/90">{!! nl2br($item->text) !!}</span>
+                    <span class="text-black/90">
+                    @include('combats.components.npc.trackers.resource-parser', [
+                    'text' => $item->text,
+                    'combatNpc' => $combatNpc,
+                     'resourcePrefix' => $cleanTitle,
+                        ])
+                    </span>
                 </div>
             @endforeach
         </div>

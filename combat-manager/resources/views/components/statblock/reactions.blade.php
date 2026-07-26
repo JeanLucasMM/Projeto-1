@@ -1,24 +1,24 @@
-@if($reactions = collect($npc->sections)->firstWhere('title', 'Reactions'))
+@if($reactions = collect($npc->sections ?? [])->firstWhere('title', 'Reactions'))
 
 <section class="section">
 
     <h2 class="section-title">
-        Reação
+        Reações
     </h2>
 
-    @foreach($reactions->items as $item)
+    @foreach($reactions->items ?? [] as $item)
 
-        <p class="feature">
+        <div class="feature">
 
-            <span class="feature-title">
-
-                {{ $item->title }}.
-
-            </span>
+            @if(!empty($item->title))
+                <strong class="feature-title">
+                    {{ rtrim($item->title, ' .:') }}.
+                </strong>
+            @endif
 
             {!! $item->text !!}
 
-        </p>
+        </div>
 
     @endforeach
 

@@ -12,9 +12,17 @@ class NpcService
         private NpcRepositoryInterface $repository
     ) {}
 
-    public function getAllByUser(int $userId)
+public function getAllByUser(
+    int $userId,
+    ?string $search = null,
+    ?string $sort = null
+)
 {
-        return $this->repository->findAllByUser($userId);
+    return $this->repository->findAllByUser(
+        $userId,
+        $search,
+        $sort
+    );
 }
 
     public function create(array $data): Npc

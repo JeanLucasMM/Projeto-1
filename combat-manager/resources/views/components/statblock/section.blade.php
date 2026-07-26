@@ -1,4 +1,4 @@
-@if(!empty($section->items))
+@if(!empty($section) && !empty($section->items))
 
 <section class="section">
 
@@ -8,17 +8,17 @@
 
     @foreach($section->items as $item)
 
-        <p class="feature">
+        <div class="feature">
 
-            <span class="feature-title">
-
-                {{ $item->title }}
-
-            </span>
+            @if(!empty($item->title))
+                <strong class="feature-title">
+                    {{ rtrim($item->title, ' .:') }}.
+                </strong>
+            @endif
 
             {!! $item->text !!}
 
-        </p>
+        </div>
 
     @endforeach
 

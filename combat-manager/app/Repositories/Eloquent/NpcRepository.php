@@ -18,12 +18,59 @@ class NpcRepository implements NpcRepositoryInterface
         return Npc::find($id);
     }
 
-    public function findAllByUser(int $userId)
-    {
-        return Npc::where('user_id', $userId)
-            ->orderBy('name')
-            ->get();
+public function findAllByUser(
+    int $userId,
+    ?string $search = null,
+    ?string $sort = null
+)
+{
+    $query = Npc::where('user_id', $userId);
+
+    /*
+    |--------------------------------------------------------------------------
+    | Busca
+    |--------------------------------------------------------------------------
+    */
+
+    if (!empty($search)) {
+
+        $query->where(function ($q) use ($search) {
+
+            $q->where('name', 'like', "%{$search}%")
+                ->orWhere('creature_type', 'like', "%{$search}%")
+                ->orWhere('size', 'like', "%{$search}%");
+
+        });
+
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ordenação
+    |--------------------------------------------------------------------------
+    */
+
+    switch ($sort) {
+
+        case 'name_desc':
+            $query->orderByDesc('name');
+            break;
+
+        case 'cr_desc':
+            $query->orderByDesc('challenge_rating');
+            break;
+
+        case 'cr_asc':
+            $query->orderBy('challenge_rating');
+            break;
+
+        default:
+            $query->orderBy('name');
+
+    }
+
+    return $query->get();
+}
 
 public function delete(Npc $npc): void
 {

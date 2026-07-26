@@ -87,38 +87,38 @@
                                 {{-- Divisor Rúnico Sutil --}}
                                 <div class="h-[1px] bg-gradient-to-r from-[#6b1d14]/20 via-[#cdbb9f]/30 to-transparent w-full"></div>
 
-                                {{-- Painel de Atributos Unificado e Ultra-Sutil --}}
-                                <div class="inline-flex items-center gap-3.5 bg-[#efe9dc]/50 border border-[#cdbb9f]/30 px-3 py-1 rounded-xl shadow-inner">
-                                    
-                                    {{-- Rodada --}}
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[9px] font-serif font-bold text-amber-800 uppercase tracking-wider">Rodada</span>
-                                        <span class="text-xs font-mono font-bold text-amber-800 leading-none">{{ $combat->round ?? 1 }}</span>
-                                    </div>
+{{-- Painel de Atributos Unificado e Ultra-Sutil --}}
+<div class="inline-flex items-center gap-3.5 bg-[#efe9dc]/50 border border-[#cdbb9f]/30 px-3 py-1 rounded-xl shadow-inner">
+    
+    {{-- Rodada (Ajustado para current_round) --}}
+    <div class="flex items-center gap-1.5">
+        <span class="text-[9px] font-serif font-bold text-amber-800 uppercase tracking-wider">Rodada</span>
+        <span class="text-xs font-mono font-bold text-amber-800 leading-none">{{ $combat->current_round ?? 0 }}</span>
+    </div>
 
-                                    {{-- Divisor --}}
-                                    <div class="w-[1px] h-3.5 bg-[#cdbb9f]/40"></div>
+    {{-- Divisor --}}
+    <div class="w-[1px] h-3.5 bg-[#cdbb9f]/40"></div>
 
-                                    {{-- Status --}}
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[9px] font-serif font-bold text-[#8c6239]/80 uppercase tracking-wider">Status</span>
-                                        @if($combat->started)
-                                            <span class="text-xs font-serif font-bold text-emerald-700 leading-none">Em Andamento</span>
-                                        @else
-                                            <span class="text-xs font-serif font-bold text-[#b45309] leading-none">Não Iniciado</span>
-                                        @endif
-                                    </div>
+    {{-- Status (Ajustado para is_active) --}}
+    <div class="flex items-center gap-1.5">
+        <span class="text-[9px] font-serif font-bold text-[#8c6239]/80 uppercase tracking-wider">Status</span>
+        @if($combat->is_active)
+            <span class="text-xs font-serif font-bold text-emerald-700 leading-none">Em Andamento</span>
+        @else
+            <span class="text-xs font-serif font-bold text-[#b45309] leading-none">Inativo / Concluído</span>
+        @endif
+    </div>
 
-                                    {{-- Divisor --}}
-                                    <div class="w-[1px] h-3.5 bg-[#cdbb9f]/40"></div>
+    {{-- Divisor --}}
+    <div class="w-[1px] h-3.5 bg-[#cdbb9f]/40"></div>
 
-                                    {{-- Data de Criação --}}
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="text-[9px] font-serif font-bold text-blue-800 uppercase tracking-wider">Criado em</span>
-                                        <span class="text-xs font-mono font-bold text-blue-700 leading-none">{{ $combat->created_at->format('d/m/Y') }}</span>
-                                    </div>
+    {{-- Data de Criação --}}
+    <div class="flex items-center gap-1.5">
+        <span class="text-[9px] font-serif font-bold text-blue-800 uppercase tracking-wider">Criado em</span>
+        <span class="text-xs font-mono font-bold text-blue-700 leading-none">{{ $combat->created_at->format('d/m/Y') }}</span>
+    </div>
 
-                                </div>
+</div>
                             </div>
 
                             {{-- Lado Direito: Ações --}}

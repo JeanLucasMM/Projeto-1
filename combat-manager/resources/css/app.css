@@ -5,269 +5,295 @@
 @tailwind utilities;
 
 /* ==========================================================
-   STATBLOCK
+   VARIÁVEIS E TIPOGRAFIA GLOBAL DA FICHA
 ========================================================== */
-.statblock {
-    max-width: 1100px;
-    margin: 10px auto;
-    padding: 16px 20px;
-    background: #f4f1e8;
-    color: #2b1d17;
-    border: 2px solid #6b1d14;
-    border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,.15);
-    font-family: Georgia, serif;
-
-    /* --- SISTEMA DE SCROLL INTERNO --- */
-    max-height: 89.3vh; /* Limita a altura a 80% da tela do usuário */
-    overflow-y: auto;  /* Ativa a rolagem interna se o conteúdo passar do limite */
-    
-
-    /* Scrollbar para Firefox */
-    scrollbar-width: thin;
-    scrollbar-color: #6b1d14 transparent; /* Deixa o fundo transparente no Firefox também */
-
-    
+:root {
+  --stat-font: Georgia, Cambria, "Times New Roman", Times, serif;
+  
+  /* Paleta de Cores */
+  --stat-bg: #f4f1e8;
+  --stat-text: #2b1d17;
+  --stat-primary: #6b1d14; /* Vermelho escarlate clássico */
+  --stat-muted: #6d6d6d;
+  --stat-border: #d9c8a8;
+  
+  /* Fundos das habilidades */
+  --stat-row-alt1: #ece8cd;
+  --stat-row-alt2: #e8def2;
 }
 
-
+/* Garantia de Tipografia Única em toda a Ficha */
+.statblock,
+.statblock * {
+  font-family: var(--stat-font);
+}
 
 /* ==========================================================
-   TITLE
+   STATBLOCK (CONTAINER PRINCIPAL)
+========================================================== */
+.statblock {
+  max-width: 1100px;
+  margin: 10px auto;
+  padding: 16px 20px;
+  background: var(--stat-bg);
+  color: var(--stat-text);
+  border: 2px solid var(--stat-primary);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+
+  /* Sistema de Scroll Interno */
+  max-height: 89.3vh;
+  overflow-y: auto;
+
+  /* Scrollbar - Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--stat-primary) transparent;
+}
+
+/* Scrollbar - Chrome, Safari e Edge */
+.statblock::-webkit-scrollbar {
+  width: 6px;
+}
+
+.statblock::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.statblock::-webkit-scrollbar-thumb {
+  background-color: var(--stat-primary);
+  border-radius: 4px;
+}
+
+/* ==========================================================
+   TÍTULOS E CABEÇALHO
 ========================================================== */
 .statblock h1 {
-    margin: 0;
-    color: #6b1d14;
-    font-size: 26px;
-    line-height: 1.05;
-    text-transform: uppercase;
-    letter-spacing: .4px;
-    font-weight: bold;
+  margin: 0;
+  color: var(--stat-primary);
+  font-size: 26px;
+  line-height: 1.05;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-weight: bold;
 }
 
 .subtitle {
-    margin-top: 1px;
-    margin-bottom: 8px;
-    font-size: 14px;
-    color: #6d6d6d;
-    font-style: italic;
+  margin-top: 2px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--stat-muted);
+  font-style: italic;
 }
-/* ==========================================================
-   HEADER
-========================================================== */
+
 .header-details {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 15px;
-    border-top: 1px solid #7A1F17;
-    border-bottom: 1px solid #7A1F17;
-    padding: 6px 0;
-    margin-bottom: 14px;
-    break-inside: avoid-column;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 15px;
+  border-top: 1px solid var(--stat-primary);
+  border-bottom: 1px solid var(--stat-primary);
+  padding: 6px 0;
+  margin-bottom: 14px;
+  break-inside: avoid-column;
 }
 
 .header-left p,
 .header-right p {
-    margin: 2px 0;
-    font-size: 14px;
-    line-height: 1.25;
+  margin: 2px 0;
+  font-size: 14px;
+  line-height: 1.25;
 }
 
 .header-left strong,
 .header-right strong {
-    color: #6b1d14;
-    font-weight: bold;
+  color: var(--stat-primary);
+  font-weight: bold;
 }
 
 .header-right {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
-    min-width: 180px;
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-start;
+  min-width: 180px;
 }
 
 /* ==========================================================
-   ABILITY BLOCKS
+   BLOCOS DE HABILIDADE (ATRIBUTOS / SAVES / PERÍCIAS)
 ========================================================== */
 .ability-groups {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 14px;
-    break-inside: avoid-column;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 14px;
+  break-inside: avoid-column;
 }
 
 .ability-group {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .ability-header {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
-    margin-bottom: 1px;
-    color: #777;
-    text-align: center;
-    font-size: 11px;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  margin-bottom: 2px;
+  color: var(--stat-muted);
+  text-align: center;
+  font-size: 11px;
 }
 
 .ability-row {
-    display: grid;
-    grid-template-columns: 2fr 0.7fr 1fr;
-    align-items: center;
-    text-align: center;
-    font-size: 13px;
+  display: grid;
+  grid-template-columns: 2fr 0.7fr 1fr;
+  align-items: center;
+  text-align: center;
+  font-size: 13px;
 }
 
 .ability-row:nth-child(2) {
-    background: #ece8cd;
+  background: var(--stat-row-alt1);
 }
 
 .ability-row:nth-child(3) {
-    background: #e8def2;
+  background: var(--stat-row-alt2);
 }
 
 .ability-name {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 4px 10px;
-    color: #6b1d14;
-    font-weight: bold;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 10px;
+  color: var(--stat-primary);
+  font-weight: bold;
 }
 
 .ability-name span {
-    color: #2c1b16;
-    font-weight: normal;
+  color: var(--stat-text);
+  font-weight: normal;
 }
 
 /* ==========================================================
-   DETAILS
+   DETALHES E DIVISORES
 ========================================================== */
 .details {
-    margin-top: 6px;
-    break-inside: avoid-column;
+  margin-top: 6px;
+  break-inside: avoid-column;
 }
 
 .detail-row {
-    border-bottom: 1px solid #d9c8a8;
-    padding: 4px 0;
-    font-size: 13.5px;
-    line-height: 1.4;
+  border-bottom: 1px solid var(--stat-border);
+  padding: 4px 0;
+  font-size: 13.5px;
+  line-height: 1.4;
 }
 
 .detail-row strong {
-    color: #6b1d14;
-    font-weight: bold;
+  color: var(--stat-primary);
+  font-weight: bold;
 }
 
-/* ==========================================================
-   DIVIDER
-========================================================== */
 .stat-divider {
-    margin: 8px 0;
-    border-top: 1px solid #f4f1e8;
-    break-inside: avoid-column; 
+  margin: 8px 0;
+  border-top: 1px solid var(--stat-bg);
+  break-inside: avoid-column;
 }
 
 /* ==========================================================
-   CONTENT FLOW
-========================================================= */
-.content-flow {
-    column-count: 2;
-    column-gap: 24px;
-    column-fill: balance;
-}
-
-/* ==========================================================
-   SECTIONS
+   FLUXO DE CONTEÚDO E SEÇÕES
 ========================================================== */
+.content-flow {
+  column-count: 2;
+  column-gap: 24px;
+  column-fill: balance;
+}
 .section {
-    display: block; 
-    width: 100%;
-    margin-bottom: 16px;
+  display: block;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.multiattack {
+  font-weight: bold;
 }
 
 .section-title {
-    margin: 0 0 10px;
-    padding-bottom: 3px;
-    border-bottom: 2px solid #7A1F17;
-    color: #7A1F17;
-    text-transform: uppercase;
-    font-size: 15px;
-    font-weight: bold;
-    letter-spacing: 0.8px;
-    break-inside: avoid-column; 
+  margin: 0 0 10px;
+  padding-bottom: 3px;
+  border-bottom: 2px solid var(--stat-primary);
+  color: var(--stat-primary);
+  text-transform: uppercase;
+  font-size: 15px;
+  font-weight: bold;
+  letter-spacing: 0.8px;
+  break-inside: avoid-column;
 }
 
 .feature {
-    margin-bottom: 12px;
-    font-size: 13px;
-    line-height: 1.45;
-    text-align: justify;
-    break-inside: avoid-column; 
+  margin-bottom: 12px;
+  font-size: 12.7px;
+  line-height: 1.45;
+  text-align: justify;
+  break-inside: avoid-column;
 }
 
 .feature:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .feature-title {
-    color: #111;
-    font-size: 13.5px;
-    font-weight: bold;
-    font-style: italic;
+  color: #111;
+  font-size: 13.5px;
+  font-weight: bold;
+  font-style: italic;
 }
-
-/* ==========================================================
-   HTML vindo do JSON
-========================================================== */
+.multiattack{
+    color: #6b1d14;
+}
+/* HTML dinâmico vindo de marcadores/JSON */
 .feature b { font-weight: bold; }
 .feature i { font-style: italic; }
 .feature p { display: inline; }
 .feature ul { margin-top: 6px; margin-left: 16px; }
 
 /* ==========================================================
-   RESPONSIVO 
+   RESPONSIVIDADE
 ========================================================== */
 @media (max-width: 900px) {
-    .content-flow {
-        column-count: 1;
-    }
-    .ability-groups {
-        grid-template-columns: 1fr;
-    }
+  .content-flow {
+    column-count: 1;
+  }
+  .ability-groups {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 700px) {
-    .statblock {
-        padding: 12px;
-    }
-    .statblock h1 {
-        font-size: 22px;
-    }
-    .subtitle {
-        font-size: 13px;
-    }
-    .header-details {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    .header-right {
-        justify-content: flex-start;
-        min-width: unset;
-    }
-    .detail-row {
-        font-size: 13px;
-    }
-    .feature {
-        font-size: 12.5px;
-    }
-    .section-title {
-        font-size: 14px;
-    }
+  .statblock {
+    padding: 12px;
+  }
+  .statblock h1 {
+    font-size: 22px;
+  }
+  .subtitle {
+    font-size: 13px;
+  }
+  .header-details {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .header-right {
+    justify-content: flex-start;
+    min-width: unset;
+  }
+  .detail-row {
+    font-size: 13px;
+  }
+  .feature {
+    font-size: 12.5px;
+  }
+  .section-title {
+    font-size: 14px;
+  }
 
 
-
-    
+  
 }

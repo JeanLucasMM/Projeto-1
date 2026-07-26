@@ -19,6 +19,7 @@ class Npc extends Model
         'max_hp',
         'json_data',
         'image_path',
+        'folder_id',
     ];
 
     protected $casts = [
@@ -29,4 +30,10 @@ class Npc extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+
+    public function folder()
+{
+    return $this->belongsTo(Folder::class);
+}
 }

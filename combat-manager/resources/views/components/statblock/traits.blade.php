@@ -1,4 +1,4 @@
-@if($traits = collect($npc->sections)->firstWhere('title', 'Traits'))
+@if($traits = collect($npc->sections ?? [])->firstWhere('title', 'Traits'))
 
 <section class="section">
 
@@ -6,19 +6,19 @@
         Habilidades
     </h2>
 
-    @foreach($traits->items as $item)
+    @foreach($traits->items ?? [] as $item)
 
-        <p class="feature">
+        <div class="feature">
 
-            <span class="feature-title">
-
-                {{ $item->title }}.
-
-            </span>
+            @if(!empty($item->title))
+                <strong class="feature-title">
+                    {{ rtrim($item->title, ' .:') }}.
+                </strong>
+            @endif
 
             {!! $item->text !!}
 
-        </p>
+        </div>
 
     @endforeach
 

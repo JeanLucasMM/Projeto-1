@@ -10,7 +10,11 @@ interface NpcRepositoryInterface
 
     public function findById(int $id): ?Npc;
 
-    public function findAllByUser(int $userId);
+    public function findAllByUser(
+    int $userId,
+    ?string $search = null,
+    ?string $sort = null
+);
 
     public function delete(Npc $npc): void;
 

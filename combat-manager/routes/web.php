@@ -4,6 +4,7 @@ use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NpcController;
 use App\Http\Controllers\CombatController;
+use App\Http\Controllers\FolderController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -68,5 +69,41 @@ Route::patch('/combats/{combat}/npcs/{combatNpc}/temporary-hp', [CombatControlle
     ->name('combats.npcs.temporaryHp');
 
 Route::post('/api/roll', [App\Http\Controllers\DiceRollController::class, 'roll']);
+
+Route::post(
+    '/folders',
+    [FolderController::class, 'store']
+)->name('folders.store');
+
+Route::resource('folders', FolderController::class)
+    ->only([
+        'store',
+        'show',
+        'update',
+        'destroy',
+    ]);
+
+Route::get('/folders/{folder}', [FolderController::class, 'show'])
+    ->name('folders.show');
+
+Route::patch('/npcs/{npc}/move-folder', [NpcController::class, 'moveFolder'])
+    ->name('npcs.move-folder');
+
+Route::resource('folders', FolderController::class)
+    ->only([
+        'store',
+        'show',
+        'edit',
+        'update',
+        'destroy'
+    ]);
+
+Route::delete('/folders/{folder}', [FolderController::class, 'destroy'])
+    ->name('folders.destroy');
+
+Route::patch(
+    '/npcs/{npc}/remove-folder',
+    [NpcController::class, 'removeFromFolder']
+)->name('npcs.remove-folder');
 
 require __DIR__.'/auth.php';

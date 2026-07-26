@@ -8,26 +8,57 @@ use App\Services\NpcService;
 use Illuminate\Support\Facades\Auth;
 use App\Services\Interpreters\NpcInterpreter;
 use App\Factories\NpcViewModelFactory;
+use App\Services\FolderService;
+use Illuminate\Http\Request;
+use App\Models\Npc;
 
 class NpcController extends Controller
 {
     public function __construct(
         private ImportNpcService $importService,
         private NpcService $npcService,
-        private NpcViewModelFactory $viewModelFactory
+        private NpcViewModelFactory $viewModelFactory,
+        private FolderService $folderService,
 ) {}
+
+
+public function moveFolder(Request $request, Npc $npc)
+{
+    $request->validate([
+        'folder_id' => ['nullable', 'exists:folders,id']
+    ]);
+
+    $npc->update([
+        'folder_id' => $request->folder_id
+    ]);
+
+    return response()->json([
+        'success' => true
+    ]);
+}
+
+
 
     /**
      * Lista os NPCs do usuário logado.
      */
-    public function index()
-    {
-        $npcs = $this->npcService->getAllByUser(Auth::id());
-        
+public function index(Request $request)
+{
+    $npcs = $this->npcService->getAllByUser(
 
-        return view('npcs.index', compact('npcs'));
-        
-    }
+        Auth::id(),
+        $request->search,
+        $request->sort
+
+    );
+
+    $folders = $this->folderService->getAllByUser(
+        Auth::id()
+
+    );
+
+    return view('npcs.index',compact('npcs','folders'));
+}
 
     /**
      * Importa um NPC a partir de um arquivo JSON.
@@ -52,6 +83,8 @@ public function import(ImportNpcRequest $request)
 
 public function show(int $id)
 {
+
+
     
     $npc = $this->npcService->findByIdAndUser(
         $id,
@@ -85,5 +118,19 @@ public function destroy(int $id)
     return redirect()
         ->route('npcs.index')
         ->with('success', 'NPC removido com sucesso.');
+}
+
+public function removeFromFolder(Npc $npc)
+{
+    abort_if($npc->user_id !== Auth::id(), 403);
+
+    $npc->update([
+        'folder_id' => null,
+    ]);
+
+    return back()->with(
+        'success',
+        'NPC removido da pasta.'
+    );
 }
 }
