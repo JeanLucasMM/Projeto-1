@@ -42,6 +42,8 @@ return new class extends Migration
     // JSON original da ficha
     $table->json('json_data');
 
+    $table->timestamp('deceased_at')->nullable();
+
     $table->timestamps();
 });
     }

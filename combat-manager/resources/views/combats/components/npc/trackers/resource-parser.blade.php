@@ -1,33 +1,32 @@
 @php
+use App\Services\Interpreters\SpellSlotParser;
 
-$parsedText = preg_replace_callback(
-    '/_{3,}\/(\d+)/u',
-    function ($matches) use ($combatNpc, $resourcePrefix) {
-
-        $label = $matches[0];
-        $max = (int) $matches[1];
-
-        $resourceKey = $resourcePrefix.'-'.$label;
-
-        $current = $combatNpc->getResource(
-            $resourceKey,
-            $max
-        );
-
-        return view(
-            'combats.components.npc.trackers.resource-counter',
-            [
-                'combatNpc'   => $combatNpc,
-                'resourceKey' => $resourceKey,
-                'current'     => $current,
-                'max'         => $max,
-            ]
-        )->render();
-
-    },
-    $text
+$result = SpellSlotParser::parse(
+    $text,
+    $combatNpc,
+    $resourcePrefix
 );
 
+// 1. Primeiro aplicamos o nl2br apenas no texto puro
+$parsedText = nl2br($result['text']);
+
+$trackers = $result['trackers'];
+
+// 2. Depois fazemos o replace, injetando o HTML limpo (sem sofrer ação do nl2br)
+foreach ($trackers as $index => $tracker) {
+    $parsedText = str_replace(
+        "__TRACKER__{$index}__",
+        view(
+            'combats.components.npc.trackers.tracker-renderer',
+            [
+                'tracker'   => $tracker,
+                'combatNpc' => $combatNpc,
+            ]
+        )->render(),
+        $parsedText
+    );
+}
 @endphp
 
-{!! nl2br($parsedText) !!}
+{{-- 3. Agora imprimimos o resultado final direto --}}
+{!! $parsedText !!}

@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\NpcController;
 use App\Http\Controllers\CombatController;
 use App\Http\Controllers\FolderController;
+use App\Http\Controllers\NpcBuilderController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -105,5 +106,10 @@ Route::patch(
     '/npcs/{npc}/remove-folder',
     [NpcController::class, 'removeFromFolder']
 )->name('npcs.remove-folder');
+
+Route::patch('/npcs/{npc}/toggle-deceased', [NpcController::class, 'toggleDeceased'])->name('npcs.toggle-deceased');
+
+Route::get('/npc-builder', [NpcBuilderController::class, 'index'])->name('npc-builder.index');
+Route::post('/npc-builder/preview', [NpcBuilderController::class, 'preview'])->name('npc-builder.preview');
 
 require __DIR__.'/auth.php';

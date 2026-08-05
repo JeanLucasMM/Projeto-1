@@ -1,4 +1,4 @@
-<nav class="space-y-1.5 px-2 w-full">
+<nav class="space-y-1.4 px-1 w-full">
 
     {{-- Item: Dashboard --}}
     <x-sidebar.item :href="route('dashboard')" :active="request()->routeIs('dashboard')">
@@ -13,6 +13,23 @@
             </svg>
             <span x-show="isExpanded" x-cloak x-transition.opacity.duration.150ms class="whitespace-nowrap">
                 Dashboard
+            </span>
+        </div>
+    </x-sidebar.item>
+
+    {{-- Item: Construtor de NPC --}}
+    <x-sidebar.item :href="route('npc-builder.index')" :active="request()->routeIs('npc-builder.*')">
+        @php $active = request()->routeIs('npc-builder.*'); @endphp
+        <div 
+            class="flex items-center w-full h-9 rounded-xl transition-all duration-200 group font-serif text-[11px] font-bold uppercase tracking-widest {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}"
+            :class="isExpanded ? 'justify-start px-2.5 gap-2.5' : 'justify-center px-0'"
+            title="Construtor de NPC"
+        >
+            <svg class="w-4 h-4 flex-shrink-0 transition-transform duration-200 group-hover:scale-105 {{ $active ? 'text-[#f4f1e8]' : 'text-[#8c6239]/70 group-hover:text-[#6b1d14]' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+            <span x-show="isExpanded" x-cloak x-transition.opacity.duration.150ms class="whitespace-nowrap">
+                Construtor de NPC
             </span>
         </div>
     </x-sidebar.item>

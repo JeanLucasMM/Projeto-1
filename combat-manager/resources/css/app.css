@@ -32,9 +32,9 @@
    STATBLOCK (CONTAINER PRINCIPAL)
 ========================================================== */
 .statblock {
-  max-width: 1100px;
-  margin: 10px auto;
-  padding: 16px 20px;
+  max-width: 1160px;
+  margin:  auto;
+  padding: 12px 12px;
   background: var(--stat-bg);
   color: var(--stat-text);
   border: 2px solid var(--stat-primary);
@@ -42,7 +42,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
   /* Sistema de Scroll Interno */
-  max-height: 89.3vh;
+  max-height: 84.5vh;
   overflow-y: auto;
 
   /* Scrollbar - Firefox */
@@ -208,7 +208,7 @@
 .section {
   display: block;
   width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 
 .multiattack {

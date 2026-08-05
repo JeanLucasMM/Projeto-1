@@ -1,31 +1,46 @@
 <x-app-layout>
 
-    <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            {{ $npc->header->name }}
-        </h2>
-    </x-slot>
+    <div class="max-w-7xl mx-auto px-4 py-4">
 
-    <div class="statblock">
+        {{-- Botão Voltar --}}
+        <a
+            href="{{ route('npcs.index') }}"
+            class="inline-flex items-center gap-2 mb-6 text-xs font-serif font-bold uppercase tracking-wider text-[#6b1d14] hover:text-[#53150f] bg-white/60 hover:bg-white border border-[#cdbb9f]/40 px-3.5 py-2 rounded-xl shadow-sm transition-all"
+        >
 
-        {{-- A div de fluxo foi movida para cá, abraçando todo o conteúdo --}}
-        <div class="content-flow">
+            <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2.5"
+                    d="M15 19l-7-7 7-7"
+                />
+            </svg>
 
-            <x-statblock.header :npc="$npc"/>
+            Voltar
 
-            <x-statblock.abilities :npc="$npc"/>
+        </a>
 
-            <x-statblock.details :npc="$npc"/>
+        <x-slot name="header">
 
-            <hr class="stat-divider">
+            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
 
-            @foreach($npc->sections as $section)
+                {{ $npc->header->name }}
 
-                <x-statblock.section :section="$section"/>
+            </h2>
 
-            @endforeach
+        </x-slot>
 
-        </div> {{-- Fechamento da div content-flow modificado para cá --}}
+        @include('statblock.sheet', [
+
+            'npc' => $npc
+
+        ])
 
     </div>
 

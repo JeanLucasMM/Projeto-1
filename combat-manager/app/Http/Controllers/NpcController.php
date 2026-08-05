@@ -133,4 +133,14 @@ public function removeFromFolder(Npc $npc)
         'NPC removido da pasta.'
     );
 }
+public function toggleDeceased(Npc $npc)
+{
+    $npc->deceased_at = $npc->deceased_at ? null : now();
+    $npc->save();
+
+    return response()->json([
+        'is_deceased' => !is_null($npc->deceased_at),
+        'deceased_at' => $npc->deceased_at ? $npc->deceased_at->format('d/m/Y') : null,
+    ]);
+}
 }

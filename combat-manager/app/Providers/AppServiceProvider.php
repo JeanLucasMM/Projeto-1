@@ -13,6 +13,7 @@ use App\Repositories\Contracts\CombatPlayerRepositoryInterface;
 use App\Repositories\Eloquent\CombatPlayerRepository;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use App\Repositories\Eloquent\FolderRepository;
+use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,12 +50,14 @@ class AppServiceProvider extends ServiceProvider
         
     }
 
+    
 
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
-    {
-        //
-    }
+
+public function boot(): void
+{
+    Blade::anonymousComponentPath(
+        resource_path('views/npc-builder/components'),
+        'builder'
+    );
+}
 }

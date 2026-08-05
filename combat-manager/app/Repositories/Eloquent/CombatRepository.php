@@ -21,6 +21,9 @@ class CombatRepository implements CombatRepositoryInterface
     public function findByUser(int $userId): Collection
     {
         return Combat::where('user_id', $userId)
+            ->with([
+                'npcs.npc'
+            ])
             ->orderByDesc('created_at')
             ->get();
     }

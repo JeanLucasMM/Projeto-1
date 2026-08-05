@@ -89,6 +89,7 @@
                     $maxUses = 0;
                     $trackerLabel = '';
 
+                    // 1. Padrão com Underline: "Título ___ 3/Dia" ou "Título ___ /3"
                     if (preg_match('/^(.*?)_{3,}\s*(.*)$/', $rawTitle, $matches)) {
                         $titleName = rtrim($matches[1]);
                         $usageText = trim($matches[2], "() :."); 
@@ -112,6 +113,19 @@
                                 $cleanTitle = $titleName;
                             }
                         }
+                    } 
+                    // 2. Padrão com Barra ou Parênteses no Título: "Título /3", "Título (3/Dia)", "Título 3/Dia"
+                    elseif (preg_match('/^(.*?)(?:\s*\(\s*|\s+)(?:(\d+)\/)?\/(\d+)\s*([a-zA-Zà-úÀ-Ú\s]*)\)?$/iu', $rawTitle, $matches)) {
+                        $cleanTitle = rtrim($matches[1], " (");
+                        $maxUses = intval($matches[3]);
+                        $trackerLabel = trim($matches[4]);
+                        $isTracker = $maxUses > 0;
+                    } 
+                    elseif (preg_match('/^(.*?)(?:\s*\(\s*|\s+)(\d+)\/([a-zA-Zà-úÀ-Ú\s]*)\)?$/iu', $rawTitle, $matches)) {
+                        $cleanTitle = rtrim($matches[1], " (");
+                        $maxUses = intval($matches[2]);
+                        $trackerLabel = trim($matches[3]);
+                        $isTracker = $maxUses > 0;
                     }
 
                     $currentUses = $combatNpc->getResource($cleanTitle, $maxUses);
@@ -162,10 +176,10 @@
                     </strong>
                     <span class="text-black/90">
                     @include('combats.components.npc.trackers.resource-parser', [
-                    'text' => $item->text,
-                    'combatNpc' => $combatNpc,
-                     'resourcePrefix' => $cleanTitle,
-                        ])
+                        'text' => $item->text,
+                        'combatNpc' => $combatNpc,
+                        'resourcePrefix' => $cleanTitle,
+                    ])
                     </span>
                 </div>
             @endforeach
