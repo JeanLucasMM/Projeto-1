@@ -1,5 +1,6 @@
 <x-app-layout>
-    <style>
+   <style>
+        
         .builder-scope {
             background-color: #efe9dc;
             background-image: radial-gradient(circle at center, rgba(239, 233, 220, 0.8) 0%, rgba(220, 210, 190, 0.9) 100%);
@@ -34,16 +35,13 @@
     >
         {{-- Botão Flutuante de Salvar --}}
         <div class="fixed bottom-6 right-6 z-50">
-            <button
-                type="submit"
-                form="npc-form"
-                class="btn-glow px-6 py-3 rounded-xl bg-gradient-to-r from-[#6b1d14] via-[#8a2519] to-[#6b1d14] hover:from-[#53150f] hover:to-[#6b1d14] text-[#f4f1e8] font-black text-[11px] uppercase tracking-widest shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex items-center gap-2 border border-[#d6a56c]/50 cursor-pointer"
-            >
-                <svg class="w-4 h-4 text-[#d6a56c]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
-                </svg>
-                Salvar Ficha
-            </button>
+<button
+    type="button"
+    @click="downloadNpc()"
+    class="px-4 py-2 rounded-lg bg-[#6b1d14] text-white font-bold hover:bg-[#53150f] transition"
+>
+    Exportar NPC
+</button>
         </div>
 
         <div class="flex-1 max-w-[1800px] w-full mx-auto px-4 lg:px-6 py-5 overflow-hidden">

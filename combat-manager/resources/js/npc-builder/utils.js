@@ -120,9 +120,10 @@ export default {
         return mod >= 0 ? `+${mod}` : `${mod}`;
     },
 
-
-    cleanContent(html) {
+cleanContent(html) {
     if (!html) return '';
-    return html.replace(/^<p[^>]*>/, '').replace(/<\/p>$/, '');
+    return html.trim()
+        .replace(/^\s*<p[^>]*>/i, '')
+        .replace(/<\/p>\s*$/i, '');
 },
 };

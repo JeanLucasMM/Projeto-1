@@ -17,6 +17,8 @@ class NpcViewModel
      * @param SkillData[] $skills
      * @param SectionData[] $sections
      */
+
+    public string $type = 'legacy';
     public function __construct(
 
         public HeaderData $header,

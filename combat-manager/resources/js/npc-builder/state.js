@@ -118,6 +118,8 @@ export function createNpcState(dictionaries = {}) {
 
         multiAttacks: [],
 
+        lairActions: [],
+
         challengeRatings: {
             '0':   { proficiency: 2, xp: 10 },
             '1/8': { proficiency: 2, xp: 25 },

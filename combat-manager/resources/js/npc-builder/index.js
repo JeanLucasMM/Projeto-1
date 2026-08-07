@@ -1,8 +1,10 @@
 import { createNpcState } from './state';
+
 import utils from './utils';
 import combat from './combat';
 import entries from './entries';
 import attacks from './attacks';
+import exportModule from './export';
 
 function mergeModules(...modules) {
     const target = {};
@@ -24,7 +26,15 @@ function mergeModules(...modules) {
 
 export default function npcBuilder(initialData, dictionaries = {}) {
     const state = createNpcState(dictionaries);
-    const builder = mergeModules(state, utils, entries, attacks, combat);
+
+    const builder = mergeModules(
+        state,
+        utils,
+        entries,
+        attacks,
+        combat,
+        exportModule
+    );
 
     builder.init = function init() {
         if (initialData) {
@@ -47,6 +57,7 @@ export default function npcBuilder(initialData, dictionaries = {}) {
             this.reactions = this.normalizeEntryCollection(initialData.reactions ?? []);
             this.legendaryActions = this.normalizeEntryCollection(initialData.legendaryActions ?? []);
             this.mythicActions = this.normalizeEntryCollection(initialData.mythicActions ?? []);
+            this.lairActions = this.normalizeEntryCollection(initialData.lairActions ?? []);
             this.attacks = this.normalizeAttackCollection(initialData.attacks ?? []);
         }
 
@@ -91,6 +102,7 @@ export default function npcBuilder(initialData, dictionaries = {}) {
         this.reactions = this.normalizeEntryCollection(this.reactions);
         this.legendaryActions = this.normalizeEntryCollection(this.legendaryActions);
         this.mythicActions = this.normalizeEntryCollection(this.mythicActions);
+        this.lairActions = this.normalizeEntryCollection(this.lairActions);
         this.attacks = this.normalizeAttackCollection(this.attacks);
 
         this.$nextTick(() => {

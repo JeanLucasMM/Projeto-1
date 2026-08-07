@@ -6,11 +6,11 @@ use App\Http\Requests\ImportNpcRequest;
 use App\Services\ImportNpcService;
 use App\Services\NpcService;
 use Illuminate\Support\Facades\Auth;
-use App\Services\Interpreters\NpcInterpreter;
 use App\Factories\NpcViewModelFactory;
 use App\Services\FolderService;
 use Illuminate\Http\Request;
 use App\Models\Npc;
+use App\Builders\Importers\Native\NativeNpcImportService;
 
 class NpcController extends Controller
 {
@@ -19,6 +19,7 @@ class NpcController extends Controller
         private NpcService $npcService,
         private NpcViewModelFactory $viewModelFactory,
         private FolderService $folderService,
+        private NativeNpcImportService $nativeImporter,
 ) {}
 
 
@@ -69,16 +70,56 @@ public function import(ImportNpcRequest $request)
 
     $image = $request->file('npc_image');
 
-    $this->importService->import(
-        Auth::user(),
-        file_get_contents($file->getRealPath()),
-        $image
-        
+
+    $content = file_get_contents(
+        $file->getRealPath()
     );
+
+
+    $json = json_decode(
+        $content,
+        true
+    );
+
+
+    if (!$json) {
+        throw new \Exception(
+            'JSON inválido.'
+        );
+    }
+
+
+
+    if (
+        ($json['format'] ?? null)
+        === 'npc-builder'
+    ) {
+
+        $this->nativeImporter->import(
+            Auth::user(),
+            $json
+        );
+
+
+    } else {
+
+
+        $this->importService->import(
+            Auth::user(),
+            $content,
+            $image
+        );
+
+    }
+
+
 
     return redirect()
         ->route('npcs.index')
-        ->with('success', 'NPC importado com sucesso!');
+        ->with(
+            'success',
+            'NPC importado com sucesso!'
+        );
 }
 
 public function show(int $id)

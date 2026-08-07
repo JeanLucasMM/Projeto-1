@@ -52,6 +52,17 @@ createEntry(overrides = {}) {
 
         type: 'normal',
 
+        legendary: {
+            enabled: false,
+            totalActions: 3,
+            intro:'possui Três (3) Ações Lendárias e pode usar uma delas ao final do turno de outra criatura.',
+        },
+
+        lair: {
+            enabled: false,
+            intro: 'No valor de iniciativa 20 (perdendo empates de iniciativa), a criatura executa uma ação de covil para gerar um dos seguintes efeitos:',
+        },
+
         tracker: this.createTracker(),
 
         spellcasting: {
@@ -99,6 +110,23 @@ normalizeEntry(entry = {}) {
             entry.type ??
             'normal',
 
+        legendary: {
+            enabled: Boolean(entry.legendary?.enabled ?? false),
+
+        totalActions: Number(
+            entry.legendary?.totalActions ?? 3),
+
+        intro:
+            entry.legendary?.intro ??
+            'possui Três (3) Ações Lendárias e pode usar uma delas ao final do turno de outra criatura.',
+            },
+
+
+        lair: {
+            enabled: Boolean(entry.lair?.enabled ?? false),
+            intro: entry.lair?.intro ??
+                'No valor de iniciativa 20 (perdendo empates de iniciativa), a criatura executa uma ação de covil para gerar um dos seguintes efeitos:',
+        },
 
         tracker:
             this.normalizeTracker(entry.tracker ?? {}),
@@ -242,6 +270,18 @@ normalizeEntry(entry = {}) {
         });
     },
 
+    addLairAction() {
+    this.addEntry('lairActions');
+},
+
+removeLairAction(index) {
+    this.removeEntry('lairActions', index);
+},
+
+moveLairAction(from, to) {
+    this.moveEntry('lairActions', from, to);
+},
+
     removeEntry(collection, index) {
         const item = this[collection]?.[index];
 
@@ -364,6 +404,44 @@ getSpellDC(entry) {
 getSpellcastingDescription(entry){
 
     return `${this.header.name} é um conjurador de ${entry.spellcasting.casterLevel}º Nível, usando ${this.getSpellcastingAbility(entry)} como canalização. (+${this.getSpellAttack(entry)} Acerto, CD ${this.getSpellDC(entry)})`;
+
+},
+
+getLegendaryIntro(entry) {
+
+    const nome =
+        this.header?.name || 'A criatura';
+
+    const quantidade =
+        Number(entry.legendary.totalActions || 3);
+
+    const extenso =
+        this.numberToWords(quantidade);
+
+    const texto =
+        entry.legendary.intro ||
+        'e pode usar uma delas ao final do turno de outra criatura.';
+
+    return `${nome} possui ${extenso} (${quantidade}) Ações Lendárias ${texto}`;
+
+},
+
+numberToWords(value) {
+
+    const words = {
+        1:'Um',
+        2:'Dois',
+        3:'Três',
+        4:'Quatro',
+        5:'Cinco',
+        6:'Seis',
+        7:'Sete',
+        8:'Oito',
+        9:'Nove',
+        10:'Dez',
+    };
+
+    return words[value] ?? value;
 
 },
 

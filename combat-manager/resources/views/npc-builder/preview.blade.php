@@ -154,8 +154,8 @@
             </div>
         </template>
 
-        {{-- AÇÕES E MULTIATAQUES (Agrupados na mesma seção "Ações") --}}
-        <template x-if="(actions && actions.length > 0) || (multiAttacks && multiAttacks.length > 0)">
+        {{-- AÇÕES, ATAQUES E MULTIATAQUES (Agrupados) --}}
+        <template x-if="(actions && actions.length > 0) || (multiAttacks && multiAttacks.length > 0) || (attacks && attacks.length > 0)">
             <div>
                 <svg class="w-full h-1 my-3 text-[#8a2519]" preserveAspectRatio="none" viewBox="0 0 100 10" fill="currentColor">
                     <polygon points="0,0 100,0 100,10 0,10 5,5"/>
@@ -163,7 +163,7 @@
                 <div class="text-[11px] font-bold text-[#6b1d14] uppercase tracking-wider mb-2">Ações</div>
                 <div class="text-[#53150f] space-y-3">
                     
-                    {{-- 1. Multiataques Primeiro --}}
+                    {{-- 1. Multiataques --}}
                     <template x-if="multiAttacks && multiAttacks.length > 0">
                         <div>
                             <template x-for="ma in multiAttacks" :key="ma.id">
@@ -177,7 +177,16 @@
                         </div>
                     </template>
 
-                    {{-- 2. Ações Normais e Conjurações --}}
+                    {{-- 2. Ataques Estruturados --}}
+                    <template x-if="attacks && attacks.length > 0">
+                        <div class="space-y-2.5">
+                            <template x-for="attack in attacks" :key="attack.id">
+                                <div class="text-[11px] leading-relaxed" x-html="attackPreview(attack)"></div>
+                            </template>
+                        </div>
+                    </template>
+
+                    {{-- 3. Ações Normais e Conjurações --}}
                     <template x-if="actions && actions.length > 0">
                         <div>
                             <template x-for="action in actions" :key="action.id">
@@ -226,20 +235,165 @@
             </div>
         </template>
 
-        {{-- SEÇÃO DE ATAQUES NA FICHA --}}
-        <template x-if="attacks && attacks.length > 0">
+        {{-- SEÇÃO DE AÇÕES BÔNUS NA FICHA --}}
+        <template x-if="bonusActions && bonusActions.length > 0">
             <div>
                 <svg class="w-full h-1 my-3 text-[#8a2519]" preserveAspectRatio="none" viewBox="0 0 100 10" fill="currentColor">
                     <polygon points="0,0 100,0 100,10 0,10 5,5"/>
                 </svg>
-                <div class="text-[11px] font-bold text-[#6b1d14] uppercase tracking-wider mb-2">Ataques Estruturados</div>
-                <div class="text-[#8a2519] space-y-2.5">
-                    <template x-for="attack in attacks" :key="attack.id">
-                        <div class="text-[11px] leading-relaxed" x-html="attackPreview(attack)"></div>
+                <div class="text-[11px] font-bold text-[#6b1d14] uppercase tracking-wider mb-2">Ações Bônus</div>
+                <div class="text-[#53150f] space-y-3">
+                    <template x-for="action in bonusActions" :key="action.id">
+                        <div class="text-[11px] leading-relaxed mb-2">
+                            <strong class="font-bold text-[#6b1d14] italic pr-1" x-text="action.title ? action.title + '.' : ''"></strong>
+
+                            <template x-if="action.tracker && action.tracker.enabled">
+                                <span>
+                                    <template x-if="action.tracker.reset === 'recharge'">
+                                        <span class="font-bold text-[#6b1d14] mr-1">
+                                            (Recarga <span x-text="action.tracker.min"></span><span x-show="action.tracker.max && action.tracker.max !== action.tracker.min" x-text="'-' + action.tracker.max"></span>).
+                                        </span>
+                                    </template>
+                                    <template x-if="action.tracker.reset !== 'recharge'">
+                                        <span class="font-bold text-[#6b1d14] mr-1"
+                                              x-text="`(${action.tracker.uses || 1}/${(!action.tracker.reset || action.tracker.reset === 'none') ? (action.tracker.uses || 1) : (action.tracker.reset === 'custom' ? (action.tracker.customReset || 'Personalizado') : trackerResetLabel(action.tracker.reset))}).`">
+                                        </span>
+                                    </template>
+                                </span>
+                            </template>
+
+                            {{-- Detalhes se for Conjuração de Magia --}}
+                            <template x-if="action.type === 'spellcasting' && action.spellcasting">
+                                <span class="font-semibold" x-text="getSpellcastingDescription(action)"></span>
+                            </template>
+
+                            {{-- Conteúdo limpo encapsulado em span inline --}}
+                            <span x-html="cleanContent(action.content)"></span>
+
+                            {{-- Lista de magias isolada do fluxo inline --}}
+                            <template x-if="action.type === 'spellcasting' && action.spellcasting && action.spellcasting.slots && action.spellcasting.slots.length">
+                                <ul class="pl-2 mt-1 space-y-0.5 block">
+                                    <template x-for="slot in action.spellcasting.slots" :key="slot.id || slot.level">
+                                        <li class="text-[10.5px]">
+                                            <span class="font-bold text-[#6b1d14]" x-text="spellSlotLabel(slot) + ': '"></span>
+                                            <span class="italic" x-text="slot.spells || 'Nenhuma magia.'"></span>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </template>
+                        </div>
                     </template>
                 </div>
             </div>
         </template>
 
+        {{-- SEÇÃO DE REAÇÕES NA FICHA --}}
+        <template x-if="reactions && reactions.length > 0">
+            <div>
+                <svg class="w-full h-1 my-3 text-[#8a2519]" preserveAspectRatio="none" viewBox="0 0 100 10" fill="currentColor">
+                    <polygon points="0,0 100,0 100,10 0,10 5,5"/>
+                </svg>
+                <div class="text-[11px] font-bold text-[#6b1d14] uppercase tracking-wider mb-2">Reações</div>
+                <div class="text-[#53150f] space-y-2.5">
+                    <template x-for="reaction in reactions" :key="reaction.id">
+                        <div class="text-[11px] leading-relaxed">
+                            <strong class="font-bold text-[#6b1d14] italic pr-1" x-text="reaction.title ? reaction.title + '.' : ''"></strong>
+
+                            <template x-if="reaction.tracker && reaction.tracker.enabled">
+                                <span>
+                                    <template x-if="reaction.tracker.reset === 'recharge'">
+                                        <span class="font-bold text-[#6b1d14] mr-1">
+                                            (Recarga <span x-text="reaction.tracker.min"></span><span x-show="reaction.tracker.max && reaction.tracker.max !== reaction.tracker.min" x-text="'-' + reaction.tracker.max"></span>).
+                                        </span>
+                                    </template>
+                                    <template x-if="reaction.tracker.reset !== 'recharge'">
+                                        <span class="font-bold text-[#6b1d14] mr-1"
+                                              x-text="`(${reaction.tracker.uses || 1}/${(!reaction.tracker.reset || reaction.tracker.reset === 'none') ? (reaction.tracker.uses || 1) : (reaction.tracker.reset === 'custom' ? (reaction.tracker.customReset || 'Personalizado') : trackerResetLabel(reaction.tracker.reset))}).`">
+                                        </span>
+                                    </template>
+                                </span>
+                            </template>
+
+                            <span class="inline" x-html="cleanContent(reaction.content)"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </template>
+
+        {{-- SEÇÃO DE AÇÕES LENDÁRIAS NA FICHA --}}
+        <template x-if="legendaryActions && legendaryActions.length > 0">
+            <div>
+                <svg class="w-full h-1 my-3 text-[#8a2519]" preserveAspectRatio="none" viewBox="0 0 100 10" fill="currentColor">
+                    <polygon points="0,0 100,0 100,10 0,10 5,5"/>
+                </svg>
+                
+                {{-- Título da Seção --}}
+                <div class="text-[11px] font-bold text-[#6b1d14] uppercase tracking-wider mb-1">Ações Lendárias</div>
+                
+                {{-- Texto Introdutório Dinâmico --}}
+                <div class="text-[11px] italic text-[#53150f] mb-2 leading-relaxed" x-text="getLegendaryIntro(legendaryActions[0])"></div>
+
+                <div class="text-[#53150f] space-y-3">
+                    <template x-for="action in legendaryActions" :key="action.id">
+                        <div class="text-[11px] leading-relaxed mb-2">
+                            <strong class="font-bold text-[#6b1d14] italic pr-1" x-text="action.title ? action.title + '.' : ''"></strong>
+
+                            {{-- Custo da Ação Lendária (ex: (Custa 2 Ações)) --}}
+                            <template x-if="action.cost && action.cost > 1">
+                                <span class="font-bold text-[#6b1d14] mr-1" x-text="`(Custa ${action.cost} Ações).`"></span>
+                            </template>
+
+                            {{-- Rastreador (Tracker) --}}
+                            <template x-if="action.tracker && action.tracker.enabled">
+                                <span>
+                                    <template x-if="action.tracker.reset === 'recharge'">
+                                        <span class="font-bold text-[#6b1d14] mr-1">
+                                            (Recarga <span x-text="action.tracker.min"></span><span x-show="action.tracker.max && action.tracker.max !== action.tracker.min" x-text="'-' + action.tracker.max"></span>).
+                                        </span>
+                                    </template>
+                                    <template x-if="action.tracker.reset !== 'recharge'">
+                                        <span class="font-bold text-[#6b1d14] mr-1"
+                                              x-text="`(${action.tracker.uses || 1}/${(!action.tracker.reset || action.tracker.reset === 'none') ? (action.tracker.uses || 1) : (action.tracker.reset === 'custom' ? (action.tracker.customReset || 'Personalizado') : trackerResetLabel(action.tracker.reset))}).`">
+                                        </span>
+                                    </template>
+                                </span>
+                            </template>
+
+                            {{-- Conteúdo limpo da Ação Lendária --}}
+                            <span class="inline" x-html="cleanContent(action.content)"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+        </template>
+
+        {{-- SEÇÃO DE AÇÕES DE COVIL NA FICHA --}}
+<template x-if="lairActions && lairActions.length > 0">
+    <div>
+        <svg class="w-full h-1 my-3 text-[#8a2519]" preserveAspectRatio="none" viewBox="0 0 100 10" fill="currentColor">
+            <polygon points="0,0 100,0 100,10 0,10 5,5"/>
+        </svg>
+        
+        <div class="text-[11px] font-bold text-[#6b1d14] uppercase tracking-wider mb-1">Ações de Covil</div>
+        
+        <div class="text-[11px] italic text-[#53150f] mb-2 leading-relaxed" 
+             x-text="lairActions[0]?.lair?.intro || 'No valor de iniciativa 20 (perdendo empates de iniciativa), a criatura executa uma ação de covil para gerar um dos seguintes efeitos:'">
+        </div>
+
+        <div class="text-[#53150f] space-y-3">
+            <template x-for="action in lairActions" :key="action.id">
+                <div class="text-[11px] leading-relaxed mb-2">
+                    <strong class="font-bold text-[#6b1d14] italic pr-1" x-text="action.title ? action.title + '.' : ''"></strong>
+                    <span class="inline" x-html="cleanContent(action.content)"></span>
+                </div>
+            </template>
+        </div>
     </div>
+</template>
+
+    </div>
+
+    
 </div>
