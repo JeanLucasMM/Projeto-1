@@ -1,7 +1,6 @@
 @once
     @push('styles')
         <style>
-
 @keyframes damage-hit{
     0%{
         transform:translate3d(0,0,0) scale(1);
@@ -192,16 +191,184 @@
     @endpush
 @endonce
 
+@php
+    use App\Support\Dictionaries\AbilityNames;
+    use App\Support\Dictionaries\Alignments;
+    use App\Support\Dictionaries\Conditions;
+    use App\Support\Dictionaries\DamageTypes;
+    use App\Support\Dictionaries\Languages;
+    use App\Support\Dictionaries\NpcSizes;
+    use App\Support\Dictionaries\NpcTypes;
+    use App\Support\Dictionaries\Senses;
+    use App\Support\Dictionaries\SkillNames;
+
+    $header = $combatNpc->viewModel->header ?? null;
+    $combatData = $combatNpc->viewModel->combat ?? null;
+
+    $npcModel = $combatNpc->npc ?? null;
+    $json = $npcModel ? ($npcModel->json_data ?? []) : [];
+    $isBuilder = ($json['format'] ?? null) === 'npc-builder';
+
+    // === LÓGICA DE INTERPRETAÇÃO DE VIDA (HP) PARA OS DOIS FORMATOS ===
+    $maxHp = (int) ($combatNpc->max_hp ?? 0);
+    $tempHp = (int) ($combatNpc->temporary_hp ?? 0);
+
+    if ($isBuilder) {
+        $builderCombat = $json['combat'] ?? [];
+        $hpMode = $builderCombat['hp_mode'] ?? 'average';
+        
+        if ($hpMode === 'custom' && isset($builderCombat['custom_hp'])) {
+            $maxHp = (int) $builderCombat['custom_hp'];
+        } else {
+            $hdCount = (int) ($builderCombat['hit_dice_count'] ?? 1);
+            $hdFace = (int) str_replace('d', '', $builderCombat['hit_die'] ?? '8');
+            $hpExtra = (int) ($builderCombat['hp_mod_extra'] ?? 0);
+            
+            $conScore = (int) ($json['abilities']['con'] ?? 10);
+            $conMod = floor(($conScore - 10) / 2);
+            
+            $avgPerDie = match($hdFace) {
+                4 => 2.5,
+                6 => 3.5,
+                8 => 4.5,
+                10 => 5.5,
+                12 => 6.5,
+                20 => 10.5,
+                default => ($hdFace / 2) + 0.5
+            };
+
+            $maxHp = (int) floor(($hdCount * $avgPerDie) + ($hdCount * $conMod) + $hpExtra);
+            if ($maxHp < 1) $maxHp = 1;
+        }
+    } else {
+        // Formato 5emm / Padrão
+        if ($maxHp <= 1 && isset($header->hitPoints)) {
+            $maxHp = (int) $header->hitPoints;
+        } elseif ($maxHp <= 1 && isset($combatData->hp)) {
+            $maxHp = (int) $combatData->hp;
+        }
+        if ($maxHp <= 1) {
+            $maxHp = 10; // Fallback seguro
+        }
+    }
+
+    // Respeita o current_hp salvo no banco, sem forçar reset se estiver baixo ou 0
+    $currentHp = isset($combatNpc->current_hp) ? (int) $combatNpc->current_hp : $maxHp;
+    // =================================================================
+
+    // Nome
+    $npcName = $header->name ?? $npcModel->name ?? 'Desconhecido';
+
+    // Tamanho (Traduzido via Dicionário)
+    $rawSize = $header->size ?? ($json['header']['size'] ?? '');
+    $npcSize = NpcSizes::label($rawSize);
+
+    // Tipos (Traduzido via Dicionário, suporta string ou array)
+    $rawTypes = $header->type ?? $header->types ?? ($json['header']['types'] ?? '');
+    if (is_array($rawTypes)) {
+        $npcTypes = collect($rawTypes)->map(fn($t) => NpcTypes::label($t))->implode(', ');
+    } else {
+        $npcTypes = NpcTypes::label($rawTypes);
+    }
+
+    // Classe de Armadura
+    $npcAc = $header->armorClass ?? ($npcModel->calculated_ac ?? ($json['combat']['ac_base'] ?? 10));
+
+    // Proficiência baseada no CR para cálculo de iniciativa do Builder
+    $crStr = $json['header']['challengeRating'] ?? ($header->challengeRating ?? '1');
+    $crNum = 1;
+    if (strpos($crStr, '/') !== false) {
+        $parts = explode('/', $crStr);
+        $crNum = intval($parts[0]) / max(1, intval($parts[1]));
+    } else {
+        $crNum = floatval($crStr);
+    }
+    $profBonus = 2;
+    if ($crNum >= 17) $profBonus = 6;
+    elseif ($crNum >= 13) $profBonus = 5;
+    elseif ($crNum >= 9) $profBonus = 4;
+    elseif ($crNum >= 5) $profBonus = 3;
+    else $profBonus = 2;
+
+    // Deslocamento
+    $npcSpeed = '-';
+    if ($isBuilder && isset($json['speed'])) {
+        $speedArr = $json['speed'];
+        $speedsFormatted = [];
+
+        if (!empty($speedArr['walk']) && $speedArr['walk'] > 0) {
+            $speedsFormatted[] = "{$speedArr['walk']} ft";
+        }
+        if (!empty($speedArr['climb']) && $speedArr['climb'] > 0) {
+            $speedsFormatted[] = "escalada {$speedArr['climb']} ft";
+        }
+        if (!empty($speedArr['swim']) && $speedArr['swim'] > 0) {
+            $speedsFormatted[] = "natação {$speedArr['swim']} ft";
+        }
+        if (!empty($speedArr['fly']) && $speedArr['fly'] > 0) {
+            $hoverText = !empty($speedArr['hover']) ? ' (hover)' : '';
+            $speedsFormatted[] = "voo {$speedArr['fly']} ft{$hoverText}";
+        }
+        if (!empty($speedArr['burrow']) && $speedArr['burrow'] > 0) {
+            $speedsFormatted[] = "escavação {$speedArr['burrow']} ft";
+        }
+
+        $npcSpeed = count($speedsFormatted) > 0 ? implode(', ', $speedsFormatted) : '0 ft';
+    } elseif (isset($combatData->speed)) {
+        $npcSpeed = is_object($combatData->speed) && isset($combatData->speed->walk) 
+            ? "{$combatData->speed->walk} ft" 
+            : $combatData->speed;
+    } elseif ($npcModel) {
+        $npcSpeed = '30 ft';
+    }
+
+    // Reconhecer e calcular Iniciativa corretamente
+    $npcInitiative = null;
+    if ($isBuilder) {
+        $rawAbilities = $json['abilities'] ?? [];
+        $dexVal = $rawAbilities['dex'] ?? 10;
+        $dexMod = floor(($dexVal - 10) / 2);
+        
+        $skillsData = $json['skills'] ?? [];
+        $initSkill = collect($skillsData)->first(function($s) {
+            return in_array(strtolower($s['key'] ?? ''), ['initiative', 'iniciativa']);
+        });
+
+        $initBonus = $dexMod;
+        if ($initSkill) {
+            if (!empty($initSkill['expertise'])) {
+                $initBonus += ($profBonus * 2);
+            } elseif (!empty($initSkill['proficient']) || !empty($initSkill['enabled'])) {
+                $initBonus += $profBonus;
+            }
+            $initBonus += ($initSkill['bonus'] ?? 0);
+        }
+        $npcInitiative = ($initBonus >= 0 ? '+' : '') . $initBonus;
+    } else {
+        $npcInitiative = $combatNpc->viewModel->combat->initiative ?? null;
+        if (!$npcInitiative && isset($combatNpc->viewModel->skills)) {
+            $initSkillVm = collect($combatNpc->viewModel->skills)->first(function($s) {
+                $name = strtolower(is_array($s) ? ($s['name'] ?? '') : ($s->name ?? ''));
+                return in_array($name, ['initiative', 'iniciativa']);
+            });
+            if ($initSkillVm) {
+                $val = is_array($initSkillVm) ? ($initSkillVm['value'] ?? 0) : ($initSkillVm->value ?? 0);
+                $npcInitiative = ($val >= 0 ? '+' : '') . $val;
+            }
+        }
+    }
+@endphp
+
 <div
     x-data="{
         editingHp: false,
-        currentHp: {{ $combatNpc->current_hp }},
-        ghostHp: {{ $combatNpc->current_hp }},
-        maxHp: {{ $combatNpc->max_hp }},
-        directHp: {{ $combatNpc->current_hp }},
+        currentHp: {{ $currentHp }},
+        ghostHp: {{ $currentHp }},
+        maxHp: {{ $maxHp }},
+        directHp: {{ $currentHp }},
         
         editingTempHp: false,
-        directTempHp: {{ $combatNpc->temporary_hp }},
+        directTempHp: {{ $tempHp }},
         
         shakingRed: false,
         shakingBlue: false,
@@ -319,8 +486,8 @@
     class="bg-[#faf8f2] border border-[#cdbb9f]/60 rounded-2xl shadow-md overflow-hidden relative transition-all duration-300"
 >
     @php
-        $challengeRating = $combatNpc->viewModel->header->challengeRating ?? $combatNpc->viewModel->header->cr ?? $combatNpc->viewModel->header->nd ?? null;
-        $hasTempHp = $combatNpc->temporary_hp > 0;
+        $challengeRating = $header->challengeRating ?? $header->cr ?? $header->nd ?? null;
+        $hasTempHp = $tempHp > 0;
         $hpBorderClass = $hasTempHp ? 'border border-sky-400/60 ring-1 ring-sky-400/30 shadow-[0_0_8px_rgba(56,189,248,0.25)]' : 'border border-black/40';
     @endphp
 
@@ -342,9 +509,9 @@
                     }"
                     class="w-full h-full rounded-xl overflow-hidden relative z-0"
                 >
-                    @if($combatNpc->npc && $combatNpc->npc->image_path)
+                    @if($npcModel && $npcModel->image_path)
                         <img 
-                            src="{{ asset('storage/'.$combatNpc->npc->image_path) }}" 
+                            src="{{ asset('storage/'.$npcModel->image_path) }}" 
                             :class="{ 'grayscale opacity-60 contrast-125': currentHp === 0 }"
                             class="w-full h-full object-cover object-top transition-all duration-500"
                         >
@@ -353,7 +520,7 @@
                             :class="{ 'grayscale opacity-60': currentHp === 0 }"
                             class="w-full h-full flex items-center justify-center bg-[#efe9dc] text-[#6b1d14] font-serif font-bold text-2xl transition-all duration-500"
                         >
-                            {{ strtoupper(substr($combatNpc->viewModel->header->name, 0, 2)) }}
+                            {{ strtoupper(substr($npcName, 0, 2)) }}
                         </div>
                     @endif
                 </div>
@@ -362,15 +529,15 @@
                 <div class="absolute -top-2 -right-2 bg-white border border-[#cdbb9f] rounded-xl py-1 px-2 shadow-md text-center min-w-[42px] z-20">
                     <span class="block text-[8px] font-extrabold text-stone-400 uppercase tracking-wider leading-none">CA</span>
                     <span class="block text-base font-serif font-bold text-[#6b1d14] leading-none mt-0.5">
-                        {{ $combatNpc->viewModel->header->armorClass ?? 10 }}
+                        {{ $npcAc }}
                     </span>
                 </div>
             </div>
 
             {{-- Tamanho e Tipo --}}
             <div class="text-[9px] font-extrabold tracking-widest text-[#8c6239]/80 uppercase mt-0.5 flex flex-col items-center gap-0.5 w-full">
-                <span>{{ ucfirst($combatNpc->viewModel->header->size) }}</span>
-                <span>{{ ucfirst($combatNpc->viewModel->header->type) }}</span>
+                <span>{{ ucfirst($npcSize) }}</span>
+                <span>{{ ucfirst($npcTypes) }}</span>
             </div>
         </div>
 
@@ -379,7 +546,7 @@
             
             <div class="flex items-center justify-between gap-3">
                 <h2 class="font-serif text-2xl font-bold text-[#6b1d14] tracking-wide leading-tight">
-                    {{ $combatNpc->viewModel->header->name }}
+                    {{ $npcName }}
                 </h2>
             </div>
 
@@ -442,7 +609,7 @@
                         <template x-if="!editingTempHp">
                             <span
                                 @click="
-                                    directTempHp = {{ $combatNpc->temporary_hp }};
+                                    directTempHp = {{ $tempHp }};
                                     editingTempHp = true;
                                     $nextTick(() => {
                                         $refs.tempHp.focus();
@@ -475,28 +642,53 @@
                     </div>
                 </div>
 
-                @if($combatNpc->viewModel->combat->initiative)
-                    <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 bg-[#f5efe6] border border-[#cdbb9f]/60 rounded-xl shadow-xs self-start">
-                        <span class="text-[10px] font-bold text-[#8c6239] uppercase tracking-wider">Iniciativa</span>
-                        <span class="font-serif text-xs font-bold text-[#6b1d14] bg-white px-2 py-0.5 rounded-md border border-[#cdbb9f]/40 shadow-2xs lining-nums">{{ $combatNpc->viewModel->combat->initiative }}</span>
-                    </div>
-                @endif
-
                 {{-- DESLOCAMENTO --}}
                 <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 bg-[#f5efe6] border border-[#cdbb9f]/60 rounded-xl shadow-xs self-start">
                     <div class="flex items-center gap-1.5">
                         <span class="text-[10px] font-bold text-[#8c6239] uppercase tracking-wider">Deslocamento</span>
                         <span class="font-serif text-xs font-bold text-[#6b1d14] bg-white px-2 py-0.5 rounded-md border border-[#cdbb9f]/40 shadow-2xs lining-nums">
-                            {{ $combatNpc->viewModel->combat->speed ?? '-' }}
+                            {{ $npcSpeed }}
                         </span>
                     </div>
                 </div>
+
+                {{-- INICIATIVA --}}
+                @if($npcInitiative)
+                    <div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 bg-[#f5efe6] border border-[#cdbb9f]/60 rounded-xl shadow-xs self-start">
+                        <span class="text-[10px] font-bold text-[#8c6239] uppercase tracking-wider">Iniciativa</span>
+                        <span class="font-serif text-xs font-bold text-[#6b1d14] bg-white px-2 py-0.5 rounded-md border border-[#cdbb9f]/40 shadow-2xs lining-nums">{{ $npcInitiative }}</span>
+                    </div>
+                @endif
             </div>
         </div>
     </div>
 
-    {{-- FICHA EXPANDIDA --}}
+    {{-- FICHA EXPANDIDA (MÉTODO CESTA) --}}
     <div class="border-t border-[#d8c7ab] bg-[#fcfaf6] p-5 w-full">
-        @include('combats.components.npc.npc-sheet')
+        @if($isBuilder)
+            @include('combats.components.npc.npc-native-sheet', [
+                'abilityNames' => AbilityNames::class,
+                'alignments' => Alignments::class,
+                'conditions' => Conditions::class,
+                'damageTypes' => DamageTypes::class,
+                'languages' => Languages::class,
+                'npcSizes' => NpcSizes::class,
+                'npcTypes' => NpcTypes::class,
+                'senses' => Senses::class,
+                'skillNames' => SkillNames::class,
+            ])
+        @else
+            @include('combats.components.npc.npc-sheet', [
+                'abilityNames' => AbilityNames::class,
+                'alignments' => Alignments::class,
+                'conditions' => Conditions::class,
+                'damageTypes' => DamageTypes::class,
+                'languages' => Languages::class,
+                'npcSizes' => NpcSizes::class,
+                'npcTypes' => NpcTypes::class,
+                'senses' => Senses::class,
+                'skillNames' => SkillNames::class,
+            ])
+        @endif
     </div>
 </div>

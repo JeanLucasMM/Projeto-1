@@ -1,5 +1,11 @@
 <x-app-layout>
 
+    <x-slot name="header">
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            {{ $npc->header->name }}
+        </h2>
+    </x-slot>
+
     <div class="max-w-7xl mx-auto px-4 py-4">
 
         {{-- Botão Voltar --}}
@@ -7,7 +13,6 @@
             href="{{ route('npcs.index') }}"
             class="inline-flex items-center gap-2 mb-6 text-xs font-serif font-bold uppercase tracking-wider text-[#6b1d14] hover:text-[#53150f] bg-white/60 hover:bg-white border border-[#cdbb9f]/40 px-3.5 py-2 rounded-xl shadow-sm transition-all"
         >
-
             <svg
                 class="w-4 h-4"
                 fill="none"
@@ -23,24 +28,21 @@
             </svg>
 
             Voltar
-
         </a>
 
-        <x-slot name="header">
+        @if($npc instanceof \App\ViewModels\NativeNpcViewModel)
 
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+            @include('statblock.native.sheet', [
+                'npc' => $npc
+            ])
 
-                {{ $npc->header->name }}
+        @else
 
-            </h2>
+            @include('statblock.sheet', [
+                'npc' => $npc
+            ])
 
-        </x-slot>
-
-        @include('statblock.sheet', [
-
-            'npc' => $npc
-
-        ])
+        @endif
 
     </div>
 

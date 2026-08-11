@@ -132,7 +132,7 @@
             @if($npc->image_path)
                 <img src="{{ asset('storage/'.$npc->image_path) }}" alt="{{ $npc->name }}" class="w-full h-full object-cover">
             @else
-                <span class="text-xl font-serif font-bold text-[#6b1d14] uppercase">{{ str($npc->name)->substr(0,2)->upper() }}</span>
+                <span class="text-xl font-serif font-bold text-[#6b1d14] uppercase npc-initials">{{ str($npc->name)->substr(0,2)->upper() }}</span>
             @endif
         </div>
 
@@ -144,25 +144,25 @@
         </p>
     </div>
 
-    {{-- Bloco de Status --}}
+    {{-- Bloco de Status utilizando diretamente os Accessors do Model --}}
     <div class="my-4 flex items-center justify-between bg-gradient-to-b from-[#f4f1e8] to-[#e8e2d2] border border-[#cdbb9f]/50 px-3 py-2 rounded-xl text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] relative z-0">
         <div class="flex flex-col flex-1">
             <span class="text-[9px] font-serif font-bold text-red-900/80 uppercase tracking-wider">Vida</span>
-            <span class="text-xs font-mono font-bold text-red-700 leading-none mt-1">{{ $npc->max_hp }}</span>
+            <span class="text-xs font-mono font-bold text-red-700 leading-none mt-1">{{ $npc->calculated_hp }}</span>
         </div>
         <div class="w-[1px] h-5 bg-[#cdbb9f]/50 mx-1"></div>
         <div class="flex flex-col flex-1">
             <span class="text-[9px] font-serif font-bold text-blue-900/80 uppercase tracking-wider">CA</span>
-            <span class="text-xs font-mono font-bold text-blue-700 leading-none mt-1">{{ $npc->armor_class }}</span>
+            <span class="text-xs font-mono font-bold text-blue-700 leading-none mt-1">{{ $npc->calculated_ac }}</span>
         </div>
         <div class="w-[1px] h-5 bg-[#cdbb9f]/50 mx-1"></div>
         <div class="flex flex-col flex-1">
             <span class="text-[9px] font-serif font-bold text-amber-900/80 uppercase tracking-wider">ND</span>
-            <span class="text-xs font-mono font-bold text-amber-800 leading-none mt-1">{{ rtrim(rtrim(number_format($npc->challenge_rating, 2, '.', ''), '0'), '.') }}</span>
+            <span class="text-xs font-mono font-bold text-amber-800 leading-none mt-1">{{ rtrim(rtrim(number_format($npc->challenge_rating ?? 0, 2, '.', ''), '0'), '.') }}</span>
         </div>
     </div>
 
-    <a href="{{ route('npcs.show', $npc->id) }}" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#6b1d14] to-[#8a2519] text-[#f4f1e8] text-center font-serif font-bold text-[11px] uppercase tracking-[0.15em] hover:from-[#53150f] hover:to-[#6b1d14] transition-all shadow-md hover:shadow-lg  block mt-auto relative z-0">
+    <a href="{{ route('npcs.show', $npc->id) }}" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#6b1d14] to-[#8a2519] text-[#f4f1e8] text-center font-serif font-bold text-[11px] uppercase tracking-[0.15em] hover:from-[#53150f] hover:to-[#6b1d14] transition-all shadow-md hover:shadow-lg block mt-auto relative z-0">
         Ver Ficha
     </a>
 

@@ -39,26 +39,26 @@ class NativeNpcInterpreter
     }
 
 
-    public function header(array $json): NativeHeaderData
-    {
-        return $this->headerInterpreter->interpret(
-            $json['header'] ?? []
-        );
-    }
+public function header(array $json): NativeHeaderData
+{
+    return $this->headerInterpreter->interpret(
+        $json
+    );
+}
 
 
-    public function combat(array $json): NativeCombatData
-    {
-        return $this->combatInterpreter->interpret(
-            $json['combat'] ?? []
-        );
-    }
+public function combat(array $json): NativeCombatData
+{
+    return $this->combatInterpreter->interpret(
+        $json
+    );
+}
 
 
     public function speed(array $json): NativeSpeedData
     {
         return $this->speedInterpreter->interpret(
-            $json['speed'] ?? []
+            $json
         );
     }
 
@@ -74,7 +74,7 @@ class NativeNpcInterpreter
     public function savingThrows(array $json): NativeSavingThrowData
     {
         return $this->savingThrowInterpreter->interpret(
-            $json['savingThrows'] ?? []
+            $json
         );
     }
 

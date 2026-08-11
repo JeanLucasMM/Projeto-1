@@ -13,6 +13,7 @@ class SkillNames extends BaseDictionary
         'deception' => 'Enganação',
         'history' => 'História',
         'insight' => 'Intuição',
+        'initiative' => 'Iniciativa',
         'intimidation' => 'Intimidação',
         'investigation' => 'Investigação',
         'medicine' => 'Medicina',

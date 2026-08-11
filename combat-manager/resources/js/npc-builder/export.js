@@ -119,6 +119,9 @@ export default {
                 customSenses:
                     clone(this.combat?.customSenses ?? []),
 
+                passivePerceptionBonus:
+                    this.combat?.passivePerceptionBonus ?? 0,
+
                 languages:
                     clone(this.combat?.languages ?? []),
 
