@@ -30,6 +30,11 @@ class CharacterFeatureController extends Controller
         'build',
     ];
 
+    private const COLUMNS = [
+        'left',
+        'right',
+    ];
+
     private const RECOVERIES = [
         'none',
         'short_rest',
@@ -294,6 +299,12 @@ class CharacterFeatureController extends Controller
                 Rule::in(self::COUNTER_MODES),
             ],
 
+            'data.column' => [
+                'sometimes',
+                'nullable',
+                Rule::in(self::COLUMNS),
+            ],
+
             'data.recovery_custom' => [
                 'sometimes',
                 'nullable',
@@ -376,8 +387,16 @@ class CharacterFeatureController extends Controller
             )
         );
 
+        $column = (
+            $data['column']
+            ?? 'left'
+        ) === 'right'
+            ? 'right'
+            : 'left';
+
         $data['activation'] = $activation;
         $data['counter_mode'] = $counterMode;
+        $data['column'] = $column;
         $data['quick_text'] = $quickText !== ''
             ? $quickText
             : null;

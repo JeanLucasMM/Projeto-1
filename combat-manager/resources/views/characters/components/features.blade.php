@@ -1,19 +1,17 @@
 @php
     /*
     |--------------------------------------------------------------------------
-    | HABILIDADES
+    | HABILIDADES — V3
     |--------------------------------------------------------------------------
     |
-    | Este componente usa character_features.
+    | A lista é dividida em duas colunas escolhidas pelo usuário.
+    | Na folha mostramos apenas:
     |
-    | Nesta primeira etapa exibimos:
+    | - nome
+    | - informação rápida
+    | - rastreador, quando existir
     |
-    | - class_feature
-    | - custom
-    | - registros legados sem type
-    |
-    | species_trait e feat permanecem na mesma tabela, mas receberão
-    | componentes próprios nas próximas etapas.
+    | O conteúdo completo fica em um modal de leitura.
     |
     */
 
@@ -46,14 +44,6 @@
                     : [],
             ];
         })
-        ->sortBy(function (array $feature) {
-            return sprintf(
-                '%04d-%s-%010d',
-                (int) ($feature['level_acquired'] ?? 999),
-                mb_strtolower((string) $feature['name']),
-                (int) $feature['id']
-            );
-        })
         ->values();
 @endphp
 
@@ -64,36 +54,40 @@
                 display: none !important;
             }
 
-            .character-features-v1 {
+            .character-features-v3 {
                 color: #53150f;
             }
 
-            .character-features-v1-header {
+            .character-features-v3-header {
                 display: flex;
-                align-items: end;
+                align-items: center;
                 justify-content: space-between;
                 gap: 14px;
-                border-bottom: 1px solid rgba(205,187,159,.56);
+                border-bottom: 1px solid rgba(205,187,159,.58);
                 padding: 0 0 10px;
             }
 
-            .character-features-v1-kicker {
+            .character-features-v3-heading {
+                min-width: 0;
+            }
+
+            .character-features-v3-kicker {
                 display: block;
                 margin-bottom: 2px;
                 font-size: 9px;
                 font-weight: 900;
-                letter-spacing: .12em;
+                letter-spacing: .13em;
                 text-transform: uppercase;
                 color: #a07855;
             }
 
-            .character-features-v1-title {
+            .character-features-v3-title-row {
                 display: flex;
                 align-items: center;
                 gap: 8px;
             }
 
-            .character-features-v1-title h2 {
+            .character-features-v3-title-row h2 {
                 font-family: Georgia, serif;
                 font-size: 21px;
                 font-weight: 900;
@@ -101,7 +95,7 @@
                 color: #53150f;
             }
 
-            .character-features-v1-count {
+            .character-features-v3-count {
                 display: inline-flex;
                 min-width: 27px;
                 height: 25px;
@@ -116,13 +110,7 @@
                 color: #8c6239;
             }
 
-            .character-features-v1-subtitle {
-                margin-top: 4px;
-                font-size: 12px;
-                color: #8c6239;
-            }
-
-            .character-features-v1-add {
+            .character-features-v3-add {
                 display: inline-flex;
                 min-height: 38px;
                 flex: 0 0 auto;
@@ -137,151 +125,113 @@
                 letter-spacing: .045em;
                 text-transform: uppercase;
                 color: #faf8f2;
-                transition:
-                    background .14s ease,
-                    transform .14s ease;
+                transition: background .14s ease;
             }
 
-            .character-features-v1-add:hover {
+            .character-features-v3-add:hover {
                 background: #53150f;
             }
 
-            .character-features-v1-add:active {
-                transform: translateY(1px);
-            }
+            /*
+            |--------------------------------------------------------------------------
+            | DUAS LISTAS
+            |--------------------------------------------------------------------------
+            */
 
-            .character-features-v1-grid {
+            .character-features-v3-columns {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr);
-                gap: 0 22px;
-                margin-top: 4px;
+                gap: 0;
+                margin-top: 2px;
             }
 
-            @media (min-width: 1180px) {
-                .character-features-v1-grid {
+            .character-features-v3-column {
+                min-width: 0;
+                padding-top: 4px;
+            }
+
+            .character-features-v3-column + .character-features-v3-column {
+                border-top: 1px solid rgba(205,187,159,.46);
+            }
+
+            @media (min-width: 900px) {
+                .character-features-v3-columns {
                     grid-template-columns:
                         repeat(2, minmax(0, 1fr));
                 }
+
+                .character-features-v3-column:first-child {
+                    padding-right: 16px;
+                }
+
+                .character-features-v3-column + .character-features-v3-column {
+                    border-top: 0;
+                    border-left: 1px solid rgba(205,187,159,.52);
+                    padding-left: 16px;
+                }
             }
 
-            .character-feature-v1-card {
+            .character-feature-v3-row {
                 position: relative;
-                min-width: 0;
-                border-bottom: 1px solid rgba(205,187,159,.54);
-                padding: 13px 4px 13px 13px;
-            }
-
-            .character-feature-v1-card::before {
-                content: "";
-                position: absolute;
-                top: 16px;
-                bottom: 16px;
-                left: 0;
-                width: 2px;
-                border-radius: 999px;
-                background: rgba(140,98,57,.34);
-            }
-
-            .character-feature-v1-card:hover::before {
-                background: #6b1d14;
-            }
-
-            .character-feature-v1-card-head {
                 display: flex;
-                min-width: 0;
-                align-items: flex-start;
+                min-height: 54px;
+                align-items: center;
                 gap: 10px;
+                border-bottom: 1px solid rgba(216,199,171,.52);
+                padding: 9px 2px;
+                cursor: pointer;
+                transition: background .12s ease;
             }
 
-            .character-feature-v1-main {
+            .character-feature-v3-row:hover {
+                background: rgba(239,233,220,.34);
+            }
+
+            .character-feature-v3-copy {
                 min-width: 0;
                 flex: 1;
             }
 
-            .character-feature-v1-name-row {
-                display: flex;
-                flex-wrap: wrap;
-                align-items: center;
-                gap: 6px 8px;
-            }
-
-            .character-feature-v1-name {
+            .character-feature-v3-name {
+                overflow: hidden;
                 font-family: Georgia, serif;
-                font-size: 16px;
+                font-size: 15px;
                 font-weight: 900;
-                line-height: 1.2;
+                line-height: 1.18;
                 color: #53150f;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
-            .character-feature-v1-quick {
-                display: inline-flex;
-                align-items: center;
-                border-radius: 999px;
-                background: rgba(140,98,57,.08);
-                padding: 3px 7px;
-                font-size: 10px;
-                font-weight: 800;
-                color: #8c6239;
-            }
-
-            .character-feature-v1-meta {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 4px 7px;
+            .character-feature-v3-quick {
+                display: block;
                 margin-top: 4px;
-                font-size: 10px;
-                font-weight: 700;
-                color: #9a795b;
+                overflow: hidden;
+                font-size: 12px;
+                line-height: 1.3;
+                color: #7b5c48;
+                text-overflow: ellipsis;
+                white-space: nowrap;
             }
 
-            .character-feature-v1-meta span + span::before {
-                content: "·";
-                margin-right: 7px;
-                color: #c0a789;
+            .character-feature-v3-no-quick {
+                display: block;
+                margin-top: 4px;
+                font-size: 11px;
+                font-style: italic;
+                color: #b09982;
             }
 
-            .character-feature-v1-description {
-                margin-top: 8px;
-                white-space: pre-line;
-                font-size: 13px;
-                line-height: 1.55;
-                color: #4f3427;
-            }
-
-            .character-feature-v1-actions {
+            .character-feature-v3-right {
                 display: flex;
                 flex: 0 0 auto;
                 align-items: center;
-                gap: 5px;
+                gap: 6px;
             }
 
-            .character-feature-v1-edit {
-                display: flex;
-                width: 31px;
-                height: 31px;
-                align-items: center;
-                justify-content: center;
-                border-radius: 8px;
-                color: #8c6239;
-                transition:
-                    background .14s ease,
-                    color .14s ease;
-            }
-
-            .character-feature-v1-edit:hover {
-                background: #efe9dc;
-                color: #53150f;
-            }
-
-            .character-feature-v1-edit svg {
-                width: 15px;
-                height: 15px;
-            }
-
-            .character-feature-v1-tracker {
+            .character-feature-v3-tracker {
                 display: inline-flex;
                 height: 30px;
-                flex: 0 0 auto;
                 align-items: stretch;
                 overflow: hidden;
                 border: 1px solid rgba(205,187,159,.72);
@@ -289,88 +239,67 @@
                 background: #faf8f2;
             }
 
-            .character-feature-v1-tracker button {
+            .character-feature-v3-tracker button {
                 display: flex;
-                width: 28px;
+                width: 27px;
                 align-items: center;
                 justify-content: center;
-                background: transparent;
+                color: #8c6239;
                 font-size: 15px;
                 font-weight: 800;
-                color: #8c6239;
             }
 
-            .character-feature-v1-tracker button:hover:not(:disabled) {
+            .character-feature-v3-tracker button:hover:not(:disabled) {
                 background: #efe9dc;
                 color: #53150f;
             }
 
-            .character-feature-v1-tracker button:disabled {
-                cursor: wait;
-                opacity: .4;
+            .character-feature-v3-tracker button:disabled {
+                opacity: .35;
             }
 
-            .character-feature-v1-tracker strong {
+            .character-feature-v3-tracker strong {
                 display: flex;
-                min-width: 47px;
+                min-width: 45px;
                 align-items: center;
                 justify-content: center;
                 border-right: 1px solid rgba(216,199,171,.58);
                 border-left: 1px solid rgba(216,199,171,.58);
-                padding: 0 7px;
+                padding: 0 6px;
                 font-family: Georgia, serif;
                 font-size: 12px;
                 font-weight: 900;
                 color: #53150f;
             }
 
-            .character-feature-v1-recovery {
-                display: inline-flex;
-                min-height: 26px;
-                align-items: center;
-                border-radius: 999px;
-                background: rgba(107,29,20,.055);
-                padding: 0 8px;
-                font-size: 9px;
-                font-weight: 800;
-                color: #6b1d14;
+            .character-feature-v3-chevron {
+                width: 16px;
+                height: 16px;
+                flex: 0 0 16px;
+                color: #b18c6c;
             }
 
-            .character-features-v1-empty {
-                margin-top: 12px;
-                border: 1px dashed rgba(205,187,159,.72);
-                border-radius: 11px;
-                padding: 22px 16px;
+            .character-features-v3-empty-column {
+                padding: 22px 6px;
                 text-align: center;
-                color: #8c6239;
-            }
-
-            .character-features-v1-empty strong {
-                display: block;
-                font-family: Georgia, serif;
-                font-size: 16px;
-                color: #53150f;
-            }
-
-            .character-features-v1-empty p {
-                margin-top: 3px;
-                font-size: 12px;
+                font-size: 11px;
+                color: #aa8b68;
             }
 
             /*
             |--------------------------------------------------------------------------
-            | MODAL
+            | MODAIS COMPARTILHADOS
             |--------------------------------------------------------------------------
             */
 
-            .feature-editor-v1-backdrop {
+            .feature-v3-backdrop {
                 position: absolute;
                 inset: 0;
                 background: rgba(42,23,18,.62);
                 backdrop-filter: blur(2px);
             }
 
-            .feature-editor-v1 {
+            .feature-v3-modal {
                 position: relative;
                 z-index: 1;
                 display: flex;
@@ -383,19 +312,19 @@
                 background: #faf8f2;
             }
 
-            .feature-editor-v1-header {
+            .feature-v3-modal-header {
                 display: flex;
                 flex: 0 0 auto;
-                align-items: center;
+                align-items: flex-start;
                 justify-content: space-between;
                 gap: 16px;
                 border-bottom: 1px solid rgba(205,187,159,.62);
                 padding: 17px 19px;
             }
 
-            .feature-editor-v1-header small {
+            .feature-v3-modal-kicker {
                 display: block;
-                margin-bottom: 2px;
+                margin-bottom: 3px;
                 font-size: 9px;
                 font-weight: 900;
                 letter-spacing: .12em;
@@ -403,14 +332,15 @@
                 color: #a07855;
             }
 
-            .feature-editor-v1-header h3 {
+            .feature-v3-modal-title {
                 font-family: Georgia, serif;
-                font-size: 22px;
+                font-size: 23px;
                 font-weight: 900;
+                line-height: 1.15;
                 color: #53150f;
             }
 
-            .feature-editor-v1-close {
+            .feature-v3-modal-close {
                 display: flex;
                 width: 36px;
                 height: 36px;
@@ -421,25 +351,100 @@
                 color: #8c6239;
             }
 
-            .feature-editor-v1-close:hover {
+            .feature-v3-modal-close:hover {
                 background: #efe9dc;
                 color: #53150f;
             }
 
-            .feature-editor-v1-body {
+            /*
+            |--------------------------------------------------------------------------
+            | MODAL DE LEITURA
+            |--------------------------------------------------------------------------
+            */
+
+            .feature-v3-detail-body {
+                min-height: 0;
+                flex: 1;
+                overflow-y: auto;
+                padding: 19px;
+            }
+
+            .feature-v3-detail-meta {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 7px;
+                margin-bottom: 15px;
+            }
+
+            .feature-v3-detail-pill {
+                display: inline-flex;
+                min-height: 27px;
+                align-items: center;
+                border-radius: 999px;
+                background: #efe9dc;
+                padding: 0 9px;
+                font-size: 10px;
+                font-weight: 800;
+                color: #7b5c48;
+            }
+
+            .feature-v3-detail-quick {
+                margin-bottom: 16px;
+                border-left: 3px solid #8c6239;
+                background: rgba(239,233,220,.48);
+                padding: 10px 12px;
+                font-family: Georgia, serif;
+                font-size: 15px;
+                font-weight: 900;
+                color: #53150f;
+            }
+
+            .feature-v3-detail-description {
+                white-space: pre-line;
+                font-size: 14px;
+                line-height: 1.65;
+                color: #3f2d24;
+            }
+
+            .feature-v3-detail-tracker {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 8px;
+                margin-top: 18px;
+                border-top: 1px solid rgba(216,199,171,.58);
+                padding-top: 14px;
+            }
+
+            .feature-v3-detail-footer {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+                border-top: 1px solid rgba(205,187,159,.62);
+                padding: 12px 19px;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | EDITOR
+            |--------------------------------------------------------------------------
+            */
+
+            .feature-editor-v3-body {
                 min-height: 0;
                 flex: 1;
                 overflow-y: auto;
                 padding: 18px 19px 20px;
             }
 
-            .feature-editor-v1-section + .feature-editor-v1-section {
+            .feature-editor-v3-section + .feature-editor-v3-section {
                 margin-top: 20px;
                 border-top: 1px solid rgba(216,199,171,.58);
                 padding-top: 18px;
             }
 
-            .feature-editor-v1-label {
+            .feature-editor-v3-label {
                 display: block;
                 margin-bottom: 6px;
                 font-size: 11px;
@@ -447,35 +452,32 @@
                 color: #53150f;
             }
 
-            .feature-editor-v1-help {
+            .feature-editor-v3-help {
                 margin-top: 5px;
                 font-size: 10px;
                 line-height: 1.4;
                 color: #9a795b;
             }
 
-            .feature-editor-v1-input,
-            .feature-editor-v1-select,
-            .feature-editor-v1-textarea {
+            .feature-editor-v3-input,
+            .feature-editor-v3-select,
+            .feature-editor-v3-textarea {
                 width: 100%;
                 border: 1px solid rgba(205,187,159,.78);
                 border-radius: 9px;
                 background: #fffdf9;
                 color: #2f211b;
                 outline: none;
-                transition:
-                    border-color .14s ease,
-                    box-shadow .14s ease;
             }
 
-            .feature-editor-v1-input,
-            .feature-editor-v1-select {
+            .feature-editor-v3-input,
+            .feature-editor-v3-select {
                 min-height: 42px;
                 padding: 0 11px;
                 font-size: 14px;
             }
 
-            .feature-editor-v1-textarea {
+            .feature-editor-v3-textarea {
                 min-height: 126px;
                 resize: vertical;
                 padding: 10px 11px;
@@ -483,34 +485,28 @@
                 line-height: 1.55;
             }
 
-            .feature-editor-v1-input:focus,
-            .feature-editor-v1-select:focus,
-            .feature-editor-v1-textarea:focus {
+            .feature-editor-v3-input:focus,
+            .feature-editor-v3-select:focus,
+            .feature-editor-v3-textarea:focus {
                 border-color: #8c6239;
                 box-shadow: 0 0 0 2px rgba(140,98,57,.08);
             }
 
-            .feature-editor-v1-grid {
+            .feature-editor-v3-grid {
                 display: grid;
                 grid-template-columns: minmax(0, 1fr);
                 gap: 13px;
             }
 
             @media (min-width: 640px) {
-                .feature-editor-v1-grid-2 {
-                    grid-template-columns:
-                        minmax(0, 1fr)
-                        minmax(0, 1fr);
-                }
-
-                .feature-editor-v1-grid-source {
+                .feature-editor-v3-grid-source {
                     grid-template-columns:
                         minmax(0, 1fr)
                         150px;
                 }
             }
 
-            .feature-editor-v1-choice-grid {
+            .feature-editor-v3-choice-grid {
                 display: grid;
                 grid-template-columns:
                     repeat(2, minmax(0, 1fr));
@@ -518,13 +514,13 @@
             }
 
             @media (min-width: 640px) {
-                .feature-editor-v1-choice-grid {
+                .feature-editor-v3-choice-grid {
                     grid-template-columns:
                         repeat(5, minmax(0, 1fr));
                 }
             }
 
-            .feature-editor-v1-choice {
+            .feature-editor-v3-choice {
                 min-height: 38px;
                 border: 1px solid rgba(205,187,159,.72);
                 border-radius: 8px;
@@ -535,17 +531,54 @@
                 color: #8c6239;
             }
 
-            .feature-editor-v1-choice:hover {
+            .feature-editor-v3-choice:hover {
                 background: #efe9dc;
             }
 
-            .feature-editor-v1-choice.active {
+            .feature-editor-v3-choice.active {
                 border-color: #6b1d14;
                 background: #6b1d14;
                 color: #faf8f2;
             }
 
-            .feature-editor-v1-counter {
+            .feature-editor-v3-position {
+                display: grid;
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+                gap: 8px;
+            }
+
+            .feature-editor-v3-position button {
+                min-height: 58px;
+                border: 1px solid rgba(205,187,159,.72);
+                border-radius: 10px;
+                background: #fffdf9;
+                padding: 8px 10px;
+                text-align: left;
+                color: #8c6239;
+            }
+
+            .feature-editor-v3-position button.active {
+                border-color: #6b1d14;
+                background: rgba(107,29,20,.07);
+                color: #6b1d14;
+            }
+
+            .feature-editor-v3-position strong {
+                display: block;
+                font-size: 11px;
+                font-weight: 900;
+            }
+
+            .feature-editor-v3-position span {
+                display: block;
+                margin-top: 2px;
+                font-size: 10px;
+                line-height: 1.3;
+                color: #9a795b;
+            }
+
+            .feature-editor-v3-counter {
                 margin-top: 12px;
                 border: 1px solid rgba(205,187,159,.64);
                 border-radius: 11px;
@@ -553,7 +586,7 @@
                 padding: 13px;
             }
 
-            .feature-editor-v1-counter-grid {
+            .feature-editor-v3-counter-grid {
                 display: grid;
                 grid-template-columns:
                     repeat(2, minmax(0, 1fr));
@@ -561,7 +594,7 @@
             }
 
             @media (min-width: 640px) {
-                .feature-editor-v1-counter-grid {
+                .feature-editor-v3-counter-grid {
                     grid-template-columns:
                         110px
                         110px
@@ -569,7 +602,7 @@
                 }
             }
 
-            .feature-editor-v1-mode {
+            .feature-editor-v3-mode {
                 display: grid;
                 grid-template-columns:
                     repeat(2, minmax(0, 1fr));
@@ -577,7 +610,7 @@
                 margin-top: 11px;
             }
 
-            .feature-editor-v1-mode button {
+            .feature-editor-v3-mode button {
                 min-height: 38px;
                 border: 1px solid rgba(205,187,159,.72);
                 border-radius: 8px;
@@ -588,13 +621,13 @@
                 color: #8c6239;
             }
 
-            .feature-editor-v1-mode button.active {
+            .feature-editor-v3-mode button.active {
                 border-color: #6b1d14;
                 background: rgba(107,29,20,.07);
                 color: #6b1d14;
             }
 
-            .feature-editor-v1-error {
+            .feature-v3-error {
                 margin-top: 14px;
                 border-left: 3px solid #991b1b;
                 background: #fff1f2;
@@ -603,7 +636,7 @@
                 color: #991b1b;
             }
 
-            .feature-editor-v1-footer {
+            .feature-v3-footer {
                 display: flex;
                 flex: 0 0 auto;
                 align-items: center;
@@ -613,16 +646,16 @@
                 padding: 13px 19px;
             }
 
-            .feature-editor-v1-footer-right {
+            .feature-v3-footer-right {
                 display: flex;
                 align-items: center;
                 gap: 8px;
                 margin-left: auto;
             }
 
-            .feature-editor-v1-secondary,
-            .feature-editor-v1-danger,
-            .feature-editor-v1-save {
+            .feature-v3-secondary,
+            .feature-v3-danger,
+            .feature-v3-primary {
                 display: inline-flex;
                 min-height: 39px;
                 align-items: center;
@@ -635,36 +668,36 @@
                 text-transform: uppercase;
             }
 
-            .feature-editor-v1-secondary {
+            .feature-v3-secondary {
                 border: 1px solid rgba(205,187,159,.74);
                 background: #faf8f2;
                 color: #8c6239;
             }
 
-            .feature-editor-v1-secondary:hover {
+            .feature-v3-secondary:hover {
                 background: #efe9dc;
             }
 
-            .feature-editor-v1-danger {
+            .feature-v3-danger {
                 color: #991b1b;
             }
 
-            .feature-editor-v1-danger:hover {
+            .feature-v3-danger:hover {
                 background: #fff1f2;
             }
 
-            .feature-editor-v1-save {
+            .feature-v3-primary {
                 background: #6b1d14;
                 color: #faf8f2;
             }
 
-            .feature-editor-v1-save:hover {
+            .feature-v3-primary:hover {
                 background: #53150f;
             }
 
-            .feature-editor-v1-save:disabled,
-            .feature-editor-v1-secondary:disabled,
-            .feature-editor-v1-danger:disabled {
+            .feature-v3-primary:disabled,
+            .feature-v3-secondary:disabled,
+            .feature-v3-danger:disabled {
                 cursor: wait;
                 opacity: .45;
             }
@@ -676,7 +709,10 @@
     x-data="{
         features: @js($featuresPayload),
 
-        modalOpen: false,
+        detailOpen: false,
+        detailFeature: null,
+
+        editorOpen: false,
         deleteConfirmOpen: false,
 
         editingId: null,
@@ -729,11 +765,28 @@
             custom: 'Personalizado',
         },
 
-        get visibleFeatures() {
+        get leftFeatures() {
+            return this.sortedFeatures.filter(
+                feature =>
+                    this.featureColumn(feature) === 'left'
+            );
+        },
+
+        get rightFeatures() {
+            return this.sortedFeatures.filter(
+                feature =>
+                    this.featureColumn(feature) === 'right'
+            );
+        },
+
+        get sortedFeatures() {
             return [...this.features]
                 .sort((a, b) => {
-                    const levelA = parseInt(a.level_acquired) || 999;
-                    const levelB = parseInt(b.level_acquired) || 999;
+                    const levelA =
+                        parseInt(a.level_acquired) || 999;
+
+                    const levelB =
+                        parseInt(b.level_acquired) || 999;
 
                     if (levelA !== levelB) {
                         return levelA - levelB;
@@ -745,6 +798,12 @@
                             'pt-BR'
                         );
                 });
+        },
+
+        featureColumn(feature) {
+            return feature?.data?.column === 'right'
+                ? 'right'
+                : 'left';
         },
 
         normalizeFeature(raw) {
@@ -778,14 +837,20 @@
                         : parseInt(raw.uses_current),
                 recovery: raw?.recovery ?? null,
                 data: {
-                    activation: data.activation ?? 'passive',
-                    quick_text: data.quick_text ?? '',
+                    activation:
+                        data.activation ?? 'passive',
+                    quick_text:
+                        data.quick_text ?? '',
                     counter_mode:
                         data.counter_mode === 'build'
                             ? 'build'
                             : 'spend',
                     recovery_custom:
                         data.recovery_custom ?? '',
+                    column:
+                        data.column === 'right'
+                            ? 'right'
+                            : 'left',
                 },
             };
         },
@@ -808,8 +873,21 @@
                     quick_text: '',
                     counter_mode: 'spend',
                     recovery_custom: '',
+                    column: 'left',
                 },
             };
+        },
+
+        openDetail(raw) {
+            this.detailFeature =
+                this.normalizeFeature(raw);
+
+            this.detailOpen = true;
+        },
+
+        closeDetail() {
+            this.detailOpen = false;
+            this.detailFeature = null;
         },
 
         openCreate() {
@@ -817,11 +895,15 @@
             this.form = this.blankForm();
             this.saveError = null;
             this.deleteConfirmOpen = false;
-            this.modalOpen = true;
+            this.editorOpen = true;
         },
 
         openEdit(raw) {
-            const feature = this.normalizeFeature(raw);
+            const feature =
+                this.normalizeFeature(raw);
+
+            this.detailOpen = false;
+            this.detailFeature = null;
 
             this.editingId = feature.id;
 
@@ -842,15 +924,15 @@
 
             this.saveError = null;
             this.deleteConfirmOpen = false;
-            this.modalOpen = true;
+            this.editorOpen = true;
         },
 
-        closeModal() {
+        closeEditor() {
             if (this.saving) {
                 return;
             }
 
-            this.modalOpen = false;
+            this.editorOpen = false;
             this.deleteConfirmOpen = false;
             this.editingId = null;
             this.form = null;
@@ -861,6 +943,15 @@
             if (!this.form) return;
 
             this.form.data.activation = value;
+        },
+
+        setPosition(value) {
+            if (!this.form) return;
+
+            this.form.data.column =
+                value === 'right'
+                    ? 'right'
+                    : 'left';
         },
 
         setCounterEnabled(enabled) {
@@ -965,31 +1056,57 @@
             ] ?? '';
         },
 
-        featureMeta(feature) {
-            const parts = [];
+        csrf() {
+            return document
+                .querySelector(
+                    'meta[name=csrf-token]'
+                )
+                ?.getAttribute('content')
+                ?? @js(csrf_token());
+        },
 
-            if (feature.source) {
-                parts.push(feature.source);
-            }
+        jsonHeaders() {
+            return {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': this.csrf(),
+                'X-Requested-With': 'XMLHttpRequest',
+            };
+        },
 
-            if (feature.level_acquired) {
-                parts.push(
-                    `Nível ${feature.level_acquired}`
+        upsertFeature(raw) {
+            const feature =
+                this.normalizeFeature(raw);
+
+            const index =
+                this.features.findIndex(
+                    current =>
+                        parseInt(current.id)
+                        === parseInt(feature.id)
                 );
+
+            if (index >= 0) {
+                this.features[index] = feature;
+            } else {
+                this.features.push(feature);
             }
 
-            parts.push(
-                this.activationLabel(feature)
-            );
+            if (
+                this.detailFeature
+                && parseInt(this.detailFeature.id)
+                    === parseInt(feature.id)
+            ) {
+                this.detailFeature = feature;
+            }
 
-            return parts;
+            return feature;
         },
 
         payload() {
             const counter =
                 !!this.form?.counter_enabled;
 
-            let maximum = counter
+            const maximum = counter
                 ? Math.max(
                     1,
                     parseInt(this.form?.uses_max) || 1
@@ -1088,50 +1205,13 @@
                                 || null
                             )
                             : null,
+
+                    column:
+                        this.form?.data?.column === 'right'
+                            ? 'right'
+                            : 'left',
                 },
             };
-        },
-
-        csrf() {
-            return document
-                .querySelector(
-                    'meta[name=csrf-token]'
-                )
-                ?.getAttribute('content')
-                ?? @js(csrf_token());
-        },
-
-        jsonHeaders() {
-            return {
-                'Content-Type':
-                    'application/json',
-                'Accept':
-                    'application/json',
-                'X-CSRF-TOKEN':
-                    this.csrf(),
-                'X-Requested-With':
-                    'XMLHttpRequest',
-            };
-        },
-
-        upsertFeature(raw) {
-            const feature =
-                this.normalizeFeature(raw);
-
-            const index =
-                this.features.findIndex(
-                    current =>
-                        parseInt(current.id)
-                        === parseInt(feature.id)
-                );
-
-            if (index >= 0) {
-                this.features[index] = feature;
-            } else {
-                this.features.push(feature);
-            }
-
-            return feature;
         },
 
         async saveFeature() {
@@ -1206,12 +1286,8 @@
                     data.feature
                 );
 
-                /*
-                | closeModal bloqueia fechamento enquanto saving=true.
-                | Liberamos o estado antes de fechar.
-                */
                 this.saving = false;
-                this.closeModal();
+                this.closeEditor();
             } catch (error) {
                 this.saveError =
                     error?.message
@@ -1267,7 +1343,7 @@
                     );
 
                 this.saving = false;
-                this.closeModal();
+                this.closeEditor();
             } catch (error) {
                 this.saveError =
                     error?.message
@@ -1357,198 +1433,246 @@
     }"
 
     @keydown.escape.window="
-        if (modalOpen) {
-            closeModal()
+        if (editorOpen) {
+            closeEditor()
+        } else if (detailOpen) {
+            closeDetail()
         }
     "
 
-    class="character-features-v1"
+    class="character-features-v3"
 >
-    {{-- ============================================================
-         CABEÇALHO
-    ============================================================= --}}
-    <div class="character-features-v1-header">
-        <div>
-            <span class="character-features-v1-kicker">
+    <div class="character-features-v3-header">
+        <div class="character-features-v3-heading">
+            <span class="character-features-v3-kicker">
                 Características
             </span>
 
-            <div class="character-features-v1-title">
+            <div class="character-features-v3-title-row">
                 <h2>Habilidades</h2>
 
                 <span
-                    class="character-features-v1-count"
-                    x-text="visibleFeatures.length"
+                    class="character-features-v3-count"
+                    x-text="features.length"
                 ></span>
             </div>
-
-            <p class="character-features-v1-subtitle">
-                Características de classe e habilidades especiais do personagem.
-            </p>
         </div>
 
         <button
             type="button"
             @click="openCreate()"
-            class="character-features-v1-add"
+            class="character-features-v3-add"
         >
             <span class="text-[16px] leading-none">+</span>
             Nova Habilidade
         </button>
     </div>
 
+    <div class="character-features-v3-columns">
+        {{-- ESQUERDA --}}
+        <div class="character-features-v3-column">
+            <template
+                x-for="feature in leftFeatures"
+                :key="'left-feature-' + feature.id"
+            >
+                <article
+                    class="character-feature-v3-row"
+                    @click="openDetail(feature)"
+                >
+                    <div class="character-feature-v3-copy">
+                        <h3
+                            class="character-feature-v3-name"
+                            x-text="feature.name"
+                        ></h3>
 
-    {{-- ============================================================
-         LISTA
-    ============================================================= --}}
-    <div
-        x-show="visibleFeatures.length > 0"
-        x-cloak
-        class="character-features-v1-grid"
-    >
-        <template
-            x-for="feature in visibleFeatures"
-            :key="'character-feature-' + feature.id"
-        >
-            <article class="character-feature-v1-card">
-                <div class="character-feature-v1-card-head">
-                    <div class="character-feature-v1-main">
-                        <div class="character-feature-v1-name-row">
-                            <h3
-                                class="character-feature-v1-name"
-                                x-text="feature.name"
-                            ></h3>
+                        <span
+                            x-show="feature.data?.quick_text"
+                            x-cloak
+                            class="character-feature-v3-quick"
+                            x-text="feature.data.quick_text"
+                        ></span>
 
-                            <span
-                                x-show="feature.data?.quick_text"
-                                x-cloak
-                                class="character-feature-v1-quick"
-                                x-text="feature.data.quick_text"
-                            ></span>
-                        </div>
-
-                        <div class="character-feature-v1-meta">
-                            <template
-                                x-for="(part, index) in featureMeta(feature)"
-                                :key="'meta-' + feature.id + '-' + index"
-                            >
-                                <span x-text="part"></span>
-                            </template>
-                        </div>
+                        <span
+                            x-show="!feature.data?.quick_text"
+                            x-cloak
+                            class="character-feature-v3-no-quick"
+                        >
+                            Abrir detalhes
+                        </span>
                     </div>
 
-                    <div class="character-feature-v1-actions">
+                    <div class="character-feature-v3-right">
                         <template x-if="feature.uses_max !== null">
-                            <div class="flex items-center gap-5">
-                                <div
-                                    class="character-feature-v1-tracker"
-                                    @click.stop
+                            <div
+                                class="character-feature-v3-tracker"
+                                @click.stop
+                            >
+                                <button
+                                    type="button"
+                                    @click="changeUses(feature, -1)"
+                                    :disabled="
+                                        busyUsesId !== null
+                                        || feature.uses_current <= 0
+                                    "
                                 >
-                                    <button
-                                        type="button"
-                                        @click="changeUses(feature, -1)"
-                                        :disabled="
-                                            busyUsesId !== null
-                                            || feature.uses_current <= 0
-                                        "
-                                        title="Diminuir"
-                                    >
-                                        −
-                                    </button>
+                                    −
+                                </button>
 
-                                    <strong
-                                        x-text="
-                                            feature.uses_current
-                                            + ' / '
-                                            + feature.uses_max
-                                        "
-                                    ></strong>
+                                <strong
+                                    x-text="
+                                        feature.uses_current
+                                        + '/'
+                                        + feature.uses_max
+                                    "
+                                ></strong>
 
-                                    <button
-                                        type="button"
-                                        @click="changeUses(feature, 1)"
-                                        :disabled="
-                                            busyUsesId !== null
-                                            || feature.uses_current >= feature.uses_max
-                                        "
-                                        title="Aumentar"
-                                    >
-                                        +
-                                    </button>
-                                </div>
-
-                                <span
-                                    class="character-feature-v1-recovery"
-                                    x-text="recoveryLabel(feature)"
-                                ></span>
+                                <button
+                                    type="button"
+                                    @click="changeUses(feature, 1)"
+                                    :disabled="
+                                        busyUsesId !== null
+                                        || feature.uses_current >= feature.uses_max
+                                    "
+                                >
+                                    +
+                                </button>
                             </div>
                         </template>
 
-                        <button
-                            type="button"
-                            @click="openEdit(feature)"
-                            class="character-feature-v1-edit"
-                            title="Editar Habilidade"
+                        <svg
+                            class="character-feature-v3-chevron"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
                         >
-                            <svg
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    d="M4 20h4l11-11-4-4L4 16v4Z"
-                                    stroke-width="1.7"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                />
-                                <path
-                                    d="m13.5 6.5 4 4"
-                                    stroke-width="1.7"
-                                    stroke-linecap="round"
-                                />
-                            </svg>
-                        </button>
+                            <path
+                                d="m7 5 5 5-5 5"
+                                stroke-width="1.7"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
                     </div>
-                </div>
+                </article>
+            </template>
 
-                <p
-                    x-show="feature.description"
-                    x-cloak
-                    class="character-feature-v1-description"
-                    x-text="feature.description"
-                ></p>
-            </article>
-        </template>
+            <div
+                x-show="leftFeatures.length === 0"
+                x-cloak
+                class="character-features-v3-empty-column"
+            >
+                Nenhuma habilidade nesta coluna.
+            </div>
+        </div>
+
+        {{-- DIREITA --}}
+        <div class="character-features-v3-column">
+            <template
+                x-for="feature in rightFeatures"
+                :key="'right-feature-' + feature.id"
+            >
+                <article
+                    class="character-feature-v3-row"
+                    @click="openDetail(feature)"
+                >
+                    <div class="character-feature-v3-copy">
+                        <h3
+                            class="character-feature-v3-name"
+                            x-text="feature.name"
+                        ></h3>
+
+                        <span
+                            x-show="feature.data?.quick_text"
+                            x-cloak
+                            class="character-feature-v3-quick"
+                            x-text="feature.data.quick_text"
+                        ></span>
+
+                        <span
+                            x-show="!feature.data?.quick_text"
+                            x-cloak
+                            class="character-feature-v3-no-quick"
+                        >
+                            Abrir detalhes
+                        </span>
+                    </div>
+
+                    <div class="character-feature-v3-right">
+                        <template x-if="feature.uses_max !== null">
+                            <div
+                                class="character-feature-v3-tracker"
+                                @click.stop
+                            >
+                                <button
+                                    type="button"
+                                    @click="changeUses(feature, -1)"
+                                    :disabled="
+                                        busyUsesId !== null
+                                        || feature.uses_current <= 0
+                                    "
+                                >
+                                    −
+                                </button>
+
+                                <strong
+                                    x-text="
+                                        feature.uses_current
+                                        + '/'
+                                        + feature.uses_max
+                                    "
+                                ></strong>
+
+                                <button
+                                    type="button"
+                                    @click="changeUses(feature, 1)"
+                                    :disabled="
+                                        busyUsesId !== null
+                                        || feature.uses_current >= feature.uses_max
+                                    "
+                                >
+                                    +
+                                </button>
+                            </div>
+                        </template>
+
+                        <svg
+                            class="character-feature-v3-chevron"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="m7 5 5 5-5 5"
+                                stroke-width="1.7"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </div>
+                </article>
+            </template>
+
+            <div
+                x-show="rightFeatures.length === 0"
+                x-cloak
+                class="character-features-v3-empty-column"
+            >
+                Nenhuma habilidade nesta coluna.
+            </div>
+        </div>
     </div>
 
-
     {{-- ============================================================
-         VAZIO
-    ============================================================= --}}
-    <div
-        x-show="visibleFeatures.length === 0"
-        x-cloak
-        class="character-features-v1-empty"
-    >
-        <strong>Nenhuma habilidade cadastrada</strong>
-
-        <p>
-            Adicione características de classe, habilidades especiais ou conteúdo personalizado.
-        </p>
-    </div>
-
-
-    {{-- ============================================================
-         EDITOR
+         MODAL DE LEITURA
     ============================================================= --}}
     <template x-teleport="body">
         <div
-            x-show="modalOpen"
+            x-show="detailOpen"
             x-cloak
             class="
                 fixed
                 inset-0
-                z-[260]
+                z-[255]
 
                 flex
                 items-center
@@ -1558,30 +1682,26 @@
             "
         >
             <div
-                class="feature-editor-v1-backdrop"
-                @click="closeModal()"
+                class="feature-v3-backdrop"
+                @click="closeDetail()"
             ></div>
 
             <section
-                x-show="modalOpen"
+                x-show="detailOpen"
                 x-transition.opacity.duration.120ms
-                class="feature-editor-v1"
+                class="feature-v3-modal"
                 @click.stop
             >
-                {{-- HEADER --}}
-                <header class="feature-editor-v1-header">
+                <header class="feature-v3-modal-header">
                     <div>
-                        <small
-                            x-text="
-                                editingId === null
-                                    ? 'Nova Habilidade'
-                                    : 'Editar Habilidade'
-                            "
-                        ></small>
+                        <span class="feature-v3-modal-kicker">
+                            Habilidade
+                        </span>
 
                         <h3
+                            class="feature-v3-modal-title"
                             x-text="
-                                form?.name
+                                detailFeature?.name
                                 || 'Habilidade'
                             "
                         ></h3>
@@ -1589,8 +1709,8 @@
 
                     <button
                         type="button"
-                        @click="closeModal()"
-                        class="feature-editor-v1-close"
+                        @click="closeDetail()"
+                        class="feature-v3-modal-close"
                         title="Fechar"
                     >
                         <svg
@@ -1608,16 +1728,224 @@
                     </button>
                 </header>
 
+                <div class="feature-v3-detail-body">
+                    <div class="feature-v3-detail-meta">
+                        <span
+                            x-show="detailFeature?.source"
+                            x-cloak
+                            class="feature-v3-detail-pill"
+                            x-text="detailFeature?.source"
+                        ></span>
 
-                {{-- CORPO --}}
+                        <span
+                            x-show="detailFeature?.level_acquired"
+                            x-cloak
+                            class="feature-v3-detail-pill"
+                            x-text="
+                                'Nível '
+                                + detailFeature?.level_acquired
+                            "
+                        ></span>
+
+                        <span
+                            class="feature-v3-detail-pill"
+                            x-text="
+                                activationLabel(
+                                    detailFeature
+                                )
+                            "
+                        ></span>
+
+                        <span
+                            class="feature-v3-detail-pill"
+                            x-text="
+                                featureColumn(detailFeature)
+                                === 'right'
+                                    ? 'Coluna direita'
+                                    : 'Coluna esquerda'
+                            "
+                        ></span>
+                    </div>
+
+                    <div
+                        x-show="detailFeature?.data?.quick_text"
+                        x-cloak
+                        class="feature-v3-detail-quick"
+                        x-text="
+                            detailFeature?.data?.quick_text
+                        "
+                    ></div>
+
+                    <p
+                        x-show="detailFeature?.description"
+                        x-cloak
+                        class="feature-v3-detail-description"
+                        x-text="detailFeature?.description"
+                    ></p>
+
+                    <p
+                        x-show="!detailFeature?.description"
+                        x-cloak
+                        class="feature-v3-detail-description italic text-[#9a795b]"
+                    >
+                        Nenhuma descrição cadastrada.
+                    </p>
+
+                    <div
+                        x-show="detailFeature?.uses_max !== null"
+                        x-cloak
+                        class="feature-v3-detail-tracker"
+                    >
+                        <div
+                            class="character-feature-v3-tracker"
+                        >
+                            <button
+                                type="button"
+                                @click="
+                                    changeUses(
+                                        detailFeature,
+                                        -1
+                                    )
+                                "
+                                :disabled="
+                                    busyUsesId !== null
+                                    || detailFeature?.uses_current <= 0
+                                "
+                            >
+                                −
+                            </button>
+
+                            <strong
+                                x-text="
+                                    detailFeature?.uses_current
+                                    + '/'
+                                    + detailFeature?.uses_max
+                                "
+                            ></strong>
+
+                            <button
+                                type="button"
+                                @click="
+                                    changeUses(
+                                        detailFeature,
+                                        1
+                                    )
+                                "
+                                :disabled="
+                                    busyUsesId !== null
+                                    || detailFeature?.uses_current >= detailFeature?.uses_max
+                                "
+                            >
+                                +
+                            </button>
+                        </div>
+
+                        <span
+                            class="feature-v3-detail-pill"
+                            x-text="
+                                recoveryLabel(
+                                    detailFeature
+                                )
+                            "
+                        ></span>
+                    </div>
+                </div>
+
+                <footer class="feature-v3-detail-footer">
+                    <button
+                        type="button"
+                        @click="
+                            openEdit(
+                                detailFeature
+                            )
+                        "
+                        class="feature-v3-primary"
+                    >
+                        Editar
+                    </button>
+                </footer>
+            </section>
+        </div>
+    </template>
+
+    {{-- ============================================================
+         EDITOR
+    ============================================================= --}}
+    <template x-teleport="body">
+        <div
+            x-show="editorOpen"
+            x-cloak
+            class="
+                fixed
+                inset-0
+                z-[260]
+
+                flex
+                items-center
+                justify-center
+
+                p-4
+            "
+        >
+            <div
+                class="feature-v3-backdrop"
+                @click="closeEditor()"
+            ></div>
+
+            <section
+                x-show="editorOpen"
+                x-transition.opacity.duration.120ms
+                class="feature-v3-modal"
+                @click.stop
+            >
+                <header class="feature-v3-modal-header">
+                    <div>
+                        <span
+                            class="feature-v3-modal-kicker"
+                            x-text="
+                                editingId === null
+                                    ? 'Nova Habilidade'
+                                    : 'Editar Habilidade'
+                            "
+                        ></span>
+
+                        <h3
+                            class="feature-v3-modal-title"
+                            x-text="
+                                form?.name
+                                || 'Habilidade'
+                            "
+                        ></h3>
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="closeEditor()"
+                        class="feature-v3-modal-close"
+                        title="Fechar"
+                    >
+                        <svg
+                            class="h-5 w-5"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                        >
+                            <path
+                                d="M6 6l12 12M18 6 6 18"
+                                stroke-width="1.8"
+                                stroke-linecap="round"
+                            />
+                        </svg>
+                    </button>
+                </header>
+
                 <div
                     x-show="form"
-                    class="feature-editor-v1-body"
+                    class="feature-editor-v3-body"
                 >
-                    {{-- IDENTIDADE --}}
-                    <section class="feature-editor-v1-section">
+                    <section class="feature-editor-v3-section">
                         <label>
-                            <span class="feature-editor-v1-label">
+                            <span class="feature-editor-v3-label">
                                 Nome
                             </span>
 
@@ -1626,20 +1954,19 @@
                                 maxlength="120"
                                 x-model="form.name"
                                 placeholder="Ex.: Segundo Fôlego"
-                                class="feature-editor-v1-input"
+                                class="feature-editor-v3-input"
                             >
                         </label>
 
                         <div
                             class="
-                                feature-editor-v1-grid
-                                feature-editor-v1-grid-source
-
+                                feature-editor-v3-grid
+                                feature-editor-v3-grid-source
                                 mt-3
                             "
                         >
                             <label>
-                                <span class="feature-editor-v1-label">
+                                <span class="feature-editor-v3-label">
                                     Origem
                                 </span>
 
@@ -1648,12 +1975,12 @@
                                     maxlength="100"
                                     x-model="form.source"
                                     placeholder="Ex.: Guerreiro"
-                                    class="feature-editor-v1-input"
+                                    class="feature-editor-v3-input"
                                 >
                             </label>
 
                             <label>
-                                <span class="feature-editor-v1-label">
+                                <span class="feature-editor-v3-label">
                                     Nível adquirido
                                 </span>
 
@@ -1663,24 +1990,60 @@
                                     max="255"
                                     x-model.number="form.level_acquired"
                                     placeholder="1"
-                                    class="feature-editor-v1-input"
+                                    class="feature-editor-v3-input"
                                 >
                             </label>
                         </div>
                     </section>
 
+                    {{-- POSIÇÃO --}}
+                    <section class="feature-editor-v3-section">
+                        <span class="feature-editor-v3-label">
+                            Posição na ficha
+                        </span>
+
+                        <div class="feature-editor-v3-position">
+                            <button
+                                type="button"
+                                @click="setPosition('left')"
+                                :class="{
+                                    'active':
+                                        form.data.column === 'left'
+                                }"
+                            >
+                                <strong>Lista esquerda</strong>
+                                <span>
+                                    Exibe esta habilidade na primeira coluna.
+                                </span>
+                            </button>
+
+                            <button
+                                type="button"
+                                @click="setPosition('right')"
+                                :class="{
+                                    'active':
+                                        form.data.column === 'right'
+                                }"
+                            >
+                                <strong>Lista direita</strong>
+                                <span>
+                                    Exibe esta habilidade na segunda coluna.
+                                </span>
+                            </button>
+                        </div>
+                    </section>
 
                     {{-- ATIVAÇÃO --}}
-                    <section class="feature-editor-v1-section">
-                        <span class="feature-editor-v1-label">
+                    <section class="feature-editor-v3-section">
+                        <span class="feature-editor-v3-label">
                             Ativação
                         </span>
 
-                        <div class="feature-editor-v1-choice-grid">
+                        <div class="feature-editor-v3-choice-grid">
                             <button
                                 type="button"
                                 @click="setActivation('passive')"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         form.data.activation === 'passive'
@@ -1692,7 +2055,7 @@
                             <button
                                 type="button"
                                 @click="setActivation('action')"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         form.data.activation === 'action'
@@ -1704,7 +2067,7 @@
                             <button
                                 type="button"
                                 @click="setActivation('bonus_action')"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         form.data.activation === 'bonus_action'
@@ -1716,7 +2079,7 @@
                             <button
                                 type="button"
                                 @click="setActivation('reaction')"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         form.data.activation === 'reaction'
@@ -1728,7 +2091,7 @@
                             <button
                                 type="button"
                                 @click="setActivation('special')"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         form.data.activation === 'special'
@@ -1739,11 +2102,10 @@
                         </div>
                     </section>
 
-
                     {{-- TEXTO --}}
-                    <section class="feature-editor-v1-section">
+                    <section class="feature-editor-v3-section">
                         <label>
-                            <span class="feature-editor-v1-label">
+                            <span class="feature-editor-v3-label">
                                 Informação rápida
                             </span>
 
@@ -1752,32 +2114,35 @@
                                 maxlength="180"
                                 x-model="form.data.quick_text"
                                 placeholder="Ex.: 1d10+2 PV"
-                                class="feature-editor-v1-input"
+                                class="feature-editor-v3-input"
                             >
 
-                            <p class="feature-editor-v1-help">
-                                Uma informação curta que aparecerá ao lado do nome.
+                            <p class="feature-editor-v3-help">
+                                Este é o único texto descritivo mostrado diretamente na folha.
                             </p>
                         </label>
 
                         <label class="mt-4 block">
-                            <span class="feature-editor-v1-label">
-                                Descrição
+                            <span class="feature-editor-v3-label">
+                                Descrição completa
                             </span>
 
                             <textarea
                                 maxlength="30000"
                                 x-model="form.description"
-                                placeholder="Descreva o funcionamento da habilidade..."
-                                class="feature-editor-v1-textarea"
+                                placeholder="Descreva o funcionamento completo da habilidade..."
+                                class="feature-editor-v3-textarea"
                             ></textarea>
+
+                            <p class="feature-editor-v3-help">
+                                A descrição completa aparece apenas ao abrir a habilidade.
+                            </p>
                         </label>
                     </section>
 
-
                     {{-- RASTREADOR --}}
-                    <section class="feature-editor-v1-section">
-                        <span class="feature-editor-v1-label">
+                    <section class="feature-editor-v3-section">
+                        <span class="feature-editor-v3-label">
                             Rastreador
                         </span>
 
@@ -1786,13 +2151,13 @@
                                 grid
                                 max-w-sm
                                 grid-cols-2
-                                gap-7
+                                gap-2
                             "
                         >
                             <button
                                 type="button"
                                 @click="setCounterEnabled(false)"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         !form.counter_enabled
@@ -1804,7 +2169,7 @@
                             <button
                                 type="button"
                                 @click="setCounterEnabled(true)"
-                                class="feature-editor-v1-choice"
+                                class="feature-editor-v3-choice"
                                 :class="{
                                     'active':
                                         form.counter_enabled
@@ -1817,11 +2182,11 @@
                         <div
                             x-show="form.counter_enabled"
                             x-cloak
-                            class="feature-editor-v1-counter"
+                            class="feature-editor-v3-counter"
                         >
-                            <div class="feature-editor-v1-counter-grid">
+                            <div class="feature-editor-v3-counter-grid">
                                 <label>
-                                    <span class="feature-editor-v1-label">
+                                    <span class="feature-editor-v3-label">
                                         Atual
                                     </span>
 
@@ -1830,12 +2195,12 @@
                                         min="0"
                                         x-model.number="form.uses_current"
                                         @change="clampCounter()"
-                                        class="feature-editor-v1-input"
+                                        class="feature-editor-v3-input"
                                     >
                                 </label>
 
                                 <label>
-                                    <span class="feature-editor-v1-label">
+                                    <span class="feature-editor-v3-label">
                                         Máximo
                                     </span>
 
@@ -1844,18 +2209,18 @@
                                         min="1"
                                         x-model.number="form.uses_max"
                                         @change="clampCounter()"
-                                        class="feature-editor-v1-input"
+                                        class="feature-editor-v3-input"
                                     >
                                 </label>
 
                                 <label>
-                                    <span class="feature-editor-v1-label">
+                                    <span class="feature-editor-v3-label">
                                         Recuperação
                                     </span>
 
                                     <select
                                         x-model="form.recovery"
-                                        class="feature-editor-v1-select"
+                                        class="feature-editor-v3-select"
                                     >
                                         <option value="none">
                                             Sem recuperação
@@ -1893,7 +2258,7 @@
                                 x-cloak
                                 class="mt-3 block"
                             >
-                                <span class="feature-editor-v1-label">
+                                <span class="feature-editor-v3-label">
                                     Recuperação personalizada
                                 </span>
 
@@ -1902,11 +2267,11 @@
                                     maxlength="120"
                                     x-model="form.data.recovery_custom"
                                     placeholder="Ex.: Após completar um ritual"
-                                    class="feature-editor-v1-input"
+                                    class="feature-editor-v3-input"
                                 >
                             </label>
 
-                            <div class="feature-editor-v1-mode">
+                            <div class="feature-editor-v3-mode">
                                 <button
                                     type="button"
                                     @click="setCounterMode('spend')"
@@ -1929,26 +2294,18 @@
                                     Acumular
                                 </button>
                             </div>
-
-                            <p class="feature-editor-v1-help">
-                                “Gastar usos” normalmente começa cheio. “Acumular” normalmente começa em zero.
-                            </p>
                         </div>
                     </section>
 
-
-                    {{-- ERRO --}}
                     <div
                         x-show="saveError"
                         x-cloak
-                        class="feature-editor-v1-error"
+                        class="feature-v3-error"
                         x-text="saveError"
                     ></div>
                 </div>
 
-
-                {{-- FOOTER --}}
-                <footer class="feature-editor-v1-footer">
+                <footer class="feature-v3-footer">
                     <div>
                         <template x-if="editingId !== null">
                             <div>
@@ -1957,7 +2314,7 @@
                                     type="button"
                                     @click="deleteConfirmOpen = true"
                                     :disabled="saving"
-                                    class="feature-editor-v1-danger"
+                                    class="feature-v3-danger"
                                 >
                                     Excluir
                                 </button>
@@ -1965,17 +2322,17 @@
                                 <div
                                     x-show="deleteConfirmOpen"
                                     x-cloak
-                                    class="flex items-center gap-7"
+                                    class="flex items-center gap-2"
                                 >
                                     <span class="text-[11px] font-bold text-red-800">
-                                        Excluir esta habilidade?
+                                        Excluir?
                                     </span>
 
                                     <button
                                         type="button"
                                         @click="deleteConfirmOpen = false"
                                         :disabled="saving"
-                                        class="feature-editor-v1-secondary"
+                                        class="feature-v3-secondary"
                                     >
                                         Não
                                     </button>
@@ -1984,21 +2341,21 @@
                                         type="button"
                                         @click="deleteFeature()"
                                         :disabled="saving"
-                                        class="feature-editor-v1-danger"
+                                        class="feature-v3-danger"
                                     >
-                                        Sim, excluir
+                                        Sim
                                     </button>
                                 </div>
                             </div>
                         </template>
                     </div>
 
-                    <div class="feature-editor-v1-footer-right">
+                    <div class="feature-v3-footer-right">
                         <button
                             type="button"
-                            @click="closeModal()"
+                            @click="closeEditor()"
                             :disabled="saving"
-                            class="feature-editor-v1-secondary"
+                            class="feature-v3-secondary"
                         >
                             Cancelar
                         </button>
@@ -2007,7 +2364,7 @@
                             type="button"
                             @click="saveFeature()"
                             :disabled="saving"
-                            class="feature-editor-v1-save"
+                            class="feature-v3-primary"
                         >
                             <span
                                 x-text="

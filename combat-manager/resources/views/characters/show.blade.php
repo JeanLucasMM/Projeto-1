@@ -3,106 +3,80 @@
     <style>
         /*
         |--------------------------------------------------------------------------
-        | FOLHA ÚNICA — V2 MAIS LIMPA
+        | FOLHA — V3 EM BLOCOS CONTÍNUOS
         |--------------------------------------------------------------------------
         |
-        | Mantemos a ficha como uma peça única, mas retiramos molduras e
-        | divisões redundantes no miolo.
+        | A ficha permanece visualmente como uma única folha.
+        | As áreas são separadas por blocos planos e espaçamento, não por
+        | várias caixas flutuantes.
         |
         */
 
         .character-sheet-hero > * {
             margin-bottom: 0 !important;
-
             border-bottom-left-radius: 0 !important;
             border-bottom-right-radius: 0 !important;
-
             border-bottom-color: transparent !important;
-
             box-shadow: none !important;
         }
 
         .character-sheet-body {
             position: relative;
-
             margin-top: -1px;
-
             overflow: hidden;
 
-            border-right: 1px solid rgba(205, 187, 159, .50);
-            border-bottom: 1px solid rgba(205, 187, 159, .50);
-            border-left: 1px solid rgba(205, 187, 159, .50);
+            border-right: 1px solid rgba(205,187,159,.52);
+            border-bottom: 1px solid rgba(205,187,159,.52);
+            border-left: 1px solid rgba(205,187,159,.52);
 
-            border-radius:
-                0
-                0
-                16px
-                16px;
+            border-radius: 0 0 16px 16px;
 
-            background:
-                #f8f5ee;
+            background: #f8f5ee;
 
             box-shadow:
-                0 7px 16px rgba(83, 21, 15, .05);
+                0 7px 16px rgba(83,21,15,.05);
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | ATRIBUTOS + COLUNA PRINCIPAL
-        |--------------------------------------------------------------------------
-        |
-        | A coluna de atributos fica mais estreita sem alterar a tipografia
-        | interna do componente.
-        |
-        | Ataques permanece compacto no topo da coluna principal e o restante
-        | da ficha sobe logo abaixo. Isso elimina o grande vazio à direita.
-        |
-        */
-
         .character-sheet-main-grid {
-            position: relative;
-
-            z-index: 10;
-
             display: grid;
-
-            grid-template-columns:
-                minmax(0, 1fr);
-
+            grid-template-columns: minmax(0, 1fr);
             align-items: start;
         }
 
         .character-sheet-abilities,
         .character-sheet-main-column,
-        .character-sheet-attacks {
+        .character-sheet-attacks,
+        .character-sheet-features,
+        .character-sheet-bottom-grid {
             min-width: 0;
         }
 
-        .character-sheet-main-column {
-            display: flex;
+        /*
+        |--------------------------------------------------------------------------
+        | BLOCOS
+        |--------------------------------------------------------------------------
+        */
 
-            min-height: 0;
-
-            flex-direction: column;
+        .character-sheet-block {
+            position: relative;
+            min-width: 0;
+            background: rgba(250,248,242,.58);
         }
 
-        /*
-        | Os componentes já possuem divisões internas suficientes.
-        | Removemos apenas a moldura externa duplicada.
-        */
+        .character-sheet-block + .character-sheet-block {
+            border-top: 1px solid rgba(205,187,159,.44);
+        }
+
+        .character-sheet-abilities {
+            background: rgba(250,248,242,.42);
+        }
 
         .character-sheet-abilities > *,
         .character-sheet-attacks > * {
             width: 100%;
-
             border: 0 !important;
             border-radius: 0 !important;
-
             box-shadow: none !important;
-        }
-
-        .character-sheet-attacks {
-            align-self: start;
         }
 
         .character-sheet-attacks > * {
@@ -110,59 +84,71 @@
             height: auto !important;
         }
 
+        .character-sheet-features {
+            padding: 18px 16px 16px;
+        }
+
+        .character-sheet-bottom-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0;
+            border-top: 1px solid rgba(205,187,159,.48);
+        }
+
+        .character-sheet-bottom-cell {
+            min-width: 0;
+            padding: 16px;
+            background: rgba(250,248,242,.35);
+        }
+
+        .character-sheet-bottom-cell + .character-sheet-bottom-cell {
+            border-top: 1px solid rgba(205,187,159,.44);
+        }
+
         /*
         |--------------------------------------------------------------------------
-        | CONTEÚDO INFERIOR
+        | DESKTOP
         |--------------------------------------------------------------------------
         */
-
-        .character-sheet-lower {
-            position: relative;
-
-            min-width: 0;
-
-            margin-top: 10px;
-
-            border-top: 0;
-        }
 
         @media (min-width: 1024px) {
             .character-sheet-main-grid {
                 grid-template-columns:
-                    minmax(340px, 365px)
+                    350px
                     minmax(0, 1fr);
-
-                column-gap: 12px;
             }
 
             .character-sheet-abilities {
-                align-self: start;
+                align-self: stretch;
+                border-right: 1px solid rgba(205,187,159,.48);
             }
 
             .character-sheet-main-column {
-                padding-left: 2px;
+                min-height: 100%;
+            }
+
+            .character-sheet-bottom-grid {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+            }
+
+            .character-sheet-bottom-cell + .character-sheet-bottom-cell {
+                border-top: 0;
+                border-left: 1px solid rgba(205,187,159,.44);
             }
         }
 
         @media (min-width: 1280px) {
             .character-sheet-main-grid {
                 grid-template-columns:
-                    370px
+                    360px
                     minmax(0, 1fr);
-
-                column-gap: 14px;
             }
         }
 
         @media (max-width: 1023px) {
-            .character-sheet-main-column {
-                border-top:
-                    1px solid
-                    rgba(205, 187, 159, .34);
-            }
-
-            .character-sheet-lower {
-                margin-top: 12px;
+            .character-sheet-abilities {
+                border-bottom: 1px solid rgba(205,187,159,.44);
             }
         }
 
@@ -313,19 +299,12 @@
                     {{-- ====================================================
                          CONTEÚDO PRINCIPAL
                     ===================================================== --}}
-                    <div
-                        class="
-                            character-sheet-main-grid
-                        "
-                    >
+                    <div class="character-sheet-main-grid">
+
                         {{-- =================================================
-                             ATRIBUTOS — COLUNA MAIS ESTREITA
+                             ATRIBUTOS
                         ================================================== --}}
-                        <div
-                            class="
-                                character-sheet-abilities
-                            "
-                        >
+                        <aside class="character-sheet-abilities">
                             @include(
                                 'characters.components.character-abilities',
                                 [
@@ -333,20 +312,18 @@
                                         $character,
                                 ]
                             )
-                        </div>
+                        </aside>
 
 
                         {{-- =================================================
                              COLUNA PRINCIPAL
                         ================================================== --}}
-                        <div
-                            class="
-                                character-sheet-main-column
-                            "
-                        >
+                        <main class="character-sheet-main-column">
+
                             {{-- ATAQUES --}}
-                            <div
+                            <section
                                 class="
+                                    character-sheet-block
                                     character-sheet-attacks
                                 "
                             >
@@ -357,23 +334,14 @@
                                             $character,
                                     ]
                                 )
-                            </div>
+                            </section>
 
 
-                            {{-- =============================================
-                                 RESTANTE DA FICHA
-                            ============================================== --}}
-                            <div
+                            {{-- HABILIDADES --}}
+                            <section
                                 class="
-                                    character-sheet-lower
-
-                                    space-y-4
-
-                                    px-3
-                                    pb-5
-                                    pt-2
-
-                                    sm:px-4
+                                    character-sheet-block
+                                    character-sheet-features
                                 "
                             >
                                 @include(
@@ -383,17 +351,12 @@
                                             $character,
                                     ]
                                 )
+                            </section>
 
 
-                                <div
-                                    class="
-                                        grid
-                                        grid-cols-1
-                                        gap-4
-
-                                        md:grid-cols-2
-                                    "
-                                >
+                            {{-- RECURSOS + PROGRESSÃO --}}
+                            <div class="character-sheet-bottom-grid">
+                                <section class="character-sheet-bottom-cell">
                                     @include(
                                         'characters.components.resources',
                                         [
@@ -401,7 +364,9 @@
                                                 $character,
                                         ]
                                     )
+                                </section>
 
+                                <section class="character-sheet-bottom-cell">
                                     @include(
                                         'characters.components.classes',
                                         [
@@ -409,9 +374,10 @@
                                                 $character,
                                         ]
                                     )
-                                </div>
+                                </section>
                             </div>
-                        </div>
+
+                        </main>
                     </div>
 
                 </div>

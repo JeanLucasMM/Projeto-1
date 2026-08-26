@@ -12,7 +12,7 @@ class CharacterFeature extends Model
 
         /*
         |--------------------------------------------------------------------------
-        | IdentificaÃ§Ã£o
+        | Identificação
         |--------------------------------------------------------------------------
         */
 
@@ -23,7 +23,7 @@ class CharacterFeature extends Model
 
         /*
         |--------------------------------------------------------------------------
-        | ConteÃºdo
+        | Conteúdo
         |--------------------------------------------------------------------------
         */
 
@@ -114,6 +114,20 @@ class CharacterFeature extends Model
         return $value !== ''
             ? $value
             : null;
+    }
+
+    public function getColumnAttribute(): string
+    {
+        $data = is_array($this->data)
+            ? $this->data
+            : [];
+
+        return (
+            $data['column']
+            ?? 'left'
+        ) === 'right'
+            ? 'right'
+            : 'left';
     }
 
     public function getCounterModeAttribute(): string
