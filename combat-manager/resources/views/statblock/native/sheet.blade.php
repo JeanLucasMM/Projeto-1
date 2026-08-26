@@ -1,6 +1,4 @@
-@push('styles')
-    @vite('resources/css/native-statblock.css')
-@endpush
+
 
 <div class="native-statblock">
     <div class="native-content-flow">

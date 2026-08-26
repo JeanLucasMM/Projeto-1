@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Builders\NpcFactory;
-use App\Builders\Exporter\NpcViewModelExporter;
+use App\Models\NpcBuilderDraft;
+use Illuminate\Support\Facades\Auth;
 
 class NpcBuilderController extends Controller
 {
@@ -12,9 +12,15 @@ class NpcBuilderController extends Controller
     {
         $builder = NpcFactory::create();
 
-        return view('npc-builder.index', compact(
-            'builder',
-        ));
-    }
+        $draft = NpcBuilderDraft::where(
+            'user_id',
+            Auth::id()
+        )->first();
 
+        return view('npc-builder.index', [
+            'builder' => $builder,
+            'draft' => $draft,
+            'npc' => null,
+        ]);
+    }
 }

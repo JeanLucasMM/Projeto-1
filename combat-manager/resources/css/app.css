@@ -1,6 +1,11 @@
+@import './native-statblock.css';
+@import './preview.sheet.css';
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 
 /* ==========================================================
    VARIÁVEIS E TIPOGRAFIA GLOBAL DA FICHA

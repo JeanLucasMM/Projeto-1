@@ -3,6 +3,7 @@
 namespace App\Repositories\Contracts;
 
 use App\Models\Npc;
+use Illuminate\Support\Collection;
 
 interface NpcRepositoryInterface
 {
@@ -11,18 +12,21 @@ interface NpcRepositoryInterface
     public function findById(int $id): ?Npc;
 
     public function findAllByUser(
-    int $userId,
-    ?string $search = null,
-    ?string $sort = null
-);
+        int $userId,
+        ?string $search = null,
+        ?string $sort = null,
+        ?string $folder = null
+    ): Collection;
 
     public function delete(Npc $npc): void;
 
-    public function findByIdAndUser(int $id, int $userId): ?Npc;
+    public function findByIdAndUser(
+        int $id,
+        int $userId
+    ): ?Npc;
 
     public function findAvailableForCombat(
-    int $userId,
-    int $combatId
+        int $userId,
+        int $combatId
     );
-    
 }

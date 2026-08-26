@@ -1,5 +1,5 @@
 {{-- COLUNA DA ESQUERDA: FORMULÁRIO (builder.blade.php) --}}
-<div class="w-full lg:w-[75%] h-full overflow-y-auto custom-scrollbar pr-3 space-y-4 font-sans pb-24">
+<div class="w-full lg:w-[100%] h-full overflow-y-auto custom-scrollbar pr-3 space-y-4 font-sans pb-24">
 
     {{-- Inicial --}}
     <div class="bg-white/90 backdrop-blur-md border border-[#cdbb9f] rounded-xl shadow-sm transition-all duration-300"

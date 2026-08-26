@@ -57,326 +57,928 @@
         @endif
 
         {{-- Barra de Pesquisa e Ações --}}
-        <header class="sticky top-0 z-30 bg-[#efe9dc] border-b border-[#cdbb9f]/40 h-[60px] flex items-center px-6 sm:px-8 w-full shadow-sm">
-            <div class="flex items-center justify-between gap-4 w-full">
-                
-                {{-- Título da Seção --}}
-                <div class="flex items-center gap-3 shrink-0">
-                    <h1 class="text-lg lg:text-xl font-serif font-bold text-[#6b1d14] tracking-wide whitespace-nowrap">
-                        NPCs
-                    </h1>
+{{-- ============================================================
+    HEADER — BUSCA GLOBAL + FILTROS + AÇÕES
+    ============================================================ --}}
+<header
+    class="sticky top-0 z-30 w-full bg-[#efe9dc]/95 backdrop-blur-md border-b border-[#cdbb9f]/50 shadow-sm"
+>
+    <div class="px-4 sm:px-6 lg:px-6 py-2.5">
+
+        <div class="flex flex-col xl:flex-row xl:items-center gap-3">
+
+            {{-- ==================================================
+                 IDENTIDADE DA PÁGINA
+                 ================================================== --}}
+            <div class="hidden lg:flex items-center gap-3 shrink-0 mr-2">
+
+                <div
+                    class="w-9 h-9 rounded-xl bg-[#6b1d14] text-[#f4f1e8] flex items-center justify-center shadow-sm"
+                >
+                    <svg
+                        class="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                        />
+                    </svg>
                 </div>
 
-                {{-- Formulário de Busca e Ordenação --}}
-                <form
-                    method="GET"
-                    action="{{ request()->url() }}"
-                    class="flex flex-1 items-center gap-2 max-w-md lg:max-w-2xl min-w-0"
-                >
-                    <input
-                        type="text"
-                        name="search"
-                        value="{{ request('search') }}"
-                        placeholder="Pesquisar..."
-                        class="w-full rounded-xl border-[#cdbb9f]/50 bg-[#efe9dc]/40 text-[#2b1d17] placeholder-[#8c6239]/40 text-xs focus:border-[#6b1d14] focus:ring-[#6b1d14]/10 h-9 transition-polished min-w-[100px]"
-                    >
+                <div class="leading-tight">
+                    <h1 class="font-serif font-bold text-sm text-[#6b1d14]">
+                        Cofre de NPCs
+                    </h1>
 
-                    <div class="flex items-center gap-2 shrink-0">
+                    <p class="text-[10px] text-[#8c6239]/70 italic">
+                        Gerencie suas criaturas
+                    </p>
+                </div>
+
+            </div>
+
+            {{-- =================================================
+                BUSCA GLOBAL
+                ================================================= --}}
+            <form
+                method="GET"
+                action="{{ request()->url() }}"
+                class="flex-1 min-w-0"
+            >
+                <div class="flex items-center gap-2">
+
+                    {{-- Campo de busca --}}
+                    <div class="relative flex-1 min-w-0">
+                        <svg
+                            class="absolute left-3 top-1/2 -translate-y-1/2
+                                   w-4 h-4 text-[#8c6239]/60 pointer-events-none"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"
+                            />
+                        </svg>
+
+                        <input
+                            type="text"
+                            name="search"
+                            value="{{ request('search') }}"
+                            placeholder="Pesquisar fichas..."
+                            class="w-full h-10
+                                   pl-9 pr-3
+                                   rounded-xl
+                                   border border-[#cdbb9f]/60
+                                   bg-[#f5f0e5]/70
+                                   text-[#2b1d17]
+                                   placeholder-[#8c6239]/50
+                                   text-sm
+                                   focus:border-[#6b1d14]
+                                   focus:ring-2
+                                   focus:ring-[#6b1d14]/10
+                                   transition-polished"
+                        >
+                    </div>
+
+                    {{-- =================================================
+                        FILTROS
+                        ================================================= --}}
+                    <div class="hidden md:flex items-center gap-2">
+
+                        {{-- Pasta --}}
+                        <select
+                            name="folder"
+                            class="h-10
+                                   rounded-xl
+                                   border border-[#cdbb9f]/60
+                                   bg-[#f5f0e5]/70
+                                   text-[#2b1d17]
+                                   text-xs
+                                   font-medium
+                                   focus:border-[#6b1d14]
+                                   focus:ring-2
+                                   focus:ring-[#6b1d14]/10
+                                   transition-polished
+                                   pr-8"
+                        >
+                            <option value="">
+                                Todas as pastas
+                            </option>
+
+                            @if(isset($folders))
+                                @foreach($folders as $folder)
+                                    <option
+                                        value="{{ $folder->id }}"
+                                        {{ (string) request('folder') === (string) $folder->id ? 'selected' : '' }}
+                                    >
+                                        {{ $folder->name }}
+                                    </option>
+                                @endforeach
+                            @endif
+                        </select>
+
+                        {{-- Ordenação --}}
                         <select
                             name="sort"
-                            class="hidden sm:block rounded-xl border-[#cdbb9f]/50 bg-[#efe9dc]/40 text-[#2b1d17] text-xs focus:border-[#6b1d14] focus:ring-[#6b1d14]/10 h-9 pr-8 transition-polished"
+                            class="h-10
+                                   rounded-xl
+                                   border border-[#cdbb9f]/60
+                                   bg-[#f5f0e5]/70
+                                   text-[#2b1d17]
+                                   text-xs
+                                   font-medium
+                                   focus:border-[#6b1d14]
+                                   focus:ring-2
+                                   focus:ring-[#6b1d14]/10
+                                   transition-polished
+                                   pr-8"
                         >
-                            <option value="name_asc" {{ request('sort')=='name_asc' || !request('sort') ? 'selected' : '' }}>
-                                Nome (A-Z)
+                            <option
+                                value="name_asc"
+                                {{ request('sort', 'name_asc') === 'name_asc' ? 'selected' : '' }}
+                            >
+                                Nome A-Z
                             </option>
-                            <option value="name_desc" {{ request('sort')=='name_desc' ? 'selected' : '' }}>
-                                Nome (Z-A)
+
+                            <option
+                                value="name_desc"
+                                {{ request('sort') === 'name_desc' ? 'selected' : '' }}
+                            >
+                                Nome Z-A
                             </option>
-                            <option value="cr_desc" {{ request('sort')=='cr_desc' ? 'selected' : '' }}>
-                                CR Maior
+
+                            <option
+                                value="cr_desc"
+                                {{ request('sort') === 'cr_desc' ? 'selected' : '' }}
+                            >
+                                CR maior
                             </option>
-                            <option value="cr_asc" {{ request('sort')=='cr_asc' ? 'selected' : '' }}>
-                                CR Menor
+
+                            <option
+                                value="cr_asc"
+                                {{ request('sort') === 'cr_asc' ? 'selected' : '' }}
+                            >
+                                CR menor
+                            </option>
+
+                            <option
+                                value="newest"
+                                {{ request('sort') === 'newest' ? 'selected' : '' }}
+                            >
+                                Mais recentes
+                            </option>
+
+                            <option
+                                value="oldest"
+                                {{ request('sort') === 'oldest' ? 'selected' : '' }}
+                            >
+                                Mais antigas
                             </option>
                         </select>
 
-                        <button class="px-4 h-9 rounded-xl bg-[#8c6239] hover:bg-[#74502d] text-white font-serif font-bold text-xs uppercase tracking-wider transition-polished shadow-sm">
-                            Buscar
-                        </button>
                     </div>
-                </form>
 
-                {{-- Botões de Ação --}}
-                <div class="flex items-center gap-2 shrink-0"> 
+                    {{-- Buscar --}}
                     <button
-                        type="button"
-                        onclick="openFolderModal()"
-                        class="px-4 h-9 rounded-xl bg-[#6b1d14] hover:bg-[#53150f] text-[#f4f1e8] font-serif font-bold text-xs uppercase tracking-widest transition-polished shadow-sm flex items-center gap-1.5"
+                        type="submit"
+                        class="h-10 px-4
+                               rounded-xl
+                               bg-[#8c6239]
+                               hover:bg-[#74502d]
+                               active:bg-[#634326]
+                               text-white
+                               font-serif
+                               font-bold
+                               text-xs
+                               uppercase
+                               tracking-wider
+                               transition-polished
+                               shadow-sm
+                               shrink-0"
                     >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7h5l2 2h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"/>
-                        </svg>
                         <span class="hidden sm:inline">
-                            Nova Pasta
+                            Buscar
                         </span>
+
+                        <svg
+                            class="w-4 h-4 sm:hidden"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0"
+                            />
+                        </svg>
                     </button>
 
-                    <button
-                        type="button"
-                        onclick="openImportModal()"
-                        class="px-4 h-9 rounded-xl bg-[#6b1d14] hover:bg-[#53150f] text-[#f4f1e8] font-serif font-bold text-xs uppercase tracking-widest transition-polished shadow-sm flex items-center gap-1.5"
-                    >
-                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        <span class="hidden sm:inline">
-                            Importar
-                        </span>
-                    </button>
                 </div>
 
+                {{-- =================================================
+                    FILTROS MOBILE
+                    ================================================= --}}
+                <div class="md:hidden hidden" id="mobile-filters">
+                    <div class="absolute left-0 right-0 top-[68px]
+                                p-4
+                                bg-[#efe9dc]
+                                border-b border-[#cdbb9f]/50
+                                shadow-lg
+                                z-40">
+
+                        <div class="grid grid-cols-2 gap-2">
+
+                            <select
+                                name="folder"
+                                class="h-10 rounded-xl
+                                       border border-[#cdbb9f]/60
+                                       bg-[#f5f0e5]
+                                       text-[#2b1d17]
+                                       text-xs"
+                            >
+                                <option value="">
+                                    Todas as pastas
+                                </option>
+
+                                @if(isset($folders))
+                                    @foreach($folders as $folder)
+                                        <option
+                                            value="{{ $folder->id }}"
+                                            {{ (string) request('folder') === (string) $folder->id ? 'selected' : '' }}
+                                        >
+                                            {{ $folder->name }}
+                                        </option>
+                                    @endforeach
+                                @endif
+                            </select>
+
+                            <select
+                                name="sort"
+                                class="h-10 rounded-xl
+                                       border border-[#cdbb9f]/60
+                                       bg-[#f5f0e5]
+                                       text-[#2b1d17]
+                                       text-xs"
+                            >
+                                <option value="name_asc">Nome A-Z</option>
+                                <option value="name_desc">Nome Z-A</option>
+                                <option value="cr_desc">CR maior</option>
+                                <option value="cr_asc">CR menor</option>
+                                <option value="newest">Mais recentes</option>
+                                <option value="oldest">Mais antigas</option>
+                            </select>
+
+                        </div>
+
+                    </div>
+                </div>
+            </form>
+
+            {{-- =================================================
+                AÇÕES
+                ================================================= --}}
+            <div class="flex items-center gap-2 shrink-0">
+
+                {{-- Filtros mobile --}}
+                <button
+                    type="button"
+                    onclick="toggleMobileFilters()"
+                    class="md:hidden
+                           w-10 h-10
+                           rounded-xl
+                           border border-[#cdbb9f]/60
+                           bg-[#f5f0e5]/70
+                           text-[#6b1d14]
+                           hover:bg-[#e4dac7]
+                           transition-polished
+                           flex items-center justify-center"
+                    title="Filtros"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3 6h18M6 12h12m-8 6h4"
+                        />
+                    </svg>
+                </button>
+
+                {{-- Nova pasta --}}
+                <button
+                    type="button"
+                    onclick="openFolderModal()"
+                    class="h-10 px-3 sm:px-4
+                           rounded-xl
+                           bg-[#6b1d14]
+                           hover:bg-[#53150f]
+                           active:bg-[#42100c]
+                           text-[#f4f1e8]
+                           font-serif
+                           font-bold
+                           text-xs
+                           uppercase
+                           tracking-widest
+                           transition-polished
+                           shadow-sm
+                           flex items-center gap-1.5"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M3 7h5l2 2h11v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z"
+                        />
+                    </svg>
+
+                    <span class="hidden sm:inline">
+                        Nova Pasta
+                    </span>
+                </button>
+
+                {{-- Importar --}}
+                <button
+                    type="button"
+                    onclick="openImportModal()"
+                    class="h-10 px-3 sm:px-4
+                           rounded-xl
+                           bg-[#6b1d14]
+                           hover:bg-[#53150f]
+                           active:bg-[#42100c]
+                           text-[#f4f1e8]
+                           font-serif
+                           font-bold
+                           text-xs
+                           uppercase
+                           tracking-widest
+                           transition-polished
+                           shadow-sm
+                           flex items-center gap-1.5"
+                >
+                    <svg
+                        class="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M12 4v16m8-8H4"
+                        />
+                    </svg>
+
+                    <span class="hidden sm:inline">
+                        Importar
+                    </span>
+                </button>
+
             </div>
-        </header>
+
+        </div>
+    </div>
+</header>
+
+<script>
+    function toggleMobileFilters() {
+        const filters = document.getElementById('mobile-filters');
+
+        if (!filters) {
+            return;
+        }
+
+        filters.classList.toggle('hidden');
+    }
+</script>
 
         {{-- Conteúdo Principal --}}
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+{{-- ============================================================
+     CONTEÚDO PRINCIPAL
+     ============================================================ --}}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
 
-         {{-- NPCs sem pasta (Biblioteca) --}}
     @php
+        $hasSearch = filled(request('search'));
+        $hasFolder = filled(request('folder'));
+        $hasFilters = $hasSearch || $hasFolder;
+
         $unassignedNpcs = $npcs->whereNull('folder_id');
     @endphp
 
-    @if($unassignedNpcs->count())
-        <div class="mb-12">
-            {{-- Cabeçalho da Seção --}}
-            <div class="flex items-center justify-between mb-6 pb-3 border-b border-[#cdbb9f]/40">
+
+    {{-- ============================================================
+         MODO DE BUSCA / FILTRO
+         ============================================================ --}}
+    @if($hasFilters)
+
+        <section class="mb-12">
+
+            <div class="flex items-center justify-between mb-6 pb-4 border-b border-[#cdbb9f]/40">
+
                 <div class="flex items-center gap-3">
-                    <div class="p-2 rounded-xl bg-[#6b1d14]/10 text-[#6b1d14] border border-[#6b1d14]/20 shadow-sm">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+
+                    <div class="p-2 rounded-xl
+                                bg-[#6b1d14]/10
+                                text-[#6b1d14]
+                                border border-[#6b1d14]/20
+                                shadow-sm">
+
+                        <svg
+                            class="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle cx="11" cy="11" r="7"/>
+                            <path d="m20 20-3.5-3.5"/>
                         </svg>
+
                     </div>
+
                     <div>
-                        <h2 class="text-2xl font-serif font-bold text-[#6b1d14] leading-tight">
-                            Biblioteca
+
+                        <h2 class="text-2xl font-serif font-bold text-[#6b1d14]">
+                            Resultados
                         </h2>
+
                         <p class="text-xs italic text-[#8c6239]">
-                            NPCs sem pastas atribuidas
-                        </p>
-                    </div>
-                </div>
 
-                <span class="px-3 py-1 rounded-full bg-[#efe9dc] border border-[#cdbb9f] text-xs font-serif font-bold text-[#8c6239] shadow-sm">
-                    {{ $unassignedNpcs->count() }} {{ $unassignedNpcs->count() === 1 ? 'NPC' : 'NPCs' }}
-                </span>
-            </div>
-
-            {{-- Grade de Cards de NPCs --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 items-start mt-6">
-                @foreach($unassignedNpcs as $npc)
-                    @include('npcs.npc-card', ['npc' => $npc])
-                @endforeach
-            </div>
-        </div>
-    @endif
-
-            {{-- Seção de Pastas --}}
-           @if($folders->count())
-            <div class="mt-14">
-            {{-- Cabeçalho da Seção --}}
-            <div class="flex items-center justify-between mb-6 pb-3 border-b border-[#cdbb9f]/40">
-            <div class="flex items-center gap-3">
-                <div class="p-2 rounded-xl bg-[#6b1d14]/10 text-[#6b1d14] border border-[#6b1d14]/20 shadow-sm">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h2 class="text-2xl font-serif font-bold text-[#6b1d14] leading-tight">
-                        Pastas de Campanhas
-                    </h2>
-                    <p class="text-xs italic text-[#8c6239]">
-                        Arraste seus NPCs para organizalos em pastas
-                    </p>
-                </div>
-            </div>
-
-            <span class="px-3 py-1 rounded-full bg-[#efe9dc] border border-[#cdbb9f] text-xs font-serif font-bold text-[#8c6239] shadow-sm">
-                {{ $folders->count() }} {{ $folders->count() === 1 ? 'Pasta' : 'Pastas' }}
-            </span>
-        </div>
-
-        {{-- Grade de Pastas --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            @foreach($folders as $folder)
-                <div
-                    class="folder-dropzone group relative flex flex-col justify-between h-60 rounded-2xl bg-[#f4f1e8] border border-[#cdbb9f]/70 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
-                    data-folder="{{ $folder->id }}"
-                    data-url="{{ route('folders.show', $folder) }}"
-                    data-name="{{ $folder->name }}"
-                    data-subtitle="{{ $folder->subtitle }}"
-                    data-color="{{ $folder->color }}"
-                    data-update-url="{{ route('folders.update', $folder) }}"
-                >
-                    {{-- Faixa de Destaque Superior com Cor Personalizada --}}
-                    <div class="relative w-full h-2.5 shrink-0" style="background-color: {{ $folder->color }}">
-                        <div class="absolute inset-0 bg-black/10"></div>
-                    </div>
-
-                    {{-- Corpo Principal da Pasta --}}
-                    <div class="flex-1 p-5 flex flex-col justify-between">
-                        
-                        {{-- Topo do Card: Ícone, Nome, Subtítulo e Menu --}}
-                        <div>
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="flex items-center gap-2.5 min-w-0">
-                                    {{-- Ícone da Pasta na Cor do Destaque --}}
-                                    <div class="p-1.5 rounded-lg shrink-0" style="background-color: {{ $folder->color }}15">
-                                        <svg class="w-5 h-5 shrink-0" style="color: {{ $folder->color }}" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M10 4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h6z"/>
-                                        </svg>
-                                    </div>
-
-                                    <h3 class="font-serif font-bold text-base text-[#2b1d17] group-hover:text-[#6b1d14] transition-colors truncate">
-                                        {{ $folder->name }}
-                                    </h3>
-                                </div>
-
-                                {{-- Botão do Menu Dropdown --}}
-                                <div class="relative shrink-0" onclick="event.stopPropagation();">
-                                    <button
-                                        type="button"
-                                        onclick="toggleFolderMenu({{ $folder->id }})"
-                                        class="p-1.5 rounded-lg text-[#8c6239] hover:text-[#6b1d14] hover:bg-[#efe9dc] transition-colors"
-                                        title="Opções"
-                                    >
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
-                                        </svg>
-                                    </button>
-
-                                    {{-- Menu Dropdown Estilizado --}}
-                                    <div
-                                        id="folder-menu-{{ $folder->id }}"
-                                        class="hidden absolute right-0 mt-2 w-40 rounded-xl bg-[#fefcf8] border border-[#cdbb9f] shadow-xl z-50 text-left overflow-hidden py-1"
-                                    >
-                                        {{-- Editar --}}
-                                        <button
-                                            type="button" 
-                                            onclick="editFolder(this)"
-                                            data-id="{{ $folder->id }}"
-                                            data-name="{{ $folder->name }}"
-                                            data-subtitle="{{ $folder->subtitle }}"
-                                            data-color="{{ $folder->color }}"
-                                            class="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-[#efe9dc] text-xs font-serif font-bold text-[#4a3b32] hover:text-[#6b1d14] transition-colors"
-                                        >
-                                            <svg class="w-4 h-4 text-[#8c6239]" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                            Editar
-                                        </button>
-
-                                        <div class="my-1 border-t border-[#cdbb9f]/30"></div>
-
-                                        {{-- Excluir --}}
-                                        <form
-                                            action="{{ route('folders.destroy', $folder) }}"
-                                            method="POST"
-                                            onsubmit="return confirm('Excluir esta pasta? Os NPCs voltarão para Sem Pasta.')"
-                                            class="w-full m-0"
-                                        >
-                                            @csrf
-                                            @method('DELETE')
-                                            <button
-                                                type="submit"
-                                                class="w-full flex items-center gap-2 px-3.5 py-2 hover:bg-red-50 text-xs font-serif font-bold text-red-700 transition-colors"
-                                            >
-                                                <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                                </svg>
-                                                Excluir
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- Subtítulo da Pasta --}}
-                            @if($folder->subtitle)
-                                <p class="mt-2 text-xs italic text-[#8c6239] line-clamp-2 leading-relaxed">
-                                    "{{ $folder->subtitle }}"
-                                </p>
-                            @else
-                                <p class="mt-2 text-xs italic text-[#8c6239]/40">
-                                    Sem descrição adicional...
-                                </p>
+                            @if($hasSearch)
+                                Pesquisa por
+                                <span class="font-bold">
+                                    "{{ request('search') }}"
+                                </span>
+                            @elseif($hasFolder)
+                                NPCs da pasta selecionada
                             @endif
-                        </div>
 
-                        {{-- Rodapé do Card: Avatares Sobrepostos & Contador de NPCs --}}
-                        <div class="pt-3 border-t border-[#cdbb9f]/40 flex items-center justify-between">
-                            {{-- Miniaturas de NPCs --}}
-                            <div class="folder-avatars flex items-center -space-x-2.5 overflow-hidden">
-                                @forelse($folder->npcs->take(4) as $npc)
-                                    <div class="avatar-preview relative w-8 h-8 rounded-full overflow-hidden border-2 border-[#f4f1e8] bg-[#efe9dc] shadow-sm">
-                                        @if($npc->image_path)
-                                            <img
-                                                src="{{ asset('storage/'.$npc->image_path) }}"
-                                                alt="{{ $npc->name }}"
-                                                class="w-full h-full object-cover"
-                                            >
-                                        @else
-                                            <div class="w-full h-full flex items-center justify-center text-[10px] font-serif font-bold bg-[#6b1d14]/10 text-[#6b1d14]">
-                                                {{ str($npc->name)->substr(0, 2)->upper() }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                @empty
-                                    <span class="text-[11px] italic text-[#8c6239]/60">Vazia</span>
-                                @endforelse
-
-                                {{-- Pill indicador se houver mais de 4 NPCs --}}
-                                @if($folder->npcs->count() > 4)
-                                    <div class="w-8 h-8 rounded-full bg-[#efe9dc] border-2 border-[#f4f1e8] flex items-center justify-center text-[10px] font-serif font-bold text-[#6b1d14] shadow-sm">
-                                        +{{ $folder->npcs->count() - 4 }}
-                                    </div>
-                                @endif
-                            </div>
-
-                            {{-- Contador Total de NPCs --}}
-                            <div class="px-2.5 py-1 rounded-lg bg-[#efe9dc]/80 border border-[#cdbb9f]/50 flex items-center gap-1.5 shadow-inner">
-                                <span class="folder-count text-xs font-serif font-bold text-[#6b1d14]">
-                                    {{ $folder->npcs->count() }}
-                                </span>
-                                <span class="text-[10px] font-serif uppercase tracking-wider text-[#8c6239]">
-                                    NPCs
-                                </span>
-                            </div>
-                        </div>
+                        </p>
 
                     </div>
-                </div>
-            @endforeach
-        </div>
-    </div>
-@endif
 
-            {{-- Estado Vazio Geral --}}
-            @if($npcs->isEmpty() && $folders->isEmpty())
-                <div class="bg-[#efe9dc]/20 border border-dashed border-[#cdbb9f]/60 rounded-2xl p-12 text-center mt-8">
+                </div>
+
+                <span class="px-3 py-1 rounded-full
+                             bg-[#efe9dc]
+                             border border-[#cdbb9f]
+                             text-xs font-serif font-bold
+                             text-[#8c6239]
+                             shadow-sm">
+
+                    {{ $npcs->count() }}
+                    {{ $npcs->count() === 1 ? 'NPC' : 'NPCs' }}
+
+                </span>
+
+            </div>
+
+
+            @if($npcs->count())
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+                    @foreach($npcs as $npc)
+
+                        @include('npcs.npc-card', [
+                            'npc' => $npc
+                        ])
+
+                    @endforeach
+
+                </div>
+
+            @else
+
+                <div class="bg-[#efe9dc]/20
+                            border border-dashed
+                            border-[#cdbb9f]/60
+                            rounded-2xl
+                            p-12
+                            text-center">
+
+                    <div class="mx-auto mb-4 w-12 h-12 rounded-full
+                                bg-[#6b1d14]/10
+                                text-[#6b1d14]
+                                flex items-center justify-center">
+
+                        <svg
+                            class="w-6 h-6"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            viewBox="0 0 24 24"
+                        >
+                            <circle cx="11" cy="11" r="7"/>
+                            <path d="m20 20-3.5-3.5"/>
+                        </svg>
+
+                    </div>
+
                     <h2 class="text-lg font-serif font-bold text-[#6b1d14]">
                         Nenhum NPC encontrado
                     </h2>
+
                     <p class="text-xs text-[#8c6239]/80 italic mt-1">
-                        Insira um arquivo JSON para iniciar seu grimório de campanha.
+                        Nenhuma ficha corresponde aos filtros atuais.
                     </p>
+
+                    <a
+                        href="{{ request()->url() }}"
+                        class="inline-flex mt-5 px-4 py-2
+                               rounded-xl
+                               bg-[#6b1d14]
+                               hover:bg-[#53150f]
+                               text-white
+                               text-xs
+                               font-serif
+                               font-bold
+                               uppercase
+                               tracking-wider
+                               transition-polished
+                               shadow-sm"
+                    >
+                        Limpar filtros
+                    </a>
+
                 </div>
+
             @endif
+
+        </section>
+
+
+    {{-- ============================================================
+         MODO NORMAL
+         ============================================================ --}}
+    @else
+
+        {{-- ========================================================
+             BIBLIOTECA
+             ======================================================== --}}
+        @if($unassignedNpcs->count())
+
+            <div class="mb-12">
+
+                <div class="flex items-center justify-between mb-6 pb-3 border-b border-[#cdbb9f]/40">
+
+                    <div class="flex items-center gap-3">
+
+                        <div class="p-2 rounded-xl
+                                    bg-[#6b1d14]/10
+                                    text-[#6b1d14]
+                                    border border-[#6b1d14]/20
+                                    shadow-sm">
+
+ <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                        </svg>
+
+                        </div>
+
+                        <div>
+
+                            <h2 class="text-2xl font-serif font-bold text-[#6b1d14]">
+                                Biblioteca
+                            </h2>
+
+                            <p class="text-xs italic text-[#8c6239]">
+                                NPCs sem pastas atribuídas
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <span class="px-3 py-1 rounded-full
+                                 bg-[#efe9dc]
+                                 border border-[#cdbb9f]
+                                 text-xs font-serif font-bold
+                                 text-[#8c6239]
+                                 shadow-sm">
+
+                        {{ $unassignedNpcs->count() }}
+                        {{ $unassignedNpcs->count() === 1 ? 'NPC' : 'NPCs' }}
+
+                    </span>
+
+                </div>
+
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+
+                    @foreach($unassignedNpcs as $npc)
+
+                        @include('npcs.npc-card', [
+                            'npc' => $npc
+                        ])
+
+                    @endforeach
+
+                </div>
+
+            </div>
+
+        @endif
+
+
+        {{-- ========================================================
+             PASTAS
+             ======================================================== --}}
+        @if($folders->count())
+
+            <div class="mt-14">
+
+                <div class="flex items-center justify-between mb-6 pb-3 border-b border-[#cdbb9f]/40">
+
+                    <div class="flex items-center gap-3">
+
+                        <div class="p-2 rounded-xl
+                                    bg-[#6b1d14]/10
+                                    text-[#6b1d14]
+                                    border border-[#6b1d14]/20
+                                    shadow-sm">
+
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+                                />
+                            </svg>
+
+                        </div>
+
+                        <div>
+
+                            <h2 class="text-2xl font-serif font-bold text-[#6b1d14]">
+                                Pastas de Campanhas
+                            </h2>
+
+                            <p class="text-xs italic text-[#8c6239]">
+                                Arraste seus NPCs para organizá-los em pastas
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <span class="px-3 py-1 rounded-full
+                                 bg-[#efe9dc]
+                                 border border-[#cdbb9f]
+                                 text-xs font-serif font-bold
+                                 text-[#8c6239]
+                                 shadow-sm">
+
+                        {{ $folders->count() }}
+                        {{ $folders->count() === 1 ? 'Pasta' : 'Pastas' }}
+
+                    </span>
+
+                </div>
+
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+                    @foreach($folders as $folder)
+
+                        {{-- MANTENHA AQUI O SEU CARD DE PASTA ATUAL --}}
+
+                        <div
+                            class="folder-dropzone group relative flex flex-col justify-between h-60 rounded-2xl bg-[#f4f1e8] border border-[#cdbb9f]/70 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-pointer overflow-hidden"
+                            data-folder="{{ $folder->id }}"
+                            data-url="{{ route('folders.show', $folder) }}"
+                            data-name="{{ $folder->name }}"
+                            data-subtitle="{{ $folder->subtitle }}"
+                            data-color="{{ $folder->color }}"
+                            data-update-url="{{ route('folders.update', $folder) }}"
+                        >
+
+                            <div
+                                class="relative w-full h-2.5 shrink-0"
+                                style="background-color: {{ $folder->color }}"
+                            >
+                                <div class="absolute inset-0 bg-black/10"></div>
+                            </div>
+
+                            <div class="flex-1 p-5 flex flex-col justify-between">
+
+                                <div>
+
+                                    <div class="flex items-start justify-between gap-2">
+
+                                        <div class="flex items-center gap-2.5 min-w-0">
+
+                                            <div
+                                                class="p-1.5 rounded-lg shrink-0"
+                                                style="background-color: {{ $folder->color }}15"
+                                            >
+                                                <svg
+                                                    class="w-5 h-5 shrink-0"
+                                                    style="color: {{ $folder->color }}"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path d="M10 4l2 2h8a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h6z"/>
+                                                </svg>
+                                            </div>
+
+                                            <h3 class="font-serif font-bold text-base text-[#2b1d17] truncate">
+                                                {{ $folder->name }}
+                                            </h3>
+
+                                        </div>
+
+                                        <div
+                                            class="relative shrink-0"
+                                            onclick="event.stopPropagation();"
+                                        >
+
+                                            <button
+                                                type="button"
+                                                onclick="toggleFolderMenu({{ $folder->id }})"
+                                                class="p-1.5 rounded-lg text-[#8c6239] hover:text-[#6b1d14] hover:bg-[#efe9dc] transition-colors"
+                                            >
+                                                <svg
+                                                    class="w-5 h-5"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        d="M12 5v.01M12 12v.01M12 19v.01"
+                                                    />
+                                                </svg>
+                                            </button>
+
+                                            <div
+                                                id="folder-menu-{{ $folder->id }}"
+                                                class="hidden absolute right-0 mt-2 w-40 rounded-xl bg-[#fefcf8] border border-[#cdbb9f] shadow-xl z-50"
+                                            >
+
+                                                <button
+                                                    type="button"
+                                                    onclick="editFolder(this)"
+                                                    data-id="{{ $folder->id }}"
+                                                    data-name="{{ $folder->name }}"
+                                                    data-subtitle="{{ $folder->subtitle }}"
+                                                    data-color="{{ $folder->color }}"
+                                                    class="w-full text-left px-3.5 py-2 text-xs font-serif font-bold text-[#4a3b32] hover:bg-[#efe9dc]"
+                                                >
+                                                    Editar
+                                                </button>
+
+                                                <form
+                                                    action="{{ route('folders.destroy', $folder) }}"
+                                                    method="POST"
+                                                    onsubmit="return confirm('Excluir esta pasta? Os NPCs voltarão para Sem Pasta.')"
+                                                >
+                                                    @csrf
+                                                    @method('DELETE')
+
+                                                    <button
+                                                        type="submit"
+                                                        class="w-full text-left px-3.5 py-2 text-xs font-serif font-bold text-red-700 hover:bg-red-50"
+                                                    >
+                                                        Excluir
+                                                    </button>
+
+                                                </form>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    @if($folder->subtitle)
+
+                                        <p class="mt-2 text-xs italic text-[#8c6239] line-clamp-2">
+                                            "{{ $folder->subtitle }}"
+                                        </p>
+
+                                    @endif
+
+                                </div>
+
+
+                                <div class="pt-3 border-t border-[#cdbb9f]/40 flex items-center justify-between">
+
+                                    <div class="folder-avatars flex items-center -space-x-2.5 overflow-hidden">
+
+                                        @forelse($folder->npcs->take(4) as $npc)
+
+                                            <div class="avatar-preview w-8 h-8 rounded-full overflow-hidden border-2 border-[#f4f1e8] bg-[#efe9dc]">
+
+                                                @if($npc->image_path)
+
+                                                    <img
+                                                        src="{{ asset('storage/'.$npc->image_path) }}"
+                                                        alt="{{ $npc->name }}"
+                                                        class="w-full h-full object-cover"
+                                                    >
+
+                                                @else
+
+                                                    <div class="w-full h-full flex items-center justify-center text-[10px] font-serif font-bold bg-[#6b1d14]/10 text-[#6b1d14]">
+                                                        {{ str($npc->name)->substr(0, 2)->upper() }}
+                                                    </div>
+
+                                                @endif
+
+                                            </div>
+
+                                        @empty
+
+                                            <span class="text-[11px] italic text-[#8c6239]/60">
+                                                Vazia
+                                            </span>
+
+                                        @endforelse
+
+                                    </div>
+
+                                    <div class="px-2.5 py-1 rounded-lg bg-[#efe9dc]/80 border border-[#cdbb9f]/50 flex items-center gap-1.5">
+
+                                        <span class="folder-count text-xs font-serif font-bold text-[#6b1d14]">
+                                            {{ $folder->npcs->count() }}
+                                        </span>
+
+                                        <span class="text-[10px] uppercase tracking-wider text-[#8c6239]">
+                                            NPCs
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    @endforeach
+
+                </div>
+
+            </div>
+
+        @endif
+
+    @endif
+
+
+    {{-- ============================================================
+         ESTADO VAZIO
+         ============================================================ --}}
+    @if($npcs->isEmpty() && $folders->isEmpty())
+
+        <div class="bg-[#efe9dc]/20 border border-dashed border-[#cdbb9f]/60 rounded-2xl p-12 text-center mt-8">
+
+            <h2 class="text-lg font-serif font-bold text-[#6b1d14]">
+                Nenhum NPC encontrado
+            </h2>
+
+            <p class="text-xs text-[#8c6239]/80 italic mt-1">
+                Insira um arquivo JSON para iniciar seu grimório de campanha.
+            </p>
 
         </div>
 
-    </div>
+    @endif
 
+</div>
 {{-- Modal de Nova Pasta --}}
 <div id="folderModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
     {{-- Backdrop com Blur --}}

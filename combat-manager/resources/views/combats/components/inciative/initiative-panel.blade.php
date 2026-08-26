@@ -1,14 +1,46 @@
 <div
     x-data="{
         loading: false,
-        // Mantém uma cópia local para iluminar o card selecionado na hora
+        diceOpen: false,
+        expression: '',
+        result: null,
+        error: null,
+        isRolling: false,
         selectedNpc: sessionStorage.getItem('combat_{{ $combat->id }}_selected') ? parseInt(sessionStorage.getItem('combat_{{ $combat->id }}_selected')) : null,
-        
+
+        async rollDice() {
+            if (this.expression.trim() === '') return;
+            this.isRolling = true;
+            this.result = null;
+            this.error = null;
+
+            try {
+                const response = await fetch('/api/roll', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    },
+                    body: JSON.stringify({ expression: this.expression })
+                });
+                const json = await response.json();
+                if (json.success) {
+                    this.result = json.formatted;
+                } else {
+                    this.error = json.message;
+                }
+            } catch (err) {
+                this.error = 'Erro na comunicação.';
+            } finally {
+                this.isRolling = false;
+            }
+        },
+
         async handleInitiativeAction(e) {
             this.loading = true;
             const form = e.target;
             const wrapper = document.getElementById('combat-panels-wrapper');
-            const header = document.getElementById('combat-header');
 
             try {
                 await fetch(form.action, {
@@ -20,25 +52,11 @@
                 const res = await fetch(window.location.href, { cache: 'no-store' });
                 const html = await res.text();
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                
                 const newContent = doc.getElementById('combat-panels-wrapper');
-                const newHeader = doc.getElementById('combat-header');
 
                 if (newContent) {
                     wrapper.innerHTML = newContent.innerHTML;
                     if (window.Alpine) Alpine.initTree(wrapper);
-                    
-                    setTimeout(() => {
-                        const activeCard = wrapper.querySelector('.js-active-turn');
-                        if (activeCard) {
-                            activeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }, 50);
-                }
-
-                if (header && newHeader) {
-                    header.innerHTML = newHeader.innerHTML;
-                    if (window.Alpine) Alpine.initTree(header);
                 }
             } catch (err) {
                 console.error('Erro ao atualizar:', err);
@@ -47,68 +65,132 @@
             }
         }
     }"
-    class="h-full flex flex-col bg-[#f4f1e8] transition-opacity"
-    :class="loading ? 'opacity-50 pointer-events-none' : 'opacity-100'"
+    class="h-full flex flex-col bg-[#f9f6f0] select-none transition-opacity duration-300"
+    :class="loading ? 'opacity-50 pointer-events-none scale-[0.99]' : 'opacity-100 scale-100'"
 >
-    <style>
-        @keyframes sutil-bounce {
-            0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.8,0,1,1); }
-            50% { transform: translateY(-3px); animation-timing-function: cubic-bezier(0,0,0.2,1); }
-        }
-    </style>
 
-    <div class="px-3.5 py-2.5 border-b border-[#cdbb9f]/40 bg-[#efe9dc]">
-        <h2 class="font-serif text-base font-bold text-[#6b1d14] tracking-wide">Ordem de Iniciativa</h2>
-        
-        @if($combat->is_active)
-            <p class="mt-0.5 text-[10px] uppercase tracking-wider text-amber-700 font-bold">Combate em andamento</p>
-        @else
-            <p class="mt-0.5 text-[10px] uppercase tracking-wider text-[#8c6239]/80 font-medium">Combate não iniciado</p>
-        @endif
+    {{-- SEÇÃO 1: INFORMACÕES DO COMBATE & DADOS --}}
+    <div class="border-b border-[#d8cebe] bg-[#eee8dc]/95 backdrop-blur-md p-4 shadow-sm sticky top-0 z-30 transition-all">
+        {{-- Título do Encontro e Rodada --}}
+        <div class="flex items-center justify-between gap-3 mb-3">
+            <div class="min-w-0 flex-1">
+                <h1 class="font-serif text-[15px] md:text-base font-bold text-[#6b1d14] truncate leading-tight drop-shadow-sm" title="{{ $combat->name }}">
+                    {{ $combat->name }}
+                </h1>
+                <p class="text-[10px] uppercase tracking-[0.15em] text-[#8c6239]/90 font-bold mt-0.5">Gerenciador</p>
+            </div>
 
-        <div class="flex flex-wrap gap-1.5 mt-2.5">
+            {{-- Badge de Rodada / Status --}}
+            <div class="flex items-center gap-2 shrink-0">
+                @if($combat->is_active)
+                    <div class="flex items-center gap-1.5 bg-white border border-[#d8cebe] px-2 py-1 rounded-md shadow-sm transition-transform hover:scale-105">
+                        <span class="text-[9.5px] font-bold uppercase tracking-wider text-[#8c6239]">Rodada</span>
+                        <span class="w-5 h-5 rounded bg-[#6b1d14] text-white flex items-center justify-center font-serif text-[11.5px] font-bold shadow-inner">
+                            {{ $combat->current_round }}
+                        </span>
+                    </div>
+                @else
+                    <span class="text-[9.5px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100/90 px-2 py-1 rounded-md border border-amber-300 shadow-sm animate-pulse">
+                        Preparação
+                    </span>
+                @endif
+
+                {{-- Botão Dado --}}
+                <button
+                    @click="diceOpen = !diceOpen"
+                    class="w-7 h-7 rounded-md bg-white hover:bg-stone-50 border border-[#d8cebe] flex items-center justify-center text-[#6b1d14] transition-all shadow-sm hover:shadow active:scale-95"
+                    :class="diceOpen ? 'bg-stone-100 ring-2 ring-[#d8cebe] ring-offset-1 ring-offset-[#eee8dc]' : ''"
+                    title="Rolador de Dados"
+                >
+                    <span class="text-sm transform transition-transform duration-300" :class="diceOpen ? 'rotate-12' : ''">🎲</span>
+                </button>
+            </div>
+        </div>
+
+        {{-- PAINEL RETRÁTIL DE DADOS --}}
+        <div x-show="diceOpen" x-collapse.duration.300ms class="mt-3 pt-3 border-t border-[#d8cebe]/60">
+            <div class="flex items-center gap-2">
+                <input
+                    x-model="expression"
+                    @keydown.enter="rollDice"
+                    type="text"
+                    placeholder="Ex: 1d20+5"
+                    class="flex-1 rounded-md bg-white border border-[#cdbb9f] px-3 py-1.5 text-[13px] font-mono uppercase focus:ring-2 focus:ring-[#6b1d14]/30 focus:border-[#6b1d14]/50 outline-none transition-all placeholder:normal-case placeholder:font-sans placeholder:text-stone-400 shadow-inner"
+                    :disabled="isRolling"
+                >
+                <button
+                    @click="rollDice"
+                    :disabled="isRolling"
+                    class="px-3 py-1.5 rounded-md bg-[#6b1d14] text-white text-xs font-bold tracking-wide hover:bg-[#53150f] transition-colors disabled:opacity-60 flex items-center shadow-sm active:scale-95"
+                >
+                    <span x-text="isRolling ? '...' : 'Rolar'"></span>
+                </button>
+            </div>
+
+            <template x-if="result">
+                <div x-transition.opacity.duration.300ms class="mt-2 p-1.5 rounded-md bg-white border border-[#cdbb9f]/60 text-center shadow-sm">
+                    <p class="font-mono text-sm font-bold text-[#6b1d14]" x-text="result"></p>
+                </div>
+            </template>
+
+            <template x-if="error">
+                <div x-transition.opacity.duration.300ms class="mt-2 p-1.5 rounded-md bg-red-50 border border-red-200 text-center shadow-sm">
+                    <p class="text-xs font-bold text-red-600" x-text="error"></p>
+                </div>
+            </template>
+        </div>
+
+        {{-- Ações Rápidas de Combate --}}
+        <div class="flex flex-wrap gap-1.5 mt-3">
             @if(!$combat->is_active)
-                {{-- Botão Jogador corrigido para alcançar o escopo global --}}
-                <button type="button" @click="
-    const mainEl = document.querySelector('[x-data*=\'openPlayerModal\']') || document.querySelector('[x-data*=\'selectedNpc\']');
-    if (mainEl && window.Alpine) { Alpine.$data(mainEl).openPlayerModal = true; } else { openPlayerModal = true; }
-" class="flex-1 min-w-[75px] px-2.5 py-1.5 rounded-md bg-[#8c6239] hover:bg-[#724b24] text-[#f4f1e8] text-xs uppercase tracking-wider font-bold transition text-center shadow-sm"> + Jogador </button>
+                <button type="button" 
+                    @click="
+                        const mainEl = document.querySelector('[x-data*=\'openPlayerModal\']') || document.querySelector('[x-data*=\'selectedNpc\']');
+                        if (mainEl && window.Alpine) { Alpine.$data(mainEl).openPlayerModal = true; } else { openPlayerModal = true; }
+                    " 
+                    class="flex-1 py-1.5 px-2 rounded-md bg-white hover:bg-stone-50 border border-[#d8cebe] text-[#6b1d14] text-[10.5px] font-bold uppercase tracking-wide transition-colors text-center shadow-sm active:scale-[0.98]"
+                >
+                    + Jogador
+                </button>
 
-                {{-- Botão NPC corrigido para alcançar o escopo global --}}
                 <button type="button" 
                     @click="
                         const mainEl = document.querySelector('[x-data*=\'openNpcModal\']') || document.querySelector('[x-data*=\'selectedNpc\']');
                         if (mainEl && window.Alpine) { Alpine.$data(mainEl).openNpcModal = true; } else { openNpcModal = true; }
                     " 
-                    class="flex-1 min-w-[75px] px-2.5 py-1.5 rounded-md bg-[#8c6239] hover:bg-[#724b24] text-[#f4f1e8] text-xs uppercase tracking-wider font-bold transition text-center shadow-sm"
+                    class="flex-1 py-1.5 px-2 rounded-md bg-white hover:bg-stone-50 border border-[#d8cebe] text-[#6b1d14] text-[10.5px] font-bold uppercase tracking-wide transition-colors text-center shadow-sm active:scale-[0.98]"
                 >
                     + NPC
                 </button>
 
-                <form action="{{ route('combats.start', $combat->id) }}" method="POST" @submit.prevent="handleInitiativeAction($event)" class="flex-1 min-w-[90px]">
+                <form action="{{ route('combats.start', $combat->id) }}" method="POST" @submit.prevent="handleInitiativeAction($event)" class="flex-1">
                     @csrf
-                    <button class="w-full px-2.5 py-1.5 rounded-md bg-[#6b1d14] hover:bg-[#53150f] text-white font-bold uppercase tracking-wider text-xs transition text-center shadow-sm">
-                        ⚔ Iniciar
+                    <button class="w-full py-1.5 px-2 rounded-md bg-[#6b1d14] hover:bg-[#53150f] text-[#f4f1e8] font-bold uppercase tracking-wide text-[10.5px] transition-all text-center shadow-sm active:scale-[0.98] flex items-center justify-center gap-1.5">
+                        <span class="text-xs">⚔</span>
+                        <span>Iniciar</span>
                     </button>
                 </form>
             @else
                 <form action="{{ route('combats.next', $combat->id) }}" method="POST" @submit.prevent="handleInitiativeAction($event)" class="w-full">
                     @csrf
-                    <button class="w-full px-4 py-2.5 rounded-md bg-[#6b1d14] hover:bg-[#53150f] text-white font-extrabold uppercase tracking-widest text-sm transition-all text-center shadow-md active:scale-[0.99]">
-                        Próximo Turno →
+                    <button class="w-full py-1.5 px-3 rounded-md bg-[#6b1d14] hover:bg-[#53150f] text-[#f4f1e8] font-bold uppercase tracking-widest text-xs transition-all text-center shadow-sm hover:shadow active:scale-[0.99] flex items-center justify-center gap-2">
+                        <span>Próximo Turno</span>
+                        <span class="text-sm leading-none">→</span>
                     </button>
                 </form>
-                <form action="{{ route('combats.reset', $combat->id) }}" method="POST" @submit.prevent="if(confirm('Deseja realmente encerrar este combate?')) handleInitiativeAction($event)" class="w-full">
+
+                <form action="{{ route('combats.reset', $combat->id) }}" method="POST" @submit.prevent="if(confirm('Tem certeza que deseja encerrar o combate?')) handleInitiativeAction($event)" class="w-full mt-1">
                     @csrf
-                    <button class="w-full px-3 py-1 rounded-md border border-[#cdbb9f]/40 text-[#6b1d14]/60 hover:text-[#6b1d14] hover:bg-[#efe9dc] hover:border-[#cdbb9f] font-bold uppercase tracking-wider text-[10px] transition-all text-center mt-1.5 bg-white/30">
-                        Terminar Combate
+                    <button class="w-full py-1 text-[#6b1d14]/60 hover:text-[#6b1d14] font-bold uppercase text-[10px] tracking-wide transition-colors text-center decoration-dashed hover:underline underline-offset-2">
+                        Encerrar Encontro
                     </button>
                 </form>
             @endif
         </div>
     </div>
 
-    <div id="combat-panels-wrapper" class="flex-1 overflow-y-auto p-3 space-y-2 scrollbar-thin">
+    {{-- SEÇÃO 2: LISTA DE INICIATIVA --}}
+    <div class="flex-1 overflow-y-auto p-3 space-y-2 custom-scrollbar">
         @forelse($initiative as $participant)
             @php
                 $isAnArray = is_array($participant);
@@ -121,7 +203,6 @@
                 $updateRoute = $isNpc ? route('combats.npcs.initiative', [$combat->id, $id]) : route('combats.players.initiative', [$combat->id, $id]);
                 $destroyRoute = $isNpc ? route('combats.npcs.destroy', [$combat->id, $id]) : route('combats.players.destroy', [$combat->id, $id]);
 
-                // --- ALTERAÇÃO 1: Mover lógica de HP para cá ---
                 $isDeadNpc = false;
                 $npcHPData = null;
 
@@ -129,114 +210,104 @@
                     $npcModel = $combatNpcs->firstWhere('id', $id);
                     if ($npcModel) {
                         $isDeadNpc = $npcModel->current_hp <= 0;
-                        
-                        // Prepara dados para usar depois na barra de HP sem recalcular
-                        $percent = $npcModel->max_hp > 0 ? ($npcModel->current_hp / $npcModel->max_hp) * 100 : 0;
+                        $percent = $npcModel->max_hp > 0 ? max(0, min(100, ($npcModel->current_hp / $npcModel->max_hp) * 100)) : 0;
                         $npcHPData = [
                             'current' => $npcModel->current_hp,
                             'max' => $npcModel->max_hp,
                             'percent' => $percent,
-                            'color' => $percent > 60 ? 'bg-emerald-600' : ($percent > 30 ? 'bg-amber-500' : 'bg-red-600')
+                            'color' => $percent > 50 ? 'bg-emerald-500' : ($percent > 25 ? 'bg-amber-400' : 'bg-red-500')
                         ];
                     }
                 }
-                // -------------------------------------------------
             @endphp
 
             <div 
-                class="relative rounded-lg border transition-all duration-200"
-                {{-- ALTERAÇÃO 2: Adicionar grayscale se for NPC morto (Blade expression dentro do array de classes do Alpine) --}}
+                class="relative rounded-lg border transition-all duration-300 overflow-hidden group/row"
                 :class="[
-                    {{ $isCurrentTurn ? "'border-[#6b1d14] bg-[#6b1d14]/[0.02] shadow-md js-active-turn'" : "'border-[#cdbb9f]/40 bg-white hover:border-[#cdbb9f]'" }},
-                    (selectedNpc == {{ $id }} && {{ $isNpc ? 'true' : 'false' }}) ? 'ring-2 ring-amber-500/50 border-amber-600/40 bg-amber-50/[0.02]' : '',
-                    {{ $isDeadNpc ? "'grayscale opacity-80 border-stone-300 bg-stone-50'" : "''" }}
+                    {{ $isCurrentTurn ? "'border-[#6b1d14] bg-gradient-to-r from-[#6b1d14]/10 to-transparent shadow-sm js-active-turn scale-[1.01]'" : "'border-[#d8cebe]/80 bg-white hover:border-[#cdbb9f] hover:shadow-sm'" }},
+                    (selectedNpc == {{ $id }} && {{ $isNpc ? 'true' : 'false' }}) ? 'ring-2 ring-amber-500/50 bg-amber-50/50' : '',
+                    {{ $isDeadNpc ? "'opacity-75 grayscale-[0.6] bg-red-50/30 border-red-200'" : "''" }}
                 ]"
             >
+                {{-- Marcador visual do turno atual --}}
                 @if($isCurrentTurn)
-                    <div class="absolute left-0 top-0 bottom-0 w-1 bg-[#6b1d14] rounded-l-lg z-10"></div>
-                    <div class="absolute -inset-px rounded-lg border-2 border-[#6b1d14] shadow-[0_0_12px_rgba(107,29,20,0.25)] animate-pulse pointer-events-none z-10"></div>
+                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-[#6b1d14] z-10 rounded-l-lg shadow-[2px_0_5px_rgba(107,29,20,0.2)]"></div>
                 @endif
 
                 <div class="py-2 px-2.5 flex items-center justify-between gap-2 relative z-20">
                     
-                    {{-- Bloco Esquerdo Clicável corrigido para forçar a atualização da ficha técnica --}}
+                    {{-- Info Principal --}}
                     <div 
                         @if($isNpc) 
                             @click="
                                 selectedNpc = {{ $id }};
                                 sessionStorage.setItem('combat_{{ $combat->id }}_selected', {{ $id }});
                                 const mainSheetEl = document.querySelector('[x-data*=\'selectedNpc\']');
-                                if (mainSheetEl && window.Alpine) {
-                                    Alpine.$data(mainSheetEl).selectedNpc = {{ $id }};
-                                }
+                                if (mainSheetEl && window.Alpine) { Alpine.$data(mainSheetEl).selectedNpc = {{ $id }}; }
                             " 
                         @endif
-                        class="flex items-center gap-2 min-w-0 flex-1 select-none {{ $isNpc ? 'cursor-pointer group' : '' }}"
+                        class="flex items-center gap-2.5 min-w-0 flex-1 {{ $isNpc ? 'cursor-pointer group/name' : '' }}"
                     >
-                        {{-- Número da iniciativa muda de cor se estiver morto para contrastar com o fundo cinza --}}
-                        <div class="w-7 h-7 rounded-md flex-shrink-0 flex items-center justify-center font-serif text-sm font-bold lining-nums {{ $isCurrentTurn ? 'bg-[#6b1d14] text-white shadow-sm' : ($isDeadNpc ? 'bg-stone-200 text-stone-500' : 'bg-[#efe9dc] text-[#8c6239]') }}">
-                            <span @if($isCurrentTurn) style="animation: sutil-bounce 1.2s infinite;" @endif>
-                                {{ $loop->iteration }}
-                            </span>
+                        {{-- Ordem --}}
+                        <div class="w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center font-serif text-[11px] font-black transition-colors duration-300 {{ $isCurrentTurn ? 'bg-[#6b1d14] text-white shadow-inner' : ($isDeadNpc ? 'bg-stone-200 text-stone-500' : 'bg-[#eee8dc] text-[#8c6239]') }}">
+                            {{ $loop->iteration }}
                         </div>
 
+                        {{-- Nome e Status --}}
                         <div class="min-w-0 flex-1">
-                            {{-- Nome riscado se estiver morto --}}
-                            <h3 class="font-serif text-sm font-bold text-[#6b1d14] truncate leading-tight {{ $isNpc ? 'group-hover:text-amber-800 group-hover:underline decoration-amber-500/40' : '' }} {{ $isDeadNpc ? 'line-through text-stone-500' : '' }}" title="{{ $name }}">
-                                {{ $name }}
-                            </h3>
+                            <div class="flex items-center gap-1.5">
+                                <h3 class="font-serif text-[14px] font-bold truncate leading-tight transition-colors duration-300 {{ $isNpc ? 'group-hover/name:text-amber-700' : '' }} {{ $isDeadNpc ? 'line-through decoration-red-700/60 decoration-2 text-stone-500' : 'text-[#6b1d14]' }}" title="{{ $name }}">
+                                    {{ $name }}
+                                </h3>
+                            </div>
                             
-                            <div class="flex items-center gap-2 mt-0.5">
+                            <div class="flex items-center gap-1.5 mt-1">
                                 @if($isNpc)
-                                    <span class="inline-block px-1 py-0.2 rounded text-[9px] uppercase font-bold tracking-wider bg-red-50 text-red-700 border border-red-200/40 shrink-0">NPC</span>
-                                    
-                                    {{-- Reutiliza os dados calculados no topo --}}
+                                    <span class="text-[8px] uppercase font-bold text-red-800 bg-red-100/80 px-1 py-0.5 rounded border border-red-200 shrink-0">NPC</span>
                                     @if($npcHPData)
-                                        <div class="flex flex-col flex-1 min-w-0 max-w-[120px]">
-                                            <span class="font-mono text-[9px] font-bold text-stone-600 lining-nums leading-none mb-1">
-                                                @if($isDeadNpc)
-                                                    <span class="text-red-700 bg-red-50 px-1 rounded border border-red-200/50 text-[8px] uppercase tracking-wide font-serif font-bold">Derrotado</span>
-                                                @else
-                                                    {{ $npcHPData['current'] }}<span class="text-stone-400">/{{ $npcHPData['max'] }}</span>
-                                                @endif
-                                            </span>
-                                            <div class="h-2 w-full rounded-full bg-stone-100 border border-stone-200/30 overflow-hidden shadow-inner">
-                                                <div class="{{ $npcHPData['color'] }} h-full transition-all duration-300" style="width: {{ $npcHPData['percent'] }}%"></div>
+                                        <div class="flex items-center gap-1.5 flex-1 min-w-0 max-w-[100px] group-hover/row:max-w-full transition-all duration-300">
+                                            {{-- Barra de Vida Suavizada --}}
+                                            <div class="h-1.5 flex-1 rounded-full bg-stone-200 overflow-hidden shadow-inner relative">
+                                                <div class="{{ $npcHPData['color'] }} h-full transition-all duration-500 ease-out relative" style="width: {{ $npcHPData['percent'] }}%">
+                                                    <div class="absolute inset-0 bg-gradient-to-b from-white/30 to-transparent"></div>
+                                                </div>
                                             </div>
+                                            <span class="font-mono text-[9px] font-bold tracking-tighter shrink-0 transition-colors {{ $isDeadNpc ? 'text-red-700' : 'text-stone-500' }}">
+                                                {{ $isDeadNpc ? 'Morto' : $npcHPData['current'].'/'.$npcHPData['max'] }}
+                                            </span>
                                         </div>
                                     @endif
                                 @else
-                                    <span class="inline-block px-1 py-0.2 rounded text-[9px] uppercase font-bold tracking-wider bg-stone-100 text-[#8c6239] border border-[#cdbb9f]/30">Jogador</span>
+                                    <span class="text-[8px] uppercase font-bold text-[#8c6239] bg-[#eee8dc] px-1 py-0.5 rounded border border-[#d8cebe] shrink-0">PJ</span>
                                 @endif
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-1 flex-shrink-0" @click.stop>
-                        <form action="{{ $updateRoute }}" method="POST" @submit.prevent="handleInitiativeAction($event)" class="flex items-center">
+                    {{-- Ações (Input de Iniciativa e Delete) --}}
+                    <div class="flex items-center gap-1 shrink-0" @click.stop>
+                        <form action="{{ $updateRoute }}" method="POST" @submit.prevent="handleInitiativeAction($event)">
                             @csrf @method('PATCH')
-                            {{-- Input desabilitado se estiver morto --}}
                             <input type="number" name="initiative" value="{{ $initiativeVal }}" @change="$el.form.requestSubmit()" {{ $isDeadNpc ? 'disabled' : '' }}
-                                class="w-10 h-7 rounded-md bg-white border border-[#cdbb9f]/70 text-center font-serif text-sm font-bold text-[#6b1d14] shadow-sm focus:ring-1 focus:ring-[#6b1d14] focus:border-[#6b1d14] outline-none transition-all lining-nums py-0 px-0 {{ $isDeadNpc ? 'text-stone-400 border-stone-200 bg-stone-50' : '' }}">
+                                class="w-8 h-6 rounded bg-white border border-[#cdbb9f]/70 text-center font-serif text-[13px] font-bold outline-none p-0 focus:ring-2 focus:ring-[#6b1d14]/30 focus:border-[#6b1d14]/50 transition-all shadow-inner {{ $isDeadNpc ? 'text-stone-400 bg-stone-100 border-stone-200' : 'text-[#6b1d14]' }}">
                         </form>
 
-                        <form action="{{ $destroyRoute }}" method="POST" @submit.prevent="if(confirm('Remover {{ $name }} do combate?')) handleInitiativeAction($event)" class="flex items-center">
+                        <form action="{{ $destroyRoute }}" method="POST" @submit.prevent="if(confirm('Remover {{ $name }} da iniciativa?')) handleInitiativeAction($event)">
                             @csrf @method('DELETE')
-                            <button type="submit" class="w-7 h-7 rounded-md border border-red-100 hover:bg-red-50 text-red-600 flex items-center justify-center transition-all bg-white shadow-sm">
+                            <button type="submit" class="w-6 h-6 hover:bg-red-100/80 text-stone-400 hover:text-red-600 flex items-center justify-center rounded transition-colors" title="Remover">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
                         </form>
                     </div>
-
                 </div>
             </div>
         @empty
-            <div class="rounded-lg border border-dashed border-[#cdbb9f]/60 bg-[#faf8f2]/50 py-8 px-4 text-center">
-                <div class="text-xl mb-1">⚔️</div>
-                <h3 class="text-sm font-serif font-bold text-[#6b1d14]">Nenhum combatente</h3>
-                <p class="text-xs text-[#8c6239]/80 mt-0.5">Adicione jogadores ou NPCs para começar.</p>
+            <div class="rounded-lg border-2 border-dashed border-[#d8cebe] bg-[#eee8dc]/40 py-6 px-4 text-center mt-4">
+                <span class="text-xl block mb-2 opacity-50">⚔️</span>
+                <p class="text-[13px] font-serif font-bold text-[#8c6239]">Nenhum combatente</p>
+                <p class="text-[10px] text-stone-500 mt-1">Adicione jogadores ou NPCs acima</p>
             </div>
         @endforelse
     </div>
