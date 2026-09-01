@@ -6,6 +6,7 @@ use App\Models\Character;
 use App\Models\CharacterAttack;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -42,7 +43,6 @@ class CharacterAttackController extends Controller
         Character $character
     ): JsonResponse {
         $this->authorizeCharacter(
-            $request,
             $character
         );
 
@@ -96,7 +96,6 @@ class CharacterAttackController extends Controller
         CharacterAttack $attack
     ): JsonResponse {
         $this->authorizeAttack(
-            $request,
             $character,
             $attack
         );
@@ -134,7 +133,6 @@ class CharacterAttackController extends Controller
         CharacterAttack $attack
     ): JsonResponse {
         $this->authorizeAttack(
-            $request,
             $character,
             $attack
         );
@@ -164,7 +162,6 @@ class CharacterAttackController extends Controller
         CharacterAttack $attack
     ): JsonResponse {
         $this->authorizeAttack(
-            $request,
             $character,
             $attack
         );
@@ -889,27 +886,19 @@ class CharacterAttackController extends Controller
     */
 
     private function authorizeCharacter(
-        Request $request,
         Character $character
     ): void {
-        abort_unless(
-            $request->user()
-            &&
-            (int) $character->user_id ===
-                (int) $request
-                    ->user()
-                    ->id,
-            403
+        Gate::authorize(
+            'update',
+            $character
         );
     }
 
     private function authorizeAttack(
-        Request $request,
         Character $character,
         CharacterAttack $attack
     ): void {
         $this->authorizeCharacter(
-            $request,
             $character
         );
 

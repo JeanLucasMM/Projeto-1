@@ -14,9 +14,11 @@ class CombatInitiativeService
     ) {
     }
 
-    public function participants(Combat $combat): Collection
-    {
-        $participants = collect();
+    public function participants(
+        Combat $combat
+    ): Collection {
+        $participants =
+            collect();
 
         /*
         |--------------------------------------------------------------------------
@@ -25,75 +27,120 @@ class CombatInitiativeService
         */
 
         foreach (
-            $this->combatNpcService->getByCombat($combat->id)
+            $this->combatNpcService
+                ->getByCombat(
+                    $combat->id
+                )
             as $combatNpc
         ) {
-
             $participants->push(
-
                 new CombatParticipant(
+                    id:
+                        $combatNpc->id,
 
-                    id: $combatNpc->id,
+                    type:
+                        'npc',
 
-                    type: 'npc',
+                    name:
+                        $combatNpc->npc->name,
 
-                    name: $combatNpc->npc->name,
+                    initiative:
+                        $combatNpc->initiative,
 
-                    initiative: $combatNpc->initiative,
+                    currentHp:
+                        $combatNpc->current_hp,
 
-                    currentHp: $combatNpc->current_hp,
+                    maxHp:
+                        $combatNpc->max_hp,
 
-                    maxHp: $combatNpc->max_hp,
+                    dead:
+                        $combatNpc->is_dead,
 
-                    dead: $combatNpc->is_dead,
-
-                    model: $combatNpc
-
+                    model:
+                        $combatNpc
                 )
-
             );
-
         }
 
         /*
         |--------------------------------------------------------------------------
         | Jogadores
         |--------------------------------------------------------------------------
+        |
+        | Participante manual:
+        |     não possui Character e continua sem HP.
+        |
+        | Character vinculada:
+        |     HP vem de character_combat. Nunca copiamos vida para
+        |     combat_players.
+        |
         */
 
         foreach (
-            $this->combatPlayerService->getByCombat($combat->id)
+            $this->combatPlayerService
+                ->getByCombat(
+                    $combat->id
+                )
             as $player
         ) {
+            $character =
+                $player->character;
+
+            $characterCombat =
+                $character?->combat;
+
+            $effectiveMaxHp =
+                null;
+
+            if ($characterCombat) {
+                $effectiveMaxHp =
+                    max(
+                        0,
+                        (int) $characterCombat->max_hp
+                        +
+                        (int) $characterCombat->temporary_max_hp
+                    );
+            }
 
             $participants->push(
-
                 new CombatParticipant(
+                    id:
+                        $player->id,
 
-                    id: $player->id,
+                    type:
+                        'player',
 
-                    type: 'player',
+                    name:
+                        $character?->name
+                        ?? $player->name
+                        ?? 'Personagem',
 
-                    name: $player->name,
+                    initiative:
+                        $player->initiative,
 
-                    initiative: $player->initiative,
+                    currentHp:
+                        $characterCombat?->current_hp,
 
-                    currentHp: $player->current_hp,
+                    maxHp:
+                        $effectiveMaxHp,
 
-                    maxHp: $player->max_hp,
+                    /*
+                    | Zero HP não significa automaticamente morte para Player,
+                    | pois death saves continuam em CharacterCombat.
+                    */
+                    dead:
+                        false,
 
-                    dead: false,
-
-                    model: $player
-
+                    model:
+                        $player
                 )
-
             );
-
         }
 
         return $participants
-            ->sortByDesc('initiative')
+            ->sortByDesc(
+                'initiative'
+            )
             ->values();
     }
 }

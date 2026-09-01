@@ -1,5 +1,6 @@
 @import './native-statblock.css';
 @import './preview.sheet.css';
+@import './character-sheet.css';
 
 
 @tailwind base;

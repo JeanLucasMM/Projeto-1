@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-
 
 class Character extends Model
 {
@@ -28,6 +28,7 @@ class Character extends Model
         'experience_points' => 'integer',
         'proficiency_bonus' => 'integer',
         'heroic_inspiration' => 'boolean',
+        'sheet_settings' => 'array',
     ];
 
     /*
@@ -39,6 +40,28 @@ class Character extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Campanhas
+    |--------------------------------------------------------------------------
+    |
+    | Uma ficha somente fica disponível para um Mestre quando existe
+    | explicitamente em campaign_characters.
+    |
+    */
+
+    public function campaigns(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Campaign::class,
+            'campaign_characters'
+        )
+            ->withPivot([
+                'is_active',
+            ])
+            ->withTimestamps();
     }
 
     /*
@@ -170,18 +193,6 @@ class Character extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Dados de Vida
-    |--------------------------------------------------------------------------
-    |
-    | Neste momento os dados de vida estão armazenados como JSON em
-    | character_combat.hit_dice.
-    |
-    | Portanto não existe relação hitDice().
-    |
-    */
-
-    /*
-    |--------------------------------------------------------------------------
     | Nível total das classes
     |--------------------------------------------------------------------------
     */
@@ -209,8 +220,8 @@ class Character extends Model
 
         return max(
             0,
-            (int) $this->combat->max_hp +
-            (int) $this->combat->temporary_max_hp
+            (int) $this->combat->max_hp
+            + (int) $this->combat->temporary_max_hp
         );
     }
 
@@ -241,7 +252,10 @@ class Character extends Model
             $classes = $this->classes()->get();
         }
 
-        $primary = $classes->firstWhere('is_primary', true);
+        $primary = $classes->firstWhere(
+            'is_primary',
+            true
+        );
 
         if ($primary) {
             return $primary;
@@ -285,19 +299,21 @@ class Character extends Model
 
     /*
     |--------------------------------------------------------------------------
-    | Attaques
+    | Ataques
     |--------------------------------------------------------------------------
     */
 
     public function attacks(): HasMany
-{
-    return $this->hasMany(
-        CharacterAttack::class
-    )->orderBy('sort_order');
-}
+    {
+        return $this->hasMany(
+            CharacterAttack::class
+        )->orderBy('sort_order');
+    }
 
-public function wallet(): HasOne
-{
-    return $this->hasOne(CharacterWallet::class);
-}
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(
+            CharacterWallet::class
+        );
+    }
 }

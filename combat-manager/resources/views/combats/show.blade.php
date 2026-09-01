@@ -1,7 +1,9 @@
 <x-app-layout>
 
     <style>
-        [x-cloak] { display: none !important; }
+        [x-cloak] {
+            display: none !important;
+        }
 
         main:has(.combats-show-page-scope),
         .py-12:has(.combats-show-page-scope),
@@ -16,37 +18,125 @@
         }
 
         header {
-            display: none !important; /* Esconde o header padrão do Laravel se houver */
+            display: none !important;
         }
 
-        .custom-scrollbar::-webkit-scrollbar { width: 5px; height: 5px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cdbb9f; border-radius: 999px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #8c6239; }
-        .custom-scrollbar { scrollbar-width: thin; scrollbar-color: #cdbb9f transparent; }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cdbb9f;
+            border-radius: 999px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #8c6239;
+        }
+
+        .custom-scrollbar {
+            scrollbar-width: thin;
+            scrollbar-color: #cdbb9f transparent;
+        }
     </style>
 
     <div
-        class="combats-show-page-scope h-screen w-full flex overflow-hidden bg-[#eee8dc] font-serif selection:bg-[#6b1d14] selection:text-[#f4f1e8]"
-        x-data="{ openNpcModal: false, openPlayerModal: false }"
-        @keydown.escape.window="openNpcModal = false; openPlayerModal = false"
+        class="
+            combats-show-page-scope
+            flex
+            h-screen
+            w-full
+            overflow-hidden
+            bg-[#eee8dc]
+            font-serif
+            selection:bg-[#6b1d14]
+            selection:text-[#f4f1e8]
+        "
+        x-data="{
+            openNpcModal: false,
+            openPlayerModal: @js(request()->boolean('player_modal'))
+        }"
+        @keydown.escape.window="
+            openNpcModal = false;
+            openPlayerModal = false;
+        "
     >
-        <div id="combat-panels-wrapper" class="flex flex-1 overflow-hidden w-full">
+        <div
+            id="combat-panels-wrapper"
+            class="flex w-full flex-1 overflow-hidden"
+        >
 
-            {{-- Área Principal (Fichas e Conteúdo) --}}
-            <main class="flex-1 min-w-0 overflow-y-auto custom-scrollbar p-6">
-                @include('combats.components.npc.npc-panel')
+            {{-- ============================================================
+                 ÁREA PRINCIPAL
+            ============================================================= --}}
+
+            <main
+                id="combat-npc-panel-host"
+                class="
+                    custom-scrollbar
+                    min-w-0
+                    flex-1
+                    overflow-y-auto
+                    p-6
+                "
+            >
+                @include(
+                    'combats.components.npc.npc-panel'
+                )
             </main>
 
-            {{-- Painel Lateral Unificado (Header + Dados + Iniciativa) --}}
-            <aside class="w-[300px] lg:w-[300px] shrink-0 border-l border-[#d8cebe] bg-[#f9f6f0] flex flex-col h-full shadow-inner">
-                @include('combats.components.inciative.initiative-panel')
+
+            {{-- ============================================================
+                 PAINEL LATERAL — INICIATIVA
+            ============================================================= --}}
+
+            <aside
+                class="
+                    flex
+                    h-full
+                    w-[300px]
+                    shrink-0
+                    flex-col
+                    border-l
+                    border-[#d8cebe]
+                    bg-[#f9f6f0]
+                    shadow-inner
+                    lg:w-[300px]
+                "
+            >
+                @include(
+                    'combats.components.inciative.initiative-panel'
+                )
             </aside>
+
+
+            {{--
+            |--------------------------------------------------------------------------
+            | Modal de Player dentro do wrapper
+            |--------------------------------------------------------------------------
+            |
+            | O AJAX dos painéis substitui #combat-panels-wrapper.
+            | Mantendo este modal aqui, a lista de Characters disponíveis
+            | também é atualizada depois que uma ficha entra no combate.
+            |
+            --}}
+
+            @include(
+                'combats.components.player.player-modal'
+            )
 
         </div>
 
-        @include('combats.components.npc.npc-modal')
-        @include('combats.components.player.player-modal')
+
+        @include(
+            'combats.components.npc.npc-modal'
+        )
+
     </div>
 
 </x-app-layout>

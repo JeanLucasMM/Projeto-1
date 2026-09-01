@@ -13,115 +13,245 @@ class CombatService
     ) {
     }
 
-    public function create(int $userId, string $name): Combat
-    {
+    public function create(
+        int $userId,
+        string $name,
+        ?int $campaignId = null
+    ): Combat {
         return $this->repository->create([
-            'user_id'        => $userId,
-            'name'           => $name,
-            'current_round'  => 1,
-            'current_turn'   => 0,
-            'is_active'      => false,
+            'user_id' =>
+                $userId,
+
+            'campaign_id' =>
+                $campaignId,
+
+            'name' =>
+                $name,
+
+            'current_round' =>
+                1,
+
+            'current_turn' =>
+                0,
+
+            'is_active' =>
+                false,
         ]);
     }
 
-    public function findById(int $id): ?Combat
-    {
-        return $this->repository->findById($id);
+    public function findById(
+        int $id
+    ): ?Combat {
+        return $this->repository
+            ->findById(
+                $id
+            );
     }
 
-    public function getAllByUser(int $userId): Collection
-    {
-        return $this->repository->findByUser($userId);
+    public function getAllByUser(
+        int $userId
+    ): Collection {
+        return $this->repository
+            ->findByUser(
+                $userId
+            );
     }
 
-    public function delete(Combat $combat): bool
-    {
-        return $this->repository->delete($combat);
+    public function delete(
+        Combat $combat
+    ): bool {
+        return $this->repository
+            ->delete(
+                $combat
+            );
     }
 
-    /**
-     * Inicia o combate, resetando turnos e definindo como ativo.
-     */
-    public function startCombat(Combat $combat): bool
-    {
-        $combat->is_active = true;
-        $combat->current_round = 1;
-        $combat->current_turn = 0;
+    public function startCombat(
+        Combat $combat
+    ): bool {
+        $combat->is_active =
+            true;
 
-        return $this->repository->save($combat);
+        $combat->current_round =
+            1;
+
+        $combat->current_turn =
+            0;
+
+        return $this->repository
+            ->save(
+                $combat
+            );
     }
 
-    /**
-     * Reseta o status do combate de volta ao estado inicial.
-     */
-    public function resetCombat(Combat $combat): bool
-    {
-        $combat->is_active = false;
-        $combat->current_round = 1;
-        $combat->current_turn = 0;
+    public function resetCombat(
+        Combat $combat
+    ): bool {
+        $combat->is_active =
+            false;
 
-        return $this->repository->save($combat);
+        $combat->current_round =
+            1;
+
+        $combat->current_turn =
+            0;
+
+        return $this->repository
+            ->save(
+                $combat
+            );
     }
 
-    /**
-     * Avança o turno e, se necessário, incrementa a rodada automaticamente.
-     */
-    public function nextTurn(Combat $combat, int $participantsCount): bool
-    {
+    public function nextTurn(
+        Combat $combat,
+        int $participantsCount
+    ): bool {
         if ($participantsCount === 0) {
             return false;
         }
 
         $combat->current_turn++;
 
-        // Se o turno atual alcançar o número total de participantes, reinicia a fila e sobe a rodada
-        if ($combat->current_turn >= $participantsCount) {
-            $combat->current_turn = 0;
+        if (
+            $combat->current_turn
+            >= $participantsCount
+        ) {
+            $combat->current_turn =
+                0;
+
             $combat->current_round++;
         }
 
-        return $this->repository->save($combat);
+        return $this->repository
+            ->save(
+                $combat
+            );
     }
 
-    public function save(Combat $combat): bool
-    {
-        return $this->repository->save($combat);
+    public function save(
+        Combat $combat
+    ): bool {
+        return $this->repository
+            ->save(
+                $combat
+            );
     }
 
-    public function initiativeList(Combat $combat): Collection
-    {
-        $npcs = $combat->npcs()
+    /*
+    |--------------------------------------------------------------------------
+    | Lista legada
+    |--------------------------------------------------------------------------
+    |
+    | O CombatController principal já usa CombatInitiativeService.
+    | Mantemos este método coerente para qualquer tela/código legado.
+    |
+    */
+
+    public function initiativeList(
+        Combat $combat
+    ): Collection {
+        $npcs = $combat
+            ->npcs()
             ->with('npc')
             ->get()
-            ->map(function ($combatNpc) {
-                return [
-                    'id'         => $combatNpc->id,
-                    'type'       => 'npc',
-                    'name'       => $combatNpc->npc->name,
-                    'initiative' => $combatNpc->initiative,
-                    'current_hp' => $combatNpc->current_hp,
-                    'max_hp'     => $combatNpc->max_hp,
-                    'dead'       => $combatNpc->is_dead,
-                ];
-            });
+            ->map(
+                function ($combatNpc) {
+                    return [
+                        'id' =>
+                            $combatNpc->id,
 
-        $players = $combat->players()
+                        'type' =>
+                            'npc',
+
+                        'name' =>
+                            $combatNpc->npc->name,
+
+                        'initiative' =>
+                            $combatNpc->initiative,
+
+                        'current_hp' =>
+                            $combatNpc->current_hp,
+
+                        'max_hp' =>
+                            $combatNpc->max_hp,
+
+                        'dead' =>
+                            (bool) $combatNpc->is_dead,
+                    ];
+                }
+            );
+
+        $players = $combat
+            ->players()
+            ->with([
+                'character.combat',
+                'character.classes',
+            ])
             ->get()
-            ->map(function ($player) {
-                return [
-                    'id'         => $player->id,
-                    'type'       => 'player',
-                    'name'       => $player->name,
-                    'initiative' => $player->initiative,
-                    'current_hp' => null,
-                    'max_hp'     => null,
-                    'dead'       => false,
-                ];
-            });
+            ->map(
+                function ($player) {
+                    $character =
+                        $player->character;
+
+                    $characterCombat =
+                        $character?->combat;
+
+                    $effectiveMaxHp =
+                        null;
+
+                    if ($characterCombat) {
+                        $effectiveMaxHp =
+                            max(
+                                0,
+                                (int) $characterCombat->max_hp
+                                +
+                                (int) $characterCombat->temporary_max_hp
+                            );
+                    }
+
+                    return [
+                        'id' =>
+                            $player->id,
+
+                        'type' =>
+                            'player',
+
+                        'character_id' =>
+                            $character?->id,
+
+                        'linked' =>
+                            $character !== null,
+
+                        'name' =>
+                            $character?->name
+                            ?? $player->name
+                            ?? 'Personagem',
+
+                        'initiative' =>
+                            $player->initiative,
+
+                        'current_hp' =>
+                            $characterCombat?->current_hp,
+
+                        'max_hp' =>
+                            $effectiveMaxHp,
+
+                        /*
+                        | CombatPlayer manual não possui HP próprio.
+                        */
+                        'dead' =>
+                            false,
+                    ];
+                }
+            );
 
         return $npcs
-            ->merge($players)
-            ->sortByDesc('initiative')
+            ->merge(
+                $players
+            )
+            ->sortByDesc(
+                'initiative'
+            )
             ->values();
     }
 }

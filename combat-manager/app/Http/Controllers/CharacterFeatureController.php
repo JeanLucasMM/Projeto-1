@@ -14,6 +14,19 @@ class CharacterFeatureController extends Controller
         'class_feature',
         'species_trait',
         'feat',
+
+        /*
+        |--------------------------------------------------------------------------
+        | Treinamentos & Proficiências
+        |--------------------------------------------------------------------------
+        */
+
+        'armor_training',
+        'weapon_training',
+        'tool_proficiency',
+        'language',
+        'vehicle_proficiency',
+
         'custom',
     ];
 
@@ -33,6 +46,21 @@ class CharacterFeatureController extends Controller
     private const COLUMNS = [
         'left',
         'right',
+    ];
+
+    /*
+    |--------------------------------------------------------------------------
+    | Atributos para testes de ferramentas / veículos
+    |--------------------------------------------------------------------------
+    */
+
+    private const ROLL_ABILITIES = [
+        'strength',
+        'dexterity',
+        'constitution',
+        'intelligence',
+        'wisdom',
+        'charisma',
     ];
 
     private const RECOVERIES = [
@@ -311,6 +339,22 @@ class CharacterFeatureController extends Controller
                 'string',
                 'max:120',
             ],
+
+            /*
+            |--------------------------------------------------------------------------
+            | Ferramentas / veículos
+            |--------------------------------------------------------------------------
+            |
+            | Validamos explicitamente a chave para que ela faça parte do
+            | payload validado e seja persistida em data sem ambiguidade.
+            |
+            */
+
+            'data.roll_ability' => [
+                'sometimes',
+                'nullable',
+                Rule::in(self::ROLL_ABILITIES),
+            ],
         ];
     }
 
@@ -400,6 +444,35 @@ class CharacterFeatureController extends Controller
         $data['quick_text'] = $quickText !== ''
             ? $quickText
             : null;
+
+        /*
+        |--------------------------------------------------------------------------
+        | Atributo de rolagem
+        |--------------------------------------------------------------------------
+        |
+        | Mantemos a chave apenas quando ela existir no registro.
+        | Isso evita poluir Habilidades, Talentos e Traços com roll_ability.
+        |
+        */
+
+        if (
+            array_key_exists(
+                'roll_ability',
+                $data
+            )
+        ) {
+            $rollAbility =
+                $data['roll_ability'];
+
+            $data['roll_ability'] =
+                in_array(
+                    $rollAbility,
+                    self::ROLL_ABILITIES,
+                    true
+                )
+                    ? $rollAbility
+                    : null;
+        }
 
         /*
         |--------------------------------------------------------------------------

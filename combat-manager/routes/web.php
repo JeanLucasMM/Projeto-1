@@ -12,8 +12,11 @@ use App\Http\Controllers\CharacterRestController;
 use App\Http\Controllers\CharacterSheetStatsController;
 use App\Http\Controllers\CharacterAttackController;
 use App\Http\Controllers\CharacterItemController;
+use App\Http\Controllers\CharacterPartyController;
 use App\Http\Controllers\CharacterFeatureController;
 use App\Http\Controllers\CharacterWalletController;
+use App\Http\Controllers\CharacterCustomizationController;
+use App\Http\Controllers\CharacterProgressionController;
 
 use App\Http\Controllers\NpcController;
 use App\Http\Controllers\NpcBuilderController;
@@ -22,6 +25,11 @@ use App\Http\Controllers\NpcBuilderDraftController;
 use App\Http\Controllers\CombatController;
 use App\Http\Controllers\FolderController;
 use App\Http\Controllers\DiceRollController;
+use App\Http\Middleware\EnsureDashboardMode;
+use App\Http\Controllers\CampaignController;
+use App\Http\Controllers\CampaignInvitationController;
+use App\Http\Controllers\CampaignCharacterController;
+use App\Http\Controllers\CampaignMasterController;
 
 
 /*
@@ -103,7 +111,12 @@ Route::middleware('auth')->group(function () {
     )->name('dashboard.mode.clear');
 
 
-    /*
+    
+    Route::middleware([
+        EnsureDashboardMode::class . ':player',
+    ])->group(function () {
+
+/*
     |--------------------------------------------------------------------------
     | Personagens
     |--------------------------------------------------------------------------
@@ -127,17 +140,68 @@ Route::middleware('auth')->group(function () {
     )->name('characters.destroy');
 
 
-    Route::get(
-        '/characters/{character}',
-        [CharacterSheetController::class, 'show']
-    )->name('characters.show');
-
     Route::patch(
         '/characters/{character}/stats/{ability}',
         [CharacterSheetStatsController::class, 'updateAbility']
     )->name('characters.stats.ability.update');
 
+    Route::patch(
+        '/characters/{character}/customization',
+        [
+            CharacterCustomizationController::class,
+            'update',
+        ]
+    )->name(
+        'characters.customization.update'
+    );
 
+
+    Route::post(
+        '/characters/{character}/customization/image',
+        [
+            CharacterCustomizationController::class,
+            'updateImage',
+        ]
+    )->name(
+        'characters.customization.image'
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | ProgressÃ£o do Personagem
+    |--------------------------------------------------------------------------
+    */
+
+    Route::patch(
+        '/characters/{character}/progression/level-up',
+        [
+            CharacterProgressionController::class,
+            'levelUp',
+        ]
+    )->name(
+        'characters.progression.level-up'
+    );
+
+    Route::patch(
+        '/characters/{character}/progression/level-down',
+        [
+            CharacterProgressionController::class,
+            'levelDown',
+        ]
+    )->name(
+        'characters.progression.level-down'
+    );
+
+    Route::patch(
+        '/characters/{character}/progression/proficiency',
+        [
+            CharacterProgressionController::class,
+            'updateProficiency',
+        ]
+    )->name(
+        'characters.progression.proficiency'
+    );
 
 
     /*
@@ -205,11 +269,6 @@ Route::middleware('auth')->group(function () {
         [CharacterItemController::class, 'store']
     )->name('characters.items.store');
 
-    Route::get(
-        '/characters/{character}/items/{item}/image',
-        [CharacterItemController::class, 'image']
-    )->name('characters.items.image');
-
     Route::patch(
         '/characters/{character}/items/{item}',
         [CharacterItemController::class, 'update']
@@ -237,6 +296,53 @@ Route::middleware('auth')->group(function () {
     )->name('characters.items.features.uses.update');
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | Party do Personagem
+    |--------------------------------------------------------------------------
+    |
+    | Estas rotas ficam dentro do modo Player.
+    | O CharacterPolicy continua sendo a autorização real e o controller
+    | também exige Gate::authorize('update', $character).
+    |
+    */
+
+    Route::get(
+        '/characters/{character}/party',
+        [CharacterPartyController::class, 'index']
+    )->name('characters.party.index');
+
+    Route::get(
+        '/characters/{character}/party/states',
+        [CharacterPartyController::class, 'states']
+    )->name('characters.party.states');
+
+    Route::get(
+        '/characters/{character}/party/pokes',
+        [CharacterPartyController::class, 'pokes']
+    )->name('characters.party.pokes');
+
+    Route::get(
+        '/characters/{character}/party/{campaign}/members/{member}/image',
+        [CharacterPartyController::class, 'memberImage']
+    )->name('characters.party.members.image');
+
+    Route::patch(
+        '/characters/{character}/party/{campaign}/notes',
+        [CharacterPartyController::class, 'updateNotes']
+    )->name('characters.party.notes.update');
+
+    Route::post(
+        '/characters/{character}/party/{campaign}/poke',
+        [CharacterPartyController::class, 'sendPoke']
+    )->name('characters.party.poke');
+
+    Route::post(
+        '/characters/{character}/party/{campaign}/transfer-item',
+        [CharacterPartyController::class, 'transferItem']
+    )->name('characters.party.items.transfer');
+
+
     Route::patch(
         '/characters/{character}/wallet',
         [CharacterWalletController::class, 'update']
@@ -253,6 +359,17 @@ Route::middleware('auth')->group(function () {
         '/characters/{character}/combat',
         [CharacterCombatController::class, 'update']
     )->name('characters.combat.update');
+
+
+    Route::post(
+        '/characters/{character}/morquen/determination-final',
+        [
+            CharacterCombatController::class,
+            'determinationFinal',
+        ]
+    )->name(
+        'characters.morquen.determination-final'
+    );
 
 
     /*
@@ -280,7 +397,153 @@ Route::middleware('auth')->group(function () {
     )->name('characters.rest');
 
 
+
+
+    
+    }); // fim das rotas Player
+
+
+    Route::middleware([
+        EnsureDashboardMode::class . ':master,player',
+    ])->group(function () {
+
     /*
+    |--------------------------------------------------------------------------
+    | Visualização da ficha
+    |--------------------------------------------------------------------------
+    |
+    | Pode ser acessada tanto em modo Mestre quanto em modo Player.
+    | A autorização da ficha continua sendo feita pelo CharacterPolicy
+    | dentro do CharacterSheetController.
+    |
+    */
+
+    Route::get(
+        '/characters/{character}',
+        [CharacterSheetController::class, 'show']
+    )->name('characters.show');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Imagem de item na visualização da ficha
+    |--------------------------------------------------------------------------
+    |
+    | A imagem também precisa ser acessível no modo Mestre para que o
+    | inventário da ficha compartilhada seja exibido corretamente.
+    |
+    | O CharacterItemController valida a permissão de visualização.
+    |
+    */
+
+    Route::get(
+        '/characters/{character}/items/{item}/image',
+        [CharacterItemController::class, 'image']
+    )->name('characters.items.image');
+
+
+/*
+    |--------------------------------------------------------------------------
+    | Campanhas
+    |--------------------------------------------------------------------------
+    |
+    | Aceitar um convite não compartilha automaticamente todas as fichas.
+    | O próprio jogador escolhe explicitamente quais Characters entram
+    | em campaign_characters.
+    |
+    */
+
+    Route::get(
+        '/campaigns',
+        [CampaignController::class, 'index']
+    )->name('campaigns.index');
+
+    Route::post(
+        '/campaigns',
+        [CampaignController::class, 'store']
+    )->name('campaigns.store');
+
+    Route::get(
+        '/campaigns/{campaign}',
+        [CampaignController::class, 'show']
+    )->name('campaigns.show');
+
+    Route::get(
+        '/campaigns/{campaign}/master/live',
+        [CampaignMasterController::class, 'live']
+    )->name('campaigns.master.live');
+
+
+    Route::get(
+        '/campaigns/{campaign}/master/characters/{character}/image',
+        [CampaignMasterController::class, 'characterImage']
+    )->name('campaigns.master.characters.image');
+
+
+    Route::delete(
+        '/campaigns/{campaign}',
+        [CampaignController::class, 'destroy']
+    )->name('campaigns.destroy');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Convites de campanha
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/campaigns/{campaign}/invitations',
+        [CampaignInvitationController::class, 'store']
+    )->name('campaigns.invitations.store');
+
+    Route::delete(
+        '/campaigns/{campaign}/invitations/{invitation}',
+        [CampaignInvitationController::class, 'destroy']
+    )->name('campaigns.invitations.destroy');
+
+    Route::post(
+        '/campaign-invitations/{invitation}/accept',
+        [CampaignInvitationController::class, 'accept']
+    )->name('campaign-invitations.accept');
+
+    Route::post(
+        '/campaign-invitations/{invitation}/decline',
+        [CampaignInvitationController::class, 'decline']
+    )->name('campaign-invitations.decline');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Personagens compartilhados com a campanha
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/campaigns/{campaign}/characters',
+        [CampaignCharacterController::class, 'store']
+    )->name('campaigns.characters.store');
+
+    Route::patch(
+        '/campaigns/{campaign}/characters/{character}',
+        [CampaignCharacterController::class, 'update']
+    )->name('campaigns.characters.update');
+
+    Route::delete(
+        '/campaigns/{campaign}/characters/{character}',
+        [CampaignCharacterController::class, 'destroy']
+    )->name('campaigns.characters.destroy');
+
+
+    
+    }); // fim das rotas compartilhadas Mestre/Player
+
+
+    Route::middleware([
+        EnsureDashboardMode::class . ':master',
+    ])->group(function () {
+
+/*
     |--------------------------------------------------------------------------
     | NPCs
     |--------------------------------------------------------------------------
@@ -475,10 +738,34 @@ Route::middleware('auth')->group(function () {
     |--------------------------------------------------------------------------
     */
 
+    Route::patch(
+        '/combats/{combat}/campaign',
+        [CombatController::class, 'updateCampaign']
+    )->name('combats.campaign.update');
+
+
+    Route::get(
+        '/combats/{combat}/players/states',
+        [CombatController::class, 'playerStates']
+    )->name('combats.players.states');
+
+
     Route::post(
         '/combats/{combat}/players',
         [CombatController::class, 'addPlayer']
     )->name('combats.players.store');
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Character compartilhada da campanha
+    |--------------------------------------------------------------------------
+    */
+
+    Route::post(
+        '/combats/{combat}/characters',
+        [CombatController::class, 'addCharacter']
+    )->name('combats.characters.store');
 
 
     Route::delete(
@@ -509,6 +796,8 @@ Route::middleware('auth')->group(function () {
         'update',
         'destroy',
     ]);
+    }); // fim das rotas Mestre
+
 });
 
 

@@ -7,6 +7,7 @@ use App\Models\CharacterItem;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -36,6 +37,11 @@ class CharacterItemController extends Controller
         'dawn',
         'single_use',
         'custom',
+    ];
+
+    private const FEATURE_COUNTER_MODES = [
+        'spend',
+        'build',
     ];
 
     /**
@@ -151,7 +157,10 @@ class CharacterItemController extends Controller
         Character $character,
         CharacterItem $item
     ): BinaryFileResponse {
-        $this->authorizeItem($character, $item);
+        $this->authorizeItemView(
+            $character,
+            $item
+        );
 
         abort_unless(
             is_string($item->image_path)
@@ -238,10 +247,19 @@ class CharacterItemController extends Controller
             ? $item->properties
             : [];
 
-        $equippable = (bool) (
-            $properties['inventory']['equippable']
-            ?? false
-        );
+        $equippable =
+            (bool) (
+                $properties['inventory']['equippable']
+                ?? false
+            )
+            || is_array(
+                $properties['armor']
+                ?? null
+            )
+            || is_array(
+                $properties['shield']
+                ?? null
+            );
 
         if (!$equippable && (bool) $data['equipped']) {
             throw ValidationException::withMessages([
@@ -726,6 +744,41 @@ class CharacterItemController extends Controller
                 'between:-99,99',
             ],
 
+            'properties.armor.dexterity_mode' => [
+                'sometimes',
+                'nullable',
+                Rule::in([
+                    'none',
+                    'full',
+                    'capped',
+                ]),
+            ],
+
+            'properties.armor.dexterity_cap' => [
+                'sometimes',
+                'nullable',
+                'integer',
+                'between:0,99',
+            ],
+
+            'properties.armor.ability_modifiers' => [
+                'sometimes',
+                'nullable',
+                'array',
+                'max:5',
+            ],
+
+            'properties.armor.ability_modifiers.*' => [
+                'string',
+                Rule::in([
+                    'strength',
+                    'constitution',
+                    'intelligence',
+                    'wisdom',
+                    'charisma',
+                ]),
+            ],
+
             'properties.shield' => [
                 'sometimes',
                 'nullable',
@@ -806,6 +859,12 @@ class CharacterItemController extends Controller
             'properties.features.*.usage.enabled' => [
                 'sometimes',
                 'boolean',
+            ],
+
+            'properties.features.*.usage.counter_mode' => [
+                'sometimes',
+                'nullable',
+                Rule::in(self::FEATURE_COUNTER_MODES),
             ],
 
             'properties.features.*.usage.current' => [
@@ -1002,6 +1061,13 @@ class CharacterItemController extends Controller
             unset($properties['shield']);
         }
 
+        if (
+            isset($properties['armor'])
+            || isset($properties['shield'])
+        ) {
+            $properties['inventory']['equippable'] = true;
+        }
+
         $properties['custom_properties'] = collect(
             $properties['custom_properties'] ?? []
         )
@@ -1045,11 +1111,35 @@ class CharacterItemController extends Controller
                         (int) ($usage['max'] ?? 1)
                     );
 
+                    $counterMode =
+                        $usage['counter_mode']
+                        ?? 'spend';
+
+                    if (
+                        !in_array(
+                            $counterMode,
+                            self::FEATURE_COUNTER_MODES,
+                            true
+                        )
+                    ) {
+                        $counterMode = 'spend';
+                    }
+
+                    $defaultCurrent =
+                        $counterMode === 'build'
+                            ? 0
+                            : $max;
+
                     $current = min(
                         $max,
                         max(
                             0,
-                            (int) ($usage['current'] ?? $max)
+                            array_key_exists(
+                                'current',
+                                $usage
+                            )
+                                ? (int) $usage['current']
+                                : $defaultCurrent
                         )
                     );
 
@@ -1061,6 +1151,7 @@ class CharacterItemController extends Controller
 
                     $usage = [
                         'enabled' => true,
+                        'counter_mode' => $counterMode,
                         'current' => $current,
                         'max' => $max,
                         'recovery' => $recovery,
@@ -1166,22 +1257,132 @@ class CharacterItemController extends Controller
     {
         $category = $armor['category'] ?? 'light';
 
-        if (!in_array($category, ['light', 'medium', 'heavy', 'custom'], true)) {
+        if (
+            !in_array(
+                $category,
+                [
+                    'light',
+                    'medium',
+                    'heavy',
+                    'custom',
+                ],
+                true
+            )
+        ) {
             $category = 'custom';
         }
 
+        $defaultDexterityMode = match ($category) {
+            'light' => 'full',
+            'medium' => 'capped',
+            default => 'none',
+        };
+
+        $dexterityMode =
+            $armor['dexterity_mode']
+            ?? $defaultDexterityMode;
+
+        if (
+            !in_array(
+                $dexterityMode,
+                [
+                    'none',
+                    'full',
+                    'capped',
+                ],
+                true
+            )
+        ) {
+            $dexterityMode =
+                $defaultDexterityMode;
+        }
+
+        $dexterityCap =
+            max(
+                0,
+                (int) (
+                    $armor['dexterity_cap']
+                    ?? 2
+                )
+            );
+
+        $abilityModifiers =
+            collect(
+                $armor['ability_modifiers']
+                ?? []
+            )
+                ->map(
+                    fn ($ability) =>
+                        trim(
+                            (string) $ability
+                        )
+                )
+                ->filter(
+                    fn ($ability) =>
+                        in_array(
+                            $ability,
+                            [
+                                'strength',
+                                'constitution',
+                                'intelligence',
+                                'wisdom',
+                                'charisma',
+                            ],
+                            true
+                        )
+                )
+                ->unique()
+                ->values()
+                ->all();
+
         return [
             'category' => $category,
-            'category_custom' => $category === 'custom'
-                ? trim((string) ($armor['category_custom'] ?? ''))
-                : null,
-            'armor_type' => trim((string) ($armor['armor_type'] ?? '')),
-            'base_ac' => isset($armor['base_ac'])
-                ? (int) $armor['base_ac']
-                : null,
-            'magic_bonus' => (int) ($armor['magic_bonus'] ?? 0),
+
+            'category_custom' =>
+                $category === 'custom'
+                    ? trim(
+                        (string) (
+                            $armor['category_custom']
+                            ?? ''
+                        )
+                    )
+                    : null,
+
+            'armor_type' =>
+                trim(
+                    (string) (
+                        $armor['armor_type']
+                        ?? ''
+                    )
+                ),
+
+            'base_ac' =>
+                isset(
+                    $armor['base_ac']
+                )
+                    ? max(
+                        0,
+                        (int) $armor['base_ac']
+                    )
+                    : null,
+
+            'magic_bonus' =>
+                (int) (
+                    $armor['magic_bonus']
+                    ?? 0
+                ),
+
+            'dexterity_mode' =>
+                $dexterityMode,
+
+            'dexterity_cap' =>
+                $dexterityCap,
+
+            'ability_modifiers' =>
+                $abilityModifiers,
         ];
     }
+
 
     private function normalizeShield(array $shield): array
     {
@@ -1224,6 +1425,34 @@ class CharacterItemController extends Controller
         CharacterItem $item
     ): void {
         $this->authorizeCharacter($character);
+
+        abort_unless(
+            (int) $item->character_id === (int) $character->id,
+            404
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Visualização de item
+    |--------------------------------------------------------------------------
+    |
+    | A imagem é parte da visualização da ficha. Por isso ela pode ser lida
+    | pelo dono ou pelo Mestre autorizado pela CharacterPolicy.
+    |
+    | Nenhuma mutação de inventário usa este helper.
+    |
+    */
+
+    private function authorizeItemView(
+        Character $character,
+        CharacterItem $item
+    ): void {
+        Gate::authorize(
+            'view',
+            $character
+        );
 
         abort_unless(
             (int) $item->character_id === (int) $character->id,

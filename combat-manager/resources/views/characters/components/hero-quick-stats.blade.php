@@ -1,6 +1,7 @@
 @props([
     'character',
     'proficiencyBonus' => 2,
+    'exhaustionLevel' => 0,
 ])
 
 @php
@@ -405,6 +406,7 @@
                         strengthScore,
                         strengthModifier,
                         perceptionSkillModifier,
+                        initialExhaustionLevel,
                         initialConfig,
                         persistCombatCallback,
                         rollUrl
@@ -433,6 +435,17 @@
                             parseInt(
                                 perceptionSkillModifier
                             ) || 0,
+
+                        exhaustionLevel:
+                            Math.min(
+                                6,
+                                Math.max(
+                                    0,
+                                    parseInt(
+                                        initialExhaustionLevel
+                                    ) || 0
+                                )
+                            ),
 
                         persistCombatCallback,
                         rollUrl,
@@ -583,6 +596,39 @@
                             return this.initiativeModifierLabel;
                         },
 
+
+                        get exhaustionRollPenalty() {
+                            return Math.max(
+                                0,
+                                this.exhaustionLevel * 2
+                            );
+                        },
+
+
+                        get exhaustionSpeedPenalty() {
+                            return Math.max(
+                                0,
+                                this.exhaustionLevel * 5
+                            );
+                        },
+
+
+                        syncExhaustion(payload) {
+                            const level =
+                                payload?.level
+                                ?? 0;
+
+                            this.exhaustionLevel =
+                                Math.min(
+                                    6,
+                                    Math.max(
+                                        0,
+                                        parseInt(level) || 0
+                                    )
+                                );
+                        },
+
+
                         get movementTotal() {
                             return Math.max(
                                 0,
@@ -597,6 +643,8 @@
                                         this.movementBonus
                                     ) || 0
                                 )
+                                -
+                                this.exhaustionSpeedPenalty
                             );
                         },
 
@@ -911,7 +959,9 @@
                             this.combatInitiative =
                                 roll
                                 +
-                                this.initiativeModifier;
+                                this.initiativeModifier
+                                -
+                                this.exhaustionRollPenalty;
 
                             const success =
                                 await this.persist(
@@ -1000,6 +1050,7 @@
         {{ $strengthScore }},
         {{ $strengthModifier }},
         {{ $perceptionSkillModifier }},
+        {{ (int) $exhaustionLevel }},
         @js([
             'initiative' => [
                 'mode' =>
@@ -1044,6 +1095,12 @@
 
     @character-turn-state.window="
         syncTurnState(
+            $event.detail
+        )
+    "
+
+    @character-exhaustion-updated.window="
+        syncExhaustion(
             $event.detail
         )
     "
@@ -1339,8 +1396,14 @@
                 class="
                     absolute
                     inset-0
-                    bg-[#2b1d17]/60
-                    backdrop-blur-sm
+
+                    bg-black/70
+                    backdrop-blur-[2px]
+                "
+
+                style="
+                    background-color:
+                        rgba(12, 8, 7, 0.72);
                 "
 
                 @click="
@@ -1370,16 +1433,20 @@
                         items-center
                         justify-between
                         border-b
-                        border-[#d8c7ab]/60
-                        bg-[#efe9dc]/70
+                        border-[#a0774d]/30
+
+                        bg-[#eadbc8]
+
                         px-4
                         py-3
+
+                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
                     "
                 >
                     <div>
                         <p
                             class="
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-[0.2em]
@@ -1392,7 +1459,7 @@
                         <h3
                             class="
                                 font-serif
-                                text-lg
+                                text-xl
                                 font-black
                                 text-[#53150f]
                             "
@@ -1417,7 +1484,7 @@
                                 px-2.5
                                 py-1
                                 font-serif
-                                text-lg
+                                text-xl
                                 font-black
                                 text-[#53150f]
                             "
@@ -1443,7 +1510,7 @@
                                 rounded-lg
                                 text-[#8c6239]
                                 transition
-                                hover:bg-[#e8dfd1]
+                                hover:bg-[#fffdf8]/55
                                 hover:text-[#53150f]
                             "
                         >
@@ -1475,7 +1542,7 @@
                                 <span
                                     class="
                                         block
-                                        text-[6px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -1488,7 +1555,7 @@
                                 <strong
                                     class="
                                         font-serif
-                                        text-sm
+                                        text-base
                                         text-[#53150f]
                                     "
                                 >
@@ -1500,7 +1567,7 @@
                                 <span
                                     class="
                                         block
-                                        text-[6px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -1513,7 +1580,7 @@
                                 <strong
                                     class="
                                         font-serif
-                                        text-sm
+                                        text-base
                                         text-[#53150f]
                                     "
 
@@ -1533,7 +1600,7 @@
                                 <span
                                     class="
                                         block
-                                        text-[6px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -1546,7 +1613,7 @@
                                 <strong
                                     class="
                                         font-serif
-                                        text-sm
+                                        text-base
                                         text-[#53150f]
                                     "
 
@@ -1574,7 +1641,7 @@
                         <p
                             class="
                                 mb-1.5
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -1606,7 +1673,7 @@
                                 class="
                                     px-2
                                     py-2
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
                                     tracking-wide
@@ -1636,7 +1703,7 @@
                                     border-[#cdbb9f]/50
                                     px-2
                                     py-2
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
                                     tracking-wide
@@ -1664,7 +1731,7 @@
                                 class="
                                     px-2
                                     py-2
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
                                     tracking-wide
@@ -1688,7 +1755,7 @@
                     <label class="block">
                         <span
                             class="
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -1715,7 +1782,7 @@
                                 px-3
                                 py-2
                                 font-serif
-                                text-sm
+                                text-base
                                 font-black
                                 text-[#53150f]
                                 outline-none
@@ -1746,7 +1813,7 @@
                             <div>
                                 <p
                                     class="
-                                        text-[7px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -1759,7 +1826,7 @@
                                 <p
                                     class="
                                         mt-0.5
-                                        text-[8px]
+                                        text-[10px]
                                         leading-4
                                         text-[#8c6239]/70
                                     "
@@ -1787,7 +1854,7 @@
                                     py-2
                                     text-center
                                     font-serif
-                                    text-lg
+                                    text-xl
                                     font-black
                                     text-[#53150f]
                                     outline-none
@@ -1822,7 +1889,7 @@
                                     bg-[#6b1d14]
                                     px-3
                                     py-2
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -1869,13 +1936,13 @@
                                     bg-[#efe9dc]
                                     px-3
                                     py-2
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
                                     tracking-widest
                                     text-[#53150f]
                                     transition
-                                    hover:bg-[#e8dfd1]
+                                    hover:bg-[#fffdf8]/55
                                     disabled:opacity-50
                                 "
                             >
@@ -1899,7 +1966,7 @@
                                 px-2
                                 py-1.5
                                 text-center
-                                text-[8px]
+                                text-[10px]
                                 text-[#8c6239]
                             "
                         >
@@ -1959,7 +2026,7 @@
                             class="
                                 mt-2
                                 w-full
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -1970,25 +2037,6 @@
                         >
                             Limpar iniciativa do combate
                         </button>
-                    </div>
-
-
-                    {{-- FUTURA INTEGRAÇÃO --}}
-                    <div
-                        class="
-                            rounded-lg
-                            border
-                            border-dashed
-                            border-[#cdbb9f]/60
-                            px-3
-                            py-2
-                            text-[8px]
-                            leading-4
-                            text-[#8c6239]/70
-                        "
-                    >
-                        Preparado para o futuro sistema de ordem de iniciativa.
-                        Ainda não está conectado ao combate do mestre.
                     </div>
 
 
@@ -2014,7 +2062,7 @@
                                 rounded-lg
                                 px-3
                                 py-2
-                                text-[8px]
+                                text-[10px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -2042,7 +2090,7 @@
                                 bg-[#6b1d14]
                                 px-4
                                 py-2
-                                text-[8px]
+                                text-[10px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -2087,8 +2135,14 @@
                 class="
                     absolute
                     inset-0
-                    bg-[#2b1d17]/60
-                    backdrop-blur-sm
+
+                    bg-black/70
+                    backdrop-blur-[2px]
+                "
+
+                style="
+                    background-color:
+                        rgba(12, 8, 7, 0.72);
                 "
 
                 @click="
@@ -2118,16 +2172,20 @@
                         items-center
                         justify-between
                         border-b
-                        border-[#d8c7ab]/60
-                        bg-[#efe9dc]/70
+                        border-[#a0774d]/30
+
+                        bg-[#eadbc8]
+
                         px-4
                         py-3
+
+                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
                     "
                 >
                     <div>
                         <p
                             class="
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-[0.2em]
@@ -2140,7 +2198,7 @@
                         <h3
                             class="
                                 font-serif
-                                text-lg
+                                text-xl
                                 font-black
                                 text-[#53150f]
                             "
@@ -2165,7 +2223,7 @@
                             rounded-lg
                             text-[#8c6239]
                             transition
-                            hover:bg-[#e8dfd1]
+                            hover:bg-[#fffdf8]/55
                             hover:text-[#53150f]
                         "
                     >
@@ -2184,7 +2242,7 @@
                         <label class="block">
                             <span
                                 class="
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2218,7 +2276,7 @@
                                         py-2
                                         pr-8
                                         font-serif
-                                        text-sm
+                                        text-base
                                         font-black
                                         text-[#53150f]
                                         outline-none
@@ -2233,7 +2291,7 @@
                                         right-2.5
                                         top-1/2
                                         -translate-y-1/2
-                                        text-[8px]
+                                        text-[10px]
                                         font-bold
                                         text-[#8c6239]
                                     "
@@ -2246,7 +2304,7 @@
                         <label class="block">
                             <span
                                 class="
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2279,7 +2337,7 @@
                                         py-2
                                         pr-8
                                         font-serif
-                                        text-sm
+                                        text-base
                                         font-black
                                         text-[#53150f]
                                         outline-none
@@ -2294,7 +2352,7 @@
                                         right-2.5
                                         top-1/2
                                         -translate-y-1/2
-                                        text-[8px]
+                                        text-[10px]
                                         font-bold
                                         text-[#8c6239]
                                     "
@@ -2322,7 +2380,7 @@
                             <span
                                 class="
                                     block
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2341,7 +2399,7 @@
 
                                 class="
                                     mt-0.5
-                                    text-[7px]
+                                    text-[11px]
                                     font-bold
                                     text-[#8c6239]/70
                                     transition
@@ -2355,7 +2413,7 @@
                         <span
                             class="
                                 font-serif
-                                text-lg
+                                text-xl
                                 font-black
                                 text-[#53150f]
                             "
@@ -2368,7 +2426,7 @@
 
                             <span
                                 class="
-                                    text-[9px]
+                                    text-[11px]
                                     text-[#8c6239]
                                 "
                             >
@@ -2404,7 +2462,7 @@
                             <div>
                                 <p
                                     class="
-                                        text-[7px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -2417,7 +2475,7 @@
                                 <p
                                     class="
                                         mt-0.5
-                                        text-[7px]
+                                        text-[11px]
                                         text-[#8c6239]/65
                                     "
                                 >
@@ -2481,7 +2539,7 @@
                             <div class="mb-2">
                             <p
                                 class="
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2494,7 +2552,7 @@
                             <p
                                 class="
                                     mt-0.5
-                                    text-[8px]
+                                    text-[10px]
                                     leading-4
                                     text-[#8c6239]/70
                                 "
@@ -2522,7 +2580,7 @@
                             >
                                 <span
                                     class="
-                                        text-[7px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -2544,7 +2602,7 @@
                                     <span
                                         class="
                                             font-serif
-                                            text-lg
+                                            text-xl
                                             font-black
                                             text-[#53150f]
                                         "
@@ -2557,7 +2615,7 @@
 
                                         <span
                                             class="
-                                                text-[8px]
+                                                text-[10px]
                                                 text-[#8c6239]
                                             "
                                         >
@@ -2596,7 +2654,7 @@
                                                 px-1
                                                 py-1
                                                 text-center
-                                                text-[9px]
+                                                text-[11px]
                                                 font-black
                                                 text-[#53150f]
                                                 outline-none
@@ -2618,7 +2676,7 @@
                             >
                                 <span
                                     class="
-                                        text-[7px]
+                                        text-[11px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -2640,7 +2698,7 @@
                                     <span
                                         class="
                                             font-serif
-                                            text-lg
+                                            text-xl
                                             font-black
                                             text-[#53150f]
                                         "
@@ -2653,7 +2711,7 @@
 
                                         <span
                                             class="
-                                                text-[8px]
+                                                text-[10px]
                                                 text-[#8c6239]
                                             "
                                         >
@@ -2692,7 +2750,7 @@
                                                 px-1
                                                 py-1
                                                 text-center
-                                                text-[9px]
+                                                text-[11px]
                                                 font-black
                                                 text-[#53150f]
                                                 outline-none
@@ -2729,7 +2787,7 @@
                                 rounded-lg
                                 px-3
                                 py-2
-                                text-[8px]
+                                text-[10px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -2757,7 +2815,7 @@
                                 bg-[#6b1d14]
                                 px-4
                                 py-2
-                                text-[8px]
+                                text-[10px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -2802,8 +2860,14 @@
                 class="
                     absolute
                     inset-0
-                    bg-[#2b1d17]/60
-                    backdrop-blur-sm
+
+                    bg-black/70
+                    backdrop-blur-[2px]
+                "
+
+                style="
+                    background-color:
+                        rgba(12, 8, 7, 0.72);
                 "
 
                 @click="
@@ -2833,16 +2897,20 @@
                         items-center
                         justify-between
                         border-b
-                        border-[#d8c7ab]/60
-                        bg-[#efe9dc]/70
+                        border-[#a0774d]/30
+
+                        bg-[#eadbc8]
+
                         px-4
                         py-3
+
+                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
                     "
                 >
                     <div>
                         <p
                             class="
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-[0.2em]
@@ -2855,7 +2923,7 @@
                         <h3
                             class="
                                 font-serif
-                                text-lg
+                                text-xl
                                 font-black
                                 text-[#53150f]
                             "
@@ -2907,7 +2975,7 @@
                         >
                             <span
                                 class="
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2920,7 +2988,7 @@
                             <span
                                 class="
                                     font-serif
-                                    text-sm
+                                    text-base
                                     font-black
                                     text-[#53150f]
                                 "
@@ -2939,7 +3007,7 @@
                         >
                             <span
                                 class="
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2952,7 +3020,7 @@
                             <span
                                 class="
                                     font-serif
-                                    text-sm
+                                    text-base
                                     font-black
                                     text-[#53150f]
                                 "
@@ -2979,7 +3047,7 @@
                         >
                             <span
                                 class="
-                                    text-[7px]
+                                    text-[11px]
                                     font-black
                                     uppercase
                                     tracking-widest
@@ -2992,7 +3060,7 @@
                             <span
                                 class="
                                     font-serif
-                                    text-sm
+                                    text-base
                                     font-black
                                     text-[#53150f]
                                 "
@@ -3030,7 +3098,7 @@
                             >
                                 <span
                                     class="
-                                        text-[8px]
+                                        text-[10px]
                                         font-black
                                         uppercase
                                         tracking-widest
@@ -3059,7 +3127,7 @@
                     <label class="block">
                         <span
                             class="
-                                text-[7px]
+                                text-[11px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -3086,7 +3154,7 @@
                                 px-3
                                 py-2
                                 font-serif
-                                text-sm
+                                text-base
                                 font-black
                                 text-[#53150f]
                                 outline-none
@@ -3097,7 +3165,7 @@
 
                     <p
                         class="
-                            text-[8px]
+                            text-[10px]
                             leading-4
                             text-[#8c6239]/70
                         "
@@ -3129,7 +3197,7 @@
                                 rounded-lg
                                 px-3
                                 py-2
-                                text-[8px]
+                                text-[10px]
                                 font-black
                                 uppercase
                                 tracking-widest
@@ -3157,7 +3225,7 @@
                                 bg-[#6b1d14]
                                 px-4
                                 py-2
-                                text-[8px]
+                                text-[10px]
                                 font-black
                                 uppercase
                                 tracking-widest

@@ -1,1593 +1,1650 @@
 @props(['character'])
 
 @php
-
-    $abilities = $character->abilities;
-
-    $abilityScores = [
-
-        'str' => (int) ($abilities?->strength ?? 10),
-
-        'dex' => (int) ($abilities?->dexterity ?? 10),
-
-        'con' => (int) ($abilities?->constitution ?? 10),
-
-        'int' => (int) ($abilities?->intelligence ?? 10),
-
-        'wis' => (int) ($abilities?->wisdom ?? 10),
-
-        'cha' => (int) ($abilities?->charisma ?? 10),
-
+    $armorAbilityOptions = [
+        'str' => 'FOR',
+        'dex' => 'DES',
+        'con' => 'CON',
+        'int' => 'INT',
+        'wis' => 'SAB',
+        'cha' => 'CAR',
     ];
-
-    $abilityModifiers = collect($abilityScores)
-
-        ->mapWithKeys(
-
-            fn ($score, $key) => [
-
-                $key => (int) floor(($score - 10) / 2),
-
-            ]
-
-        )
-
-        ->all();
-
 @endphp
 
-<div class="relative flex justify-center">
-
+<div
+    x-data="{
+        baseDefenseDrawerOpen: false,
+        armorDrawerOpen: false,
+        shieldDrawerOpen: false,
+    }"
+    class="relative flex justify-center"
+>
     {{-- ============================================================
-
-         CA
-
+         ESCUDO DE CA
     ============================================================= --}}
-
     <div class="relative translate-y-7">
-
         <button
-
             type="button"
-
             @click="openArmor()"
-
             class="group relative h-24 w-20 focus:outline-none"
-
             title="Configurar Classe de Armadura"
-
         >
-
-            {{-- FUNDO E BORDA DO ESCUDO --}}
-
             <svg
-
                 class="absolute inset-0 h-full w-full"
-
                 viewBox="0 0 80 96"
-
                 preserveAspectRatio="none"
-
                 fill="none"
-
             >
-
-                {{-- ESCUDO EXTERNO --}}
-
                 <path
-
                     d="
-
                         M40 2
-
                         L73 13
-
                         V43
-
                         C73 63 60 79 40 91
-
                         C20 79 7 63 7 43
-
                         V13
-
                         Z
-
                     "
-
-                    :fill="shieldEnabled ? '#f0f9ff' : '#faf8f2'"
-
-                    :stroke="shieldEnabled ? '#7dd3fc' : '#cdbb9f'"
-
+                    :fill="
+                        activeShieldItem
+                            ? '#f7f0e6'
+                            : '#faf8f2'
+                    "
+                    :stroke="
+                        activeShieldItem
+                            ? '#b08c62'
+                            : '#cdbb9f'
+                    "
                     stroke-width="2"
-
                 />
-
-                {{-- BORDA INTERNA --}}
 
                 <path
-
                     d="
-
                         M40 8
-
                         L66 17
-
                         V42
-
                         C66 58 56 72 40 82
-
                         C24 72 14 58 14 42
-
                         V17
-
                         Z
-
                     "
-
-                    :stroke="shieldEnabled ? '#38bdf8' : '#8c6239'"
-
+                    :stroke="activeShieldItem ? '#8c6239' : '#8c6239'"
                     stroke-width="1"
-
-                    opacity=".28"
-
+                    opacity=".24"
                 />
-
             </svg>
 
-
-
-            {{-- CONTEÚDO DO ESCUDO --}}
-
-            <div
-
-                class="
-
-                    relative
-
-                    z-10
-
-                    flex
-
-                    h-full
-
-                    flex-col
-
-                    items-center
-
-                    justify-center
-
-                    pt-0.5
-
-                "
-
-            >
-
-                {{-- TÍTULO --}}
-
-                <span
-
-                    class="
-
-                        -mt-1
-
-                        text-[7px]
-
-                        font-black
-
-                        uppercase
-
-                        leading-none
-
-                        tracking-[0.16em]
-
-                    "
-
-                    :class="shieldEnabled
-
-                        ? 'text-sky-700'
-
-                        : 'text-[#8c6239]'"
-
-                >
-
+            <div class="relative z-10 flex h-full flex-col items-center justify-center pt-0.5">
+                <span class="-mt-1 text-[7px] font-black uppercase leading-none tracking-[0.16em] text-[#8c6239]">
                     Classe de
+                </span>
 
+                <span class="mt-0.5 text-[7px] font-black uppercase leading-none tracking-[0.16em] text-[#8c6239]">
+                    Armadura
                 </span>
 
                 <span
-
-                    class="
-
-                        mt-0.5
-
-                        text-[7px]
-
-                        font-black
-
-                        uppercase
-
-                        leading-none
-
-                        tracking-[0.16em]
-
-                    "
-
-                    :class="shieldEnabled
-
-                        ? 'text-sky-700'
-
-                        : 'text-[#8c6239]'"
-
-                >
-
-                    Armadura
-
-                </span>
-
-
-
-                {{-- CA --}}
-
-<span
-
-    x-text="totalAc"
-
-    class="
-
-        relative
-
-        z-10
-
-        -mt-0.5
-
-        font-serif
-
-        text-2xl
-
-        font-black
-
-        leading-none
-
-        text-[#53150f]
-
-    "
-
-></span>
+                    x-text="totalAc"
+                    class="relative z-10 -mt-0.5 font-serif text-2xl font-black leading-none text-[#53150f]"
+                ></span>
 
             </div>
-
         </button>
-
-
-
-        {{-- INDICADOR DE ESCUDO EQUIPADO --}}
-
-        <span
-
-            x-show="shieldEnabled"
-
-            x-cloak
-
-            class="
-
-                pointer-events-none
-
-                absolute
-
-                -right-1
-
-                top-1
-
-                z-20
-
-                flex
-
-                h-6
-
-                w-6
-
-                items-center
-
-                justify-center
-
-                rounded-full
-
-                border
-
-                border-sky-300
-
-                bg-sky-50
-
-                text-sky-700
-
-            "
-
-            title="Escudo equipado"
-
-        >
-
-            <svg
-
-                class="h-3.5 w-3.5"
-
-                viewBox="0 0 24 24"
-
-                fill="none"
-
-                stroke="currentColor"
-
-                stroke-width="1.8"
-
-                stroke-linecap="round"
-
-                stroke-linejoin="round"
-
-            >
-
-                <path
-
-                    d="
-
-                        M12 3.5
-
-                        19 6
-
-                        V11.2
-
-                        C19 15.5 16.3 18.9 12 20.5
-
-                        C7.7 18.9 5 15.5 5 11.2
-
-                        V6
-
-                        Z
-
-                    "
-
-                />
-
-            </svg>
-
-        </span>
-
     </div>
 
-
-
     {{-- ============================================================
-
          MODAL
-
     ============================================================= --}}
-
     <template x-teleport="body">
-
-    <div
-
-        x-show="armorOpen"
-
-        x-cloak
-
-        class="fixed inset-0 z-[110] flex items-center justify-center p-4"
-
-    >
-
-        {{-- BACKDROP --}}
-
         <div
-
             x-show="armorOpen"
-
-            x-transition.opacity
-
-            @click="armorOpen = false"
-
-            class="
-
-                absolute
-
-                inset-0
-
-                bg-[#2b1d17]/60
-
-                backdrop-blur-sm
-
-            "
-
-        ></div>
-
-
-
-        {{-- MODAL --}}
-
-        <div
-
-            x-show="armorOpen"
-
-            x-transition:enter="transition ease-out duration-200"
-
-            x-transition:enter-start="opacity-0 translate-y-2 scale-95"
-
-            x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-
-            x-transition:leave="transition ease-in duration-150"
-
-            x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-
-            x-transition:leave-end="opacity-0 translate-y-2 scale-95"
-
-            @click.stop
-
-            class="
-
-                relative
-
-                z-10
-
-                w-full
-
-                max-w-sm
-
-                overflow-hidden
-
-                rounded-2xl
-
-                border
-
-                border-[#cdbb9f]
-
-                bg-[#f4f1e8]
-
-                shadow-xl
-
-            "
-
+            x-cloak
+            class="fixed inset-0 z-[110] flex items-center justify-center p-4"
         >
-
-            {{-- HEADER --}}
-
             <div
-
+                x-show="armorOpen"
+                x-transition.opacity
+                @click="armorOpen = false"
                 class="
+                    absolute
+                    inset-0
 
-                    flex
-
-                    items-center
-
-                    justify-between
-
-                    border-b
-
-                    border-[#cdbb9f]/60
-
-                    bg-[#efe9dc]/70
-
-                    px-4
-
-                    py-3
-
+                    bg-black/70
+                    backdrop-blur-[2px]
                 "
 
+                style="
+                    background-color:
+                        rgba(12, 8, 7, 0.72);
+                "
+            ></div>
+
+            <div
+                x-show="armorOpen"
+                x-transition:enter="transition ease-out duration-180"
+                x-transition:enter-start="opacity-0 translate-y-2 scale-[.985]"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                x-transition:leave="transition ease-in duration-120"
+                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                x-transition:leave-end="opacity-0 translate-y-2 scale-[.985]"
+                @click.stop
+                class="
+                    relative
+                    z-10
+                    flex
+                    max-h-[88vh]
+                    w-full
+                    max-w-[720px]
+                    flex-col
+                    overflow-hidden
+                    rounded-2xl
+                    border
+                    border-[#b9966c]/75
+                    bg-[#fbf8f1]
+                    shadow-[0_30px_90px_rgba(27,18,14,.38)]
+                "
             >
-
-                <div>
-
-                    <p
-
-                        class="
-
-                            text-[8px]
-
-                            font-black
-
-                            uppercase
-
-                            tracking-[0.22em]
-
-                            text-[#8c6239]
-
-                        "
-
-                    >
-
-                        Defesa
-
-                    </p>
-
-                    <h2
-
-                        class="
-
-                            mt-0.5
-
-                            font-serif
-
-                            text-lg
-
-                            font-black
-
-                            text-[#53150f]
-
-                        "
-
-                    >
-
-                        Armadura
-
-                    </h2>
-
-                </div>
-
-                <div class="flex items-center gap-2">
-
-                    {{-- CA --}}
-
-                    <div
-
-                        class="
-
-                            flex
-
-                            h-10
-
-                            min-w-10
-
-                            items-center
-
-                            justify-center
-
-                            rounded-lg
-
-                            border
-
-                            border-[#cdbb9f]
-
-                            bg-[#faf8f2]
-
-                            px-2
-
-                        "
-
-                    >
-
-                        <span
-
-                            x-text="totalAc"
-
-                            class="
-
-                                font-serif
-
-                                text-xl
-
-                                font-black
-
-                                text-[#53150f]
-
-                            "
-
-                        ></span>
-
-                    </div>
-
-                    {{-- FECHAR --}}
-
-                    <button
-
-                        type="button"
-
-                        @click="armorOpen = false"
-
-                        class="
-
-                            flex
-
-                            h-8
-
-                            w-8
-
-                            items-center
-
-                            justify-center
-
-                            rounded-lg
-
-                            text-[#8c6239]
-
-                            transition
-
-                            hover:bg-[#e8dfd1]
-
-                            hover:text-[#53150f]
-
-                        "
-
-                        title="Fechar"
-
-                    >
-
-                        ×
-
-                    </button>
-
-                </div>
-
-            </div>
-
-
-
-            <div class="space-y-4 p-4">
-
-                {{-- ==================================================
-
-                     ESCUDO
-
-                =================================================== --}}
-
-                <div
-
+                {{-- HEADER --}}
+                <header
                     class="
-
-                        rounded-xl
-
-                        border
-
-                        border-[#d8c7ab]
-
-                        bg-[#faf8f2]
-
-                        p-3
-
+                        flex
+                        shrink-0
+                        items-center
+                        justify-between
+                        gap-4
+                        border-b
+                        border-[#a0774d]/30
+                        bg-[#eadbc8]
+                        px-5
+                        py-3.5
+                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
                     "
-
                 >
-
-                    <div class="flex items-center gap-3">
-
-                        {{-- EMBLEMA DO ESCUDO --}}
+                    <div class="min-w-0 flex-1">
 
                         <div
-
                             class="
-
                                 flex
-
-                                h-10
-
-                                w-10
-
-                                shrink-0
-
-                                items-center
-
-                                justify-center
-
-                                rounded-lg
-
-                                border
-
+                                min-w-0
+                                items-baseline
+                                gap-2.5
                             "
-
-                            :class="shieldEnabled
-
-                                ? 'border-sky-300 bg-sky-50 text-sky-700'
-
-                                : 'border-[#d8c7ab] bg-[#f5efe6] text-[#8c6239]'"
-
                         >
+                            <h2
+                                class="
+                                    truncate
 
-                            <svg
+                                    font-serif
+                                    text-xl
+                                    font-black
 
-                                class="h-5 w-5"
-
-                                viewBox="0 0 24 24"
-
-                                fill="none"
-
-                                stroke="currentColor"
-
-                                stroke-width="1.6"
-
-                                stroke-linecap="round"
-
-                                stroke-linejoin="round"
-
+                                    text-[#53150f]
+                                "
                             >
+                                Classe de Armadura
+                            </h2>
 
-                                <path
+                            <span
+                                class="
+                                    shrink-0
 
-                                    d="
+                                    text-[10px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.10em]
 
-                                        M12 3.5
+                                    text-[#8c6239]/75
+                                "
 
-                                        19 6
-
-                                        V11.2
-
-                                        C19 15.5 16.3 18.9 12 20.5
-
-                                        C7.7 18.9 5 15.5 5 11.2
-
-                                        V6
-
-                                        Z
-
-                                    "
-
-                                />
-
-                                <path
-
-                                    d="
-
-                                        m9.2 12
-
-                                        1.8 1.8
-
-                                        3.8-4
-
-                                    "
-
-                                />
-
-                            </svg>
-
+                                x-text="armorDefenseLabel"
+                            ></span>
                         </div>
 
 
+                        <div
+                            class="
+                                mt-2
 
-                        <div class="min-w-0 flex-1">
+                                flex
+                                w-fit
+                                max-w-full
+                                min-w-0
+                                flex-wrap
+                                items-center
+                                gap-x-1.5
+                                gap-y-1
 
-                            <div class="flex items-center justify-between gap-3">
+                                border-0
 
-                                <div>
+                                bg-transparent
 
-                                    <p
+                                px-0
+                                py-0
 
-                                        class="
+                                shadow-none
+                            "
+                        >
 
-                                            text-[8px]
+                            <span
+                                class="
+                                    text-[11px]
+                                    font-semibold
+                                    leading-relaxed
 
-                                            font-black
+                                    text-[#6f4f38]
+                                "
 
-                                            uppercase
-
-                                            tracking-widest
-
-                                            text-[#53150f]
-
-                                        "
-
-                                    >
-
-                                        Escudo
-
-                                    </p>
-
-                                    <p
-
-                                        class="mt-0.5 text-[9px]"
-
-                                        :class="shieldEnabled
-
-                                            ? 'text-sky-700'
-
-                                            : 'text-[#8c6239]'"
-
-                                        x-text="
-
-                                            shieldEnabled
-
-                                                ? 'Equipado'
-
-                                                : 'Não equipado'
-
-                                        "
-
-                                    ></p>
-
-                                </div>
+                                x-text="
+                                    activeArmorItem
+                                        ? armorFormulaLabel(activeArmorItem)
+                                        : baseDefenseFormulaLabel
+                                "
+                            ></span>
 
 
+                            <span
+                                x-show="
+                                    equippedShieldBonus !== 0
+                                "
+                                x-cloak
 
-                                {{-- TOGGLE --}}
+                                class="
+                                    text-[11px]
+                                    font-semibold
 
-                                <label
-
+                                    text-[#6f4f38]
+                                "
+                            >
+                                ·
+                                Escudo
+                                <strong
                                     class="
-
-                                        relative
-
-                                        inline-flex
-
-                                        cursor-pointer
-
-                                        items-center
-
-                                    "
-
-                                >
-
-                                    <input
-
-                                        type="checkbox"
-
-                                        x-model="shieldEnabled"
-
-                                        class="peer sr-only"
-
-                                    >
-
-                                    <span
-
-                                        class="
-
-                                            h-5
-
-                                            w-9
-
-                                            rounded-full
-
-                                            bg-[#d8c7ab]
-
-                                            transition-colors
-
-                                            peer-checked:bg-sky-600
-
-                                        "
-
-                                    ></span>
-
-                                    <span
-
-                                        class="
-
-                                            absolute
-
-                                            left-0.5
-
-                                            top-0.5
-
-                                            h-4
-
-                                            w-4
-
-                                            rounded-full
-
-                                            bg-white
-
-                                            transition-transform
-
-                                            peer-checked:translate-x-4
-
-                                        "
-
-                                    ></span>
-
-                                </label>
-
-                            </div>
-
-
-
-                            {{-- BÔNUS --}}
-
-                            <div class="mt-2 flex items-center gap-2">
-
-                                <span
-
-                                    class="
-
-                                        text-[8px]
-
-                                        font-bold
-
-                                        uppercase
-
-                                        tracking-wide
-
-                                        text-[#8c6239]
-
-                                    "
-
-                                >
-
-                                    Bônus
-
-                                </span>
-
-                                <input
-
-                                    type="number"
-
-                                    min="0"
-
-                                    x-model.number="shieldBonus"
-
-                                    :disabled="!shieldEnabled"
-
-                                    class="
-
-                                        h-7
-
-                                        w-12
-
-                                        rounded-md
-
-                                        border
-
-                                        border-[#d8c7ab]
-
-                                        bg-white
-
-                                        text-center
-
-                                        text-xs
-
                                         font-black
-
                                         text-[#53150f]
-
-                                        outline-none
-
-                                        focus:border-sky-400
-
-                                        disabled:cursor-not-allowed
-
-                                        disabled:bg-[#efe9dc]
-
-                                        disabled:opacity-40
-
                                     "
 
-                                >
+                                    x-text="
+                                        equippedShieldBonus > 0
+                                            ? '+' + equippedShieldBonus
+                                            : equippedShieldBonus
+                                    "
+                                ></strong>
+                            </span>
 
-                                <span
 
+                            <span
+                                x-show="
+                                    armorNamedBonusTotal !== 0
+                                "
+                                x-cloak
+
+                                class="
+                                    text-[11px]
+                                    font-semibold
+
+                                    text-[#6f4f38]
+                                "
+                            >
+                                ·
+                                Extras
+                                <strong
                                     class="
-
-                                        text-[8px]
-
-                                        text-[#8c6239]/70
-
+                                        font-black
+                                        text-[#53150f]
                                     "
 
-                                >
-
-                                    para a CA
-
-                                </span>
-
-                            </div>
+                                    x-text="
+                                        armorNamedBonusTotal > 0
+                                            ? '+' + armorNamedBonusTotal
+                                            : armorNamedBonusTotal
+                                    "
+                                ></strong>
+                            </span>
 
                         </div>
 
                     </div>
 
-                </div>
-
-
-
-                {{-- ==================================================
-
-                     BÔNUS DE ARMADURA
-
-                =================================================== --}}
-
-                <div>
-
-                    <div class="mb-2 flex items-center justify-between">
-
-                        <span
-
+                    <div class="flex shrink-0 items-center gap-2">
+                        <div
                             class="
+                                flex
+                                min-w-[54px]
+                                flex-col
+                                items-center
+                                justify-center
 
-                                text-[8px]
-
-                                font-black
-
-                                uppercase
-
-                                tracking-widest
-
-                                text-[#8c6239]
-
+                                pl-3
+                                pr-1
                             "
-
                         >
+                            <span
+                                class="
+                                    text-[8px]
+                                    font-black
+                                    uppercase
+                                    leading-none
+                                    tracking-[0.14em]
 
-                            Bônus de Armadura
+                                    text-[#7d604d]/75
+                                "
+                            >
+                                CA
+                            </span>
 
-                        </span>
+                            <span
+                                x-text="totalAc"
+
+                                class="
+                                    mt-1
+
+                                    font-serif
+                                    text-[26px]
+                                    font-black
+                                    leading-[0.86]
+
+                                    text-[#53150f]
+                                "
+                            ></span>
+                        </div>
 
                         <button
+                            type="button"
+                            @click="armorOpen = false"
+                            class="flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-[#8c6239] transition hover:border-[#a0774d]/30 hover:bg-[#fffdf8]/55 hover:text-[#53150f]"
+                            title="Fechar"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </header>
 
+                {{-- BODY --}}
+                <div
+                    class="
+                        min-h-0
+                        flex-1
+                        space-y-3
+                        overflow-y-auto
+                        overflow-x-hidden
+                        px-5
+                        pt-[12px]
+                        pb-[12px]
+                        [scrollbar-width:none]
+                        [&::-webkit-scrollbar]:hidden
+                    "
+                >
+                    <div
+                        x-show="armorEquipmentError"
+                        x-cloak
+                        class="rounded-lg border border-red-300/70 bg-red-50 px-3 py-2 text-[12px] font-bold text-red-800"
+                        x-text="armorEquipmentError"
+                    ></div>
+
+                    {{-- DEFESA BASE --}}
+
+                    <section
+                        class="
+                            overflow-hidden
+
+                            rounded-xl
+                            border
+                            border-[#d6c09f]/85
+
+                            bg-[linear-gradient(180deg,#fffdfa_0%,#fbf5ec_100%)]
+
+                            shadow-[0_2px_8px_rgba(83,61,42,.055)]
+                        "
+                    >
+
+                        {{-- CABEÇALHO / RESUMO DO CÁLCULO --}}
+
+                        <button
                             type="button"
 
-                            @click="addArmorBonus()"
+                            @click="
+                                baseDefenseDrawerOpen =
+                                    !baseDefenseDrawerOpen
+                            "
 
                             class="
+                                flex
+                                w-full
+                                items-center
+                                justify-between
+                                gap-4
 
-                                rounded-md
+                                px-3.5
+                                py-3
 
-                                border
-
-                                border-[#cdbb9f]/50
-
-                                bg-[#efe9dc]
-
-                                px-2
-
-                                py-1
-
-                                text-[8px]
-
-                                font-black
-
-                                text-[#6b1d14]
+                                text-left
 
                                 transition
 
-                                hover:bg-[#6b1d14]
-
-                                hover:text-[#f4f1e8]
-
+                                hover:bg-[#faf3e9]
                             "
 
+                            :class="
+                                baseDefenseDrawerOpen
+                                    ? 'bg-[#faf3e9]'
+                                    : ''
+                            "
+
+                            :aria-expanded="
+                                baseDefenseDrawerOpen
+                                    ? 'true'
+                                    : 'false'
+                            "
                         >
 
-                            + Adicionar
+                            <div class="min-w-0 flex-1">
 
-                        </button>
-
-                    </div>
-
-
-
-                    <div class="space-y-1.5">
-
-                        <template
-
-                            x-for="(bonus, index) in armorBonuses"
-
-                            :key="index"
-
-                        >
-
-                            <div class="flex items-center gap-1.5">
-
-                                <input
-
-                                    type="text"
-
-                                    x-model="bonus.name"
-
-                                    placeholder="Nome"
-
+                                <div
                                     class="
-
-                                        min-w-0
-
-                                        flex-1
-
-                                        rounded-md
-
-                                        border
-
-                                        border-[#cdbb9f]/50
-
-                                        bg-white
-
-                                        px-2
-
-                                        py-1.5
-
-                                        text-[9px]
-
-                                        text-[#53150f]
-
-                                        outline-none
-
-                                        focus:border-[#6b1d14]
-
-                                    "
-
-                                >
-
-                                <input
-
-                                    type="number"
-
-                                    x-model.number="bonus.value"
-
-                                    class="
-
-                                        w-12
-
-                                        rounded-md
-
-                                        border
-
-                                        border-[#cdbb9f]/50
-
-                                        bg-white
-
-                                        px-1
-
-                                        py-1.5
-
-                                        text-center
-
-                                        text-[9px]
-
-                                        font-black
-
-                                        text-[#53150f]
-
-                                        outline-none
-
-                                        focus:border-[#6b1d14]
-
-                                    "
-
-                                >
-
-                                <button
-
-                                    type="button"
-
-                                    @click="removeArmorBonus(index)"
-
-                                    class="
-
                                         flex
-
-                                        h-7
-
-                                        w-7
-
                                         items-center
-
-                                        justify-center
-
-                                        rounded-md
-
-                                        text-red-700
-
-                                        transition
-
-                                        hover:bg-red-50
-
+                                        gap-2
                                     "
-
-                                    title="Remover"
-
                                 >
-
-                                    ×
-
-                                </button>
-
-                            </div>
-
-                        </template>
-
-
-
-                        <div
-
-                            x-show="armorBonuses.length === 0"
-
-                            class="
-
-                                rounded-lg
-
-                                border
-
-                                border-dashed
-
-                                border-[#cdbb9f]/50
-
-                                px-3
-
-                                py-2
-
-                                text-center
-
-                                text-[9px]
-
-                                text-[#8c6239]
-
-                            "
-
-                        >
-
-                            Nenhum bônus.
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-
-                {{-- ==================================================
-
-                     BASE
-
-                =================================================== --}}
-
-                <div
-
-                    class="
-
-                        border-t
-
-                        border-[#cdbb9f]/40
-
-                        pt-3
-
-                    "
-
-                >
-
-                    <div class="mb-2 flex items-center justify-between">
-
-                        <div>
-
-                            <span
-
-                                class="
-
-                                    block
-
-                                    text-[8px]
-
-                                    font-black
-
-                                    uppercase
-
-                                    tracking-widest
-
-                                    text-[#8c6239]
-
-                                "
-
-                            >
-
-                                Base
-
-                            </span>
-
-                            <span
-
-                                class="
-
-                                    text-[9px]
-
-                                    text-[#8c6239]/70
-
-                                "
-
-                            >
-
-                                10 + atributos selecionados
-
-                            </span>
-
-                        </div>
-
-                        <span
-
-                            class="
-
-                                font-serif
-
-                                text-sm
-
-                                font-black
-
-                                text-[#53150f]
-
-                            "
-
-                            x-text="
-
-                                '10' +
-
-                                (
-
-                                    armorBaseBonus > 0
-
-                                        ? '+' + armorBaseBonus
-
-                                        : armorBaseBonus < 0
-
-                                            ? armorBaseBonus
-
-                                            : ''
-
-                                )
-
-                            "
-
-                        ></span>
-
-                    </div>
-
-
-
-                    {{-- ATRIBUTOS --}}
-
-                    <div class="grid grid-cols-2 gap-1.5">
-
-                        @foreach ([
-
-                            'str' => ['label' => 'Força', 'short' => 'FOR'],
-
-                            'dex' => ['label' => 'Destreza', 'short' => 'DES'],
-
-                            'con' => ['label' => 'Constituição', 'short' => 'CON'],
-
-                            'int' => ['label' => 'Inteligência', 'short' => 'INT'],
-
-                            'wis' => ['label' => 'Sabedoria', 'short' => 'SAB'],
-
-                            'cha' => ['label' => 'Carisma', 'short' => 'CAR'],
-
-                        ] as $ability => $info)
-
-                            <label
-
-                                class="
-
-                                    flex
-
-                                    cursor-pointer
-
-                                    items-center
-
-                                    justify-between
-
-                                    rounded-lg
-
-                                    border
-
-                                    px-3
-
-                                    py-2
-
-                                    transition
-
-                                "
-
-                                :class="
-
-                                    armorMode.includes('{{ $ability }}')
-
-                                        ? 'border-[#6b1d14] bg-[#efe9dc]'
-
-                                        : 'border-[#cdbb9f]/50 bg-white hover:bg-[#efe9dc]/50'
-
-                                "
-
-                            >
-
-                                <div class="flex items-center gap-2">
-
-                                    <input
-
-                                        type="checkbox"
-
-                                        value="{{ $ability }}"
-
-                                        :checked="armorMode.includes('{{ $ability }}')"
-
-                                        @change="
-
-                                            if ($event.target.checked) {
-
-                                                if (!armorMode.includes('{{ $ability }}')) {
-
-                                                    armorMode.push('{{ $ability }}');
-
-                                                }
-
-                                            } else {
-
-                                                armorMode = armorMode.filter(
-
-                                                    value => value !== '{{ $ability }}'
-
-                                                );
-
-                                            }
-
-                                        "
-
+                                    <span
                                         class="
+                                            text-[10px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.12em]
 
-                                            rounded
-
-                                            border-[#cdbb9f]
-
-                                            text-[#6b1d14]
-
-                                            focus:ring-[#6b1d14]/20
-
+                                            text-[#8c6239]
                                         "
-
                                     >
+                                        Defesa Base
+                                    </span>
 
                                     <span
-
                                         class="
-
                                             text-[9px]
+                                            font-semibold
 
+                                            text-[#8c6239]/60
+                                        "
+                                    >
+                                        cálculo sem armadura
+                                    </span>
+                                </div>
+
+
+                                {{-- EQUAÇÃO VISÍVEL MESMO COM A GAVETA FECHADA --}}
+
+                                <div
+                                    class="
+                                        mt-2
+
+                                        flex
+                                        min-w-0
+                                        flex-wrap
+                                        items-center
+                                        gap-1.5
+                                    "
+                                >
+
+                                    <span
+                                        class="
+                                            inline-flex
+                                            h-7
+                                            items-center
+
+                                            rounded-md
+                                            border
+                                            border-[#d8c7ab]/75
+
+                                            bg-[#fffaf2]
+
+                                            px-2.5
+
+                                            font-serif
+                                            text-[13px]
                                             font-black
 
-                                            uppercase
-
-                                            tracking-widest
-
                                             text-[#53150f]
+                                        "
+                                    >
+                                        10
+                                    </span>
 
+
+                                    @foreach ($armorAbilityOptions as $ability => $short)
+
+                                        <template
+                                            x-if="
+                                                armorMode.includes(
+                                                    '{{ $ability }}'
+                                                )
+                                            "
+                                        >
+                                            <div
+                                                class="
+                                                    inline-flex
+                                                    items-center
+                                                    gap-1.5
+                                                "
+                                            >
+
+                                                <span
+                                                    class="
+                                                        font-serif
+                                                        text-[15px]
+                                                        font-bold
+
+                                                        text-[#b08c62]
+                                                    "
+                                                >
+                                                    +
+                                                </span>
+
+
+                                                <span
+                                                    class="
+                                                        inline-flex
+                                                        h-7
+                                                        items-center
+                                                        gap-1
+
+                                                        rounded-md
+                                                        border
+                                                        border-[#b9966c]/55
+
+                                                        bg-[#f7ece0]
+
+                                                        px-2.5
+
+                                                        text-[10px]
+                                                        font-black
+
+                                                        text-[#6b1d14]
+                                                    "
+                                                >
+                                                    {{ $short }}
+
+                                                    <span
+                                                        x-text="
+                                                            abilityModifier('{{ $ability }}') >= 0
+                                                                ? '+' + abilityModifier('{{ $ability }}')
+                                                                : abilityModifier('{{ $ability }}')
+                                                        "
+                                                    ></span>
+                                                </span>
+
+                                            </div>
+                                        </template>
+
+                                    @endforeach
+
+
+                                    <span
+                                        class="
+                                            mx-0.5
+
+                                            font-serif
+                                            text-[15px]
+                                            font-bold
+
+                                            text-[#b08c62]
+                                        "
+                                    >
+                                        =
+                                    </span>
+
+
+                                    <strong
+                                        class="
+                                            inline-flex
+                                            h-7
+                                            min-w-8
+                                            items-center
+                                            justify-center
+
+                                            rounded-md
+
+                                            bg-[#6b1d14]
+
+                                            px-2.5
+
+                                            font-serif
+                                            text-[14px]
+                                            font-black
+
+                                            text-[#fffaf2]
+
+                                            shadow-[0_2px_5px_rgba(83,21,15,.12)]
                                         "
 
+                                        x-text="
+                                            baseDefenseBodyAc
+                                        "
+                                    ></strong>
+
+
+                                    <template
+                                        x-if="
+                                            armorNamedBonusTotal !== 0
+                                        "
                                     >
+                                        <div
+                                            class="
+                                                inline-flex
+                                                items-center
+                                                gap-1.5
+                                            "
+                                        >
 
-                                        {{ $info['label'] }}
+                                            <span
+                                                class="
+                                                    ml-1
 
-                                    </span>
+                                                    text-[9px]
+                                                    font-bold
+
+                                                    text-[#8c6239]/70
+                                                "
+                                            >
+                                                com extras
+                                            </span>
+
+
+                                            <span
+                                                class="
+                                                    font-serif
+                                                    text-[14px]
+                                                    font-bold
+
+                                                    text-[#b08c62]
+                                                "
+                                            >
+                                                →
+                                            </span>
+
+
+                                            <strong
+                                                class="
+                                                    font-serif
+                                                    text-[15px]
+                                                    font-black
+
+                                                    text-[#6b1d14]
+                                                "
+
+                                                x-text="
+                                                    baseDefenseAc
+                                                "
+                                            ></strong>
+
+                                        </div>
+                                    </template>
 
                                 </div>
 
+                            </div>
+
+
+                            {{-- CHEVRON --}}
+
+                            <span
+                                class="
+                                    flex
+                                    h-8
+                                    w-8
+                                    shrink-0
+                                    items-center
+                                    justify-center
+
+                                    rounded-lg
+                                    border
+                                    border-[#c9ae8a]/70
+
+                                    bg-[#fffaf2]
+
+                                    text-[#8c6239]
+
+                                    shadow-[0_1px_3px_rgba(83,61,42,.06)]
+
+                                    transition
+                                "
+
+                                :class="
+                                    baseDefenseDrawerOpen
+                                        ? 'rotate-180 bg-[#f0e2d2] text-[#6b1d14]'
+                                        : ''
+                                "
+
+                                aria-hidden="true"
+                            >
+                                <svg
+                                    class="h-3.5 w-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                >
+                                    <path
+                                        d="m7 10 5 5 5-5"
+                                        stroke-width="1.8"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    />
+                                </svg>
+                            </span>
+
+                        </button>
+
+
+                        {{-- CONTEÚDO DA GAVETA --}}
+
+                        <div
+                            x-show="
+                                baseDefenseDrawerOpen
+                            "
+                            x-cloak
+
+                            x-transition.opacity.duration.140ms
+
+                            class="
+                                border-t
+                                border-[#d8c7ab]/60
+
+                                bg-[#fffdfa]/80
+
+                                px-3.5
+                                pb-3.5
+                                pt-3
+                            "
+                        >
+
+                            <div
+                                class="
+                                    flex
+                                    items-center
+                                    justify-between
+                                    gap-3
+                                "
+                            >
+
+                                <div>
+
+                                    <span
+                                        class="
+                                            block
+
+                                            text-[9px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.10em]
+
+                                            text-[#8c6239]/75
+                                        "
+                                    >
+                                        Atributos da Defesa Base
+                                    </span>
+
+                                    <p
+                                        class="
+                                            mt-0.5
+
+                                            text-[10px]
+                                            leading-relaxed
+
+                                            text-[#7d604d]
+                                        "
+                                    >
+                                        Selecione os modificadores que entram no cálculo acima.
+                                    </p>
+
+                                </div>
+
+
+                                <div
+                                    class="
+                                        shrink-0
+                                        text-right
+                                    "
+                                >
+
+                                    <span
+                                        class="
+                                            block
+
+                                            text-[8px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.10em]
+
+                                            text-[#8c6239]/55
+                                        "
+                                    >
+                                        Resultado
+                                    </span>
+
+                                    <strong
+                                        class="
+                                            font-serif
+                                            text-[18px]
+                                            font-black
+
+                                            text-[#53150f]
+                                        "
+
+                                        x-text="
+                                            baseDefenseAc
+                                        "
+                                    ></strong>
+
+                                </div>
+
+                            </div>
+
+
+                            <div
+                                class="
+                                    mt-3
+
+                                    grid
+                                    grid-cols-3
+                                    gap-1.5
+
+                                    sm:grid-cols-6
+                                "
+                            >
+
+                                @foreach ($armorAbilityOptions as $ability => $short)
+
+                                    <button
+                                        type="button"
+
+                                        @click="
+                                            armorMode =
+                                                armorMode.includes('{{ $ability }}')
+                                                    ? armorMode.filter(
+                                                        entry =>
+                                                            entry !== '{{ $ability }}'
+                                                    )
+                                                    : [
+                                                        ...armorMode,
+                                                        '{{ $ability }}'
+                                                    ]
+                                        "
+
+                                        class="
+                                            flex
+                                            min-h-9
+                                            items-center
+                                            justify-center
+                                            gap-1
+
+                                            rounded-lg
+                                            border
+
+                                            px-2
+
+                                            text-[10px]
+                                            font-black
+
+                                            transition
+                                        "
+
+                                        :class="
+                                            armorMode.includes('{{ $ability }}')
+                                                ? 'border-[#9f7154]/65 bg-[#f0e2d2] text-[#6b1d14] shadow-[inset_0_0_0_1px_rgba(255,255,255,.38)]'
+                                                : 'border-[#d8c7ab]/85 bg-[#fffaf6] text-[#8c6239] hover:border-[#c9ae8a] hover:bg-[#f3eadf]'
+                                        "
+                                    >
+
+                                        <span>
+                                            {{ $short }}
+                                        </span>
+
+                                        <span
+                                            x-text="
+                                                abilityModifier('{{ $ability }}') >= 0
+                                                    ? '+' + abilityModifier('{{ $ability }}')
+                                                    : abilityModifier('{{ $ability }}')
+                                            "
+                                        ></span>
+
+                                    </button>
+
+                                @endforeach
+
+                            </div>
+
+                        </div>
+
+                    </section>
+
+
+                    {{-- EQUIPAMENTOS --}}
+
+                    <div
+                        class="
+                            grid
+                            grid-cols-1
+                            gap-3
+
+                            lg:grid-cols-2
+                        "
+                    >
+
+                    {{-- ARMADURAS --}}
+                    <section
+                        class="
+                            overflow-hidden
+                            rounded-xl
+                            border
+                            border-[#d6c09f]/85
+                            bg-[#fffdfa]
+                            shadow-[0_2px_7px_rgba(83,61,42,.05)]
+                        "
+                    >
+                        <button
+                            type="button"
+                            @click="armorDrawerOpen = !armorDrawerOpen"
+                            class="
+                                flex
+                                w-full
+                                items-center
+                                justify-between
+                                gap-3
+                                bg-[linear-gradient(180deg,#fffaf3_0%,#f7eee2_100%)]
+                                px-3.5
+                                py-3
+                                text-left
+                                transition
+                                hover:bg-[#f2e6d7]
+                            "
+                            :class="
+                                armorDrawerOpen
+                                    ? 'border-b border-[#c9ae8a]/70 bg-[#f7eee2]'
+                                    : ''
+                            "
+                            :aria-expanded="armorDrawerOpen ? 'true' : 'false'"
+                        >
+                            <div class="min-w-0 flex-1">
+
+                                <div
+                                    class="
+                                        flex
+                                        items-center
+                                        gap-2
+                                    "
+                                >
+                                    <strong
+                                        class="
+                                            font-serif
+                                            text-[16px]
+                                            leading-none
+
+                                            text-[#53150f]
+                                        "
+                                    >
+                                        Armaduras
+                                    </strong>
+
+                                    <span
+                                        x-show="activeArmorItem"
+                                        x-cloak
+
+                                        class="
+                                            inline-flex
+                                            items-center
+                                            gap-1
+
+                                            text-[8px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.08em]
+
+                                            text-[#8c6239]/75
+                                        "
+                                    >
+                                        <span
+                                            class="
+                                                h-1.5
+                                                w-1.5
+                                                rounded-full
+                                                bg-[#9b7655]
+                                            "
+                                        ></span>
+
+                                        Equipado
+                                    </span>
+                                </div>
+
+
                                 <span
+                                    x-show="activeArmorItem"
+                                    x-cloak
 
                                     class="
+                                        mt-1
+                                        block
+                                        max-w-[240px]
+                                        truncate
 
-                                        text-[10px]
+                                        text-[11px]
+                                        font-semibold
+                                        leading-none
 
+                                        text-[#7d604d]
+                                    "
+
+                                    x-text="
+                                        activeArmorItem
+                                            ? activeArmorItem.name
+                                            : ''
+                                    "
+                                ></span>
+
+                            </div>
+
+                            <div
+                                class="
+                                    flex
+                                    shrink-0
+                                    items-center
+                                    gap-1.5
+                                "
+                            >
+                                <span
+                                    class="
+                                        min-w-6
+
+                                        text-center
+                                        text-[9px]
                                         font-black
+
+                                        text-[#8c6239]/70
+                                    "
+
+                                    x-text="armorItems.length"
+                                ></span>
+
+                                <span
+                                    class="
+                                        flex
+                                        h-8
+                                        w-8
+                                        items-center
+                                        justify-center
+
+                                        rounded-lg
+                                        border
+                                        border-[#c9ae8a]/70
+
+                                        bg-[#fffaf2]
 
                                         text-[#8c6239]
 
+                                        shadow-[0_1px_3px_rgba(83,61,42,.06)]
+
+                                        transition
                                     "
 
+                                    :class="
+                                        armorDrawerOpen
+                                            ? 'rotate-180 bg-[#f0e2d2] text-[#6b1d14]'
+                                            : ''
+                                    "
+
+                                    aria-hidden="true"
                                 >
-
-                                    {{ $abilityModifiers[$ability] >= 0 ? '+' : '' }}{{ $abilityModifiers[$ability] }}
-
+                                    <svg
+                                        class="h-3.5 w-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            d="m7 10 5 5 5-5"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        />
+                                    </svg>
                                 </span>
+                            </div>
+                        </button>
 
-                            </label>
+                        <div
+                            x-show="armorDrawerOpen"
+                            x-cloak
+                            x-transition.opacity.duration.120ms
+                        >
 
-                        @endforeach
+                        <div
+                            x-show="armorItems.length === 0"
+                            x-cloak
+                            class="px-3 py-5 text-center text-[12px] text-[#8c6239]"
+                        >
+                            Nenhuma armadura criada no inventário.
+                        </div>
+
+                        <div
+                            x-show="armorItems.length > 0"
+                            x-cloak
+                            class="divide-y divide-[#d8c7ab]/45"
+                        >
+                            <template
+                                x-for="item in armorItems"
+                                :key="'armor-item-' + item.id"
+                            >
+                                <div
+                                    class="
+                                        flex
+                                        items-center
+                                        gap-3
+                                        px-3.5
+                                        py-3
+                                        transition
+                                        hover:bg-[#faf4eb]
+                                    "
+                                    :class="
+                                        item.equipped
+                                            ? 'bg-[#f8efe3]'
+                                            : ''
+                                    "
+                                >
+                                    <div
+                                        class="
+                                            flex
+                                            h-11
+                                            w-11
+                                            shrink-0
+                                            items-center
+                                            justify-center
+                                            overflow-hidden
+                                            rounded-lg
+                                            border
+                                            border-[#d8c7ab]/85
+                                            bg-[#f5efe6]
+                                        "
+                                    >
+                                        <template x-if="item.image_url">
+                                            <img
+                                                :src="item.image_url"
+                                                :alt="item.name"
+                                                class="h-full w-full object-cover"
+                                            >
+                                        </template>
+
+                                        <template x-if="!item.image_url">
+                                            <span class="font-serif text-[16px] text-[#8c6239]/45">
+                                                ◇
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <strong
+                                                class="block min-w-0 flex-1 truncate font-serif text-[13px] text-[#53150f]"
+                                                x-text="item.name"
+                                            ></strong>
+                                        </div>
+
+                                        <p
+                                            class="mt-0.5 truncate text-[11px] text-[#8c6239]"
+                                            x-text="armorFormulaLabel(item)"
+                                        ></p>
+                                    </div>
+
+                                    <div class="shrink-0 text-right">
+                                        <strong
+                                            class="block font-serif text-[16px] text-[#53150f]"
+                                            x-text="armorItemBodyAc(item)"
+                                        ></strong>
+
+                                        <button
+                                            type="button"
+                                            @click="toggleArmorItem(item)"
+                                            :disabled="armorEquipmentBusyId !== null"
+                                            class="
+                                                mt-1
+                                                rounded-md
+                                                border
+                                                min-w-[60px]
+                                                px-2.5
+                                                py-1.5
+                                                text-[9px]
+                                                font-black
+                                                uppercase
+                                                tracking-wide
+                                                transition
+                                                disabled:cursor-wait
+                                                disabled:opacity-40
+                                            "
+                                            :class="
+                                                item.equipped
+                                                    ? 'border-[#cdbb9f] bg-[#fffaf2] text-[#8c6239] hover:bg-[#f3eadf]'
+                                                    : 'border-[#8c6239] bg-[#8c6239] text-white hover:bg-[#755237]'
+                                            "
+                                            x-text="
+                                                item.equipped
+                                                    ? 'Guardar'
+                                                    : 'Equipar'
+                                            "
+                                        ></button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        </div>
+                    </section>
+
+
+                    {{-- ESCUDOS --}}
+                    <section
+                        class="
+                            overflow-hidden
+                            rounded-xl
+                            border
+                            border-[#d6c09f]/85
+                            bg-[#fffdfa]
+                            shadow-[0_2px_7px_rgba(83,61,42,.05)]
+                        "
+                    >
+                        <button
+                            type="button"
+                            @click="shieldDrawerOpen = !shieldDrawerOpen"
+                            class="
+                                flex
+                                w-full
+                                items-center
+                                justify-between
+                                gap-3
+                                bg-[linear-gradient(180deg,#fffaf3_0%,#f7eee2_100%)]
+                                px-3.5
+                                py-3
+                                text-left
+                                transition
+                                hover:bg-[#f2e6d7]
+                            "
+                            :class="
+                                shieldDrawerOpen
+                                    ? 'border-b border-[#c9ae8a]/70 bg-[#f7eee2]'
+                                    : ''
+                            "
+                            :aria-expanded="shieldDrawerOpen ? 'true' : 'false'"
+                        >
+                            <div class="min-w-0 flex-1">
+
+                                <div
+                                    class="
+                                        flex
+                                        items-center
+                                        gap-2
+                                    "
+                                >
+                                    <strong
+                                        class="
+                                            font-serif
+                                            text-[16px]
+                                            leading-none
+
+                                            text-[#53150f]
+                                        "
+                                    >
+                                        Escudos
+                                    </strong>
+
+                                    <span
+                                        x-show="activeShieldItem"
+                                        x-cloak
+
+                                        class="
+                                            inline-flex
+                                            items-center
+                                            gap-1
+
+                                            text-[8px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.08em]
+
+                                            text-[#8c6239]/75
+                                        "
+                                    >
+                                        <span
+                                            class="
+                                                h-1.5
+                                                w-1.5
+                                                rounded-full
+                                                bg-[#9b7655]
+                                            "
+                                        ></span>
+
+                                        Equipado
+                                    </span>
+                                </div>
+
+
+                                <span
+                                    x-show="activeShieldItem"
+                                    x-cloak
+
+                                    class="
+                                        mt-1
+                                        block
+                                        max-w-[240px]
+                                        truncate
+
+                                        text-[11px]
+                                        font-semibold
+                                        leading-none
+
+                                        text-[#7d604d]
+                                    "
+
+                                    x-text="
+                                        activeShieldItem
+                                            ? activeShieldItem.name
+                                            : ''
+                                    "
+                                ></span>
+
+                            </div>
+
+                            <div
+                                class="
+                                    flex
+                                    shrink-0
+                                    items-center
+                                    gap-1.5
+                                "
+                            >
+                                <span
+                                    class="
+                                        min-w-6
+
+                                        text-center
+                                        text-[9px]
+                                        font-black
+
+                                        text-[#8c6239]/70
+                                    "
+
+                                    x-text="shieldItems.length"
+                                ></span>
+
+                                <span
+                                    class="
+                                        flex
+                                        h-8
+                                        w-8
+                                        items-center
+                                        justify-center
+
+                                        rounded-lg
+                                        border
+                                        border-[#c9ae8a]/70
+
+                                        bg-[#fffaf2]
+
+                                        text-[#8c6239]
+
+                                        shadow-[0_1px_3px_rgba(83,61,42,.06)]
+
+                                        transition
+                                    "
+
+                                    :class="
+                                        shieldDrawerOpen
+                                            ? 'rotate-180 bg-[#f0e2d2] text-[#6b1d14]'
+                                            : ''
+                                    "
+
+                                    aria-hidden="true"
+                                >
+                                    <svg
+                                        class="h-3.5 w-3.5"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                    >
+                                        <path
+                                            d="m7 10 5 5 5-5"
+                                            stroke-width="1.8"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                        />
+                                    </svg>
+                                </span>
+                            </div>
+                        </button>
+
+                        <div
+                            x-show="shieldDrawerOpen"
+                            x-cloak
+                            x-transition.opacity.duration.120ms
+                        >
+
+                        <div
+                            x-show="shieldItems.length === 0"
+                            x-cloak
+                            class="px-3 py-5 text-center text-[12px] text-[#8c6239]"
+                        >
+                            Nenhum escudo criado no inventário.
+                        </div>
+
+                        <div
+                            x-show="shieldItems.length > 0"
+                            x-cloak
+                            class="divide-y divide-[#d8c7ab]/45"
+                        >
+                            <template
+                                x-for="item in shieldItems"
+                                :key="'shield-item-' + item.id"
+                            >
+                                <div
+                                    class="
+                                        flex
+                                        items-center
+                                        gap-3
+                                        px-3.5
+                                        py-3
+                                        transition
+                                        hover:bg-[#faf4eb]
+                                    "
+                                    :class="
+                                        item.equipped
+                                            ? 'bg-[#f8efe3]'
+                                            : ''
+                                    "
+                                >
+                                    <div
+                                        class="
+                                            flex
+                                            h-11
+                                            w-11
+                                            shrink-0
+                                            items-center
+                                            justify-center
+                                            overflow-hidden
+                                            rounded-lg
+                                            border
+                                            border-[#d8c7ab]/85
+                                            bg-[#f5efe6]
+                                        "
+                                    >
+                                        <template x-if="item.image_url">
+                                            <img
+                                                :src="item.image_url"
+                                                :alt="item.name"
+                                                class="h-full w-full object-cover"
+                                            >
+                                        </template>
+
+                                        <template x-if="!item.image_url">
+                                            <span class="font-serif text-[16px] text-[#8c6239]/45">
+                                                ◇
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex min-w-0 items-center gap-2">
+                                            <strong
+                                                class="block min-w-0 flex-1 truncate font-serif text-[13px] text-[#53150f]"
+                                                x-text="item.name"
+                                            ></strong>
+                                        </div>
+
+                                        <p
+                                            class="mt-0.5 truncate text-[11px] text-[#8c6239]"
+                                            x-text="shieldFormulaLabel(item)"
+                                        ></p>
+                                    </div>
+
+                                    <div class="shrink-0 text-right">
+                                        <strong
+                                            class="block font-serif text-[16px] text-[#53150f]"
+                                            x-text="'+' + shieldItemBonus(item)"
+                                        ></strong>
+
+                                        <button
+                                            type="button"
+                                            @click="toggleShieldItem(item)"
+                                            :disabled="armorEquipmentBusyId !== null"
+                                            class="
+                                                mt-1
+                                                rounded-md
+                                                border
+                                                min-w-[60px]
+                                                px-2.5
+                                                py-1.5
+                                                text-[9px]
+                                                font-black
+                                                uppercase
+                                                tracking-wide
+                                                transition
+                                                disabled:cursor-wait
+                                                disabled:opacity-40
+                                            "
+                                            :class="
+                                                item.equipped
+                                                    ? 'border-[#cdbb9f] bg-[#fffaf2] text-[#8c6239] hover:bg-[#f3eadf]'
+                                                    : 'border-[#8c6239] bg-[#8c6239] text-white hover:bg-[#755237]'
+                                            "
+                                            x-text="
+                                                item.equipped
+                                                    ? 'Guardar'
+                                                    : 'Equipar'
+                                            "
+                                        ></button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                        </div>
+                    </section>
+
 
                     </div>
 
-
-
-                    {{-- NENHUM --}}
-
-                    <button
-
-                        type="button"
-
-                        @click="armorMode = []"
-
-                        :class="
-
-                            armorMode.length === 0
-
-                                ? 'border-[#6b1d14] bg-[#efe9dc] text-[#53150f]'
-
-                                : 'border-[#cdbb9f]/50 bg-white text-[#8c6239]'
-
-                        "
-
+                    {{-- BÔNUS EXTRAS --}}
+                    <section
                         class="
-
-                            mt-1.5
-
-                            w-full
-
-                            rounded-lg
-
+                            rounded-xl
                             border
-
-                            px-3
-
-                            py-2
-
-                            text-[8px]
-
-                            font-black
-
-                            uppercase
-
-                            tracking-widest
-
-                            transition
-
+                            border-[#d6c09f]/85
+                            bg-[linear-gradient(180deg,#fffdfa_0%,#fbf5ec_100%)]
+                            p-3.5
+                            shadow-[0_2px_8px_rgba(83,61,42,.05)]
                         "
-
                     >
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <strong class="font-serif text-[15px] text-[#53150f]">
+                                    Bônus Extras
+                                </strong>
 
-                        Nenhum
+                                <p class="mt-0.5 text-[11px] text-[#8c6239]">
+                                    Efeitos temporários, habilidades ou ajustes que não pertencem ao item.
+                                </p>
+                            </div>
 
-                    </button>
+                            <button
+                                type="button"
+                                @click="addArmorBonus()"
+                                class="rounded-md border border-[#c5a783] bg-[#fffaf2] px-2.5 py-1.5 text-[10px] font-black text-[#6b1d14] transition hover:bg-[#eadbc8]"
+                            >
+                                + Adicionar
+                            </button>
+                        </div>
 
+                        <div class="mt-2 space-y-1.5">
+                            <template
+                                x-for="(bonus, index) in armorBonuses"
+                                :key="'armor-extra-' + index"
+                            >
+                                <div class="flex items-center gap-1.5">
+                                    <input
+                                        type="text"
+                                        x-model="bonus.name"
+                                        placeholder="Ex.: Defesa sem Armadura"
+                                        class="min-w-0 flex-1 rounded-md border border-[#cdbb9f]/70 bg-[#fffdfa] px-2.5 py-2 text-[11px] text-[#53150f] outline-none transition focus:border-[#9b7655] focus:ring-2 focus:ring-[#b08c62]/10"
+                                    >
+
+                                    <input
+                                        type="number"
+                                        x-model.number="bonus.value"
+                                        class="w-14 rounded-md border border-[#cdbb9f]/70 bg-[#fffdfa] px-2 py-2 text-center text-[11px] font-black text-[#53150f] outline-none transition focus:border-[#9b7655] focus:ring-2 focus:ring-[#b08c62]/10"
+                                    >
+
+                                    <button
+                                        type="button"
+                                        @click="removeArmorBonus(index)"
+                                        class="flex h-7 w-7 items-center justify-center rounded-md text-red-700 transition hover:bg-red-50"
+                                        title="Remover"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </template>
+
+                            <div
+                                x-show="armorBonuses.length === 0"
+                                x-cloak
+                                class="rounded-lg border border-dashed border-[#d8c7ab]/85 px-3 py-2 text-center text-[11px] text-[#8c6239]"
+                            >
+                                Nenhum bônus extra.
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
-
-
-                {{-- ==================================================
-
-                     AÇÕES
-
-                =================================================== --}}
-
-                <div
-
+                {{-- FOOTER --}}
+                <footer
                     class="
-
                         flex
-
-                        justify-end
-
-                        gap-2
-
+                        shrink-0
+                        items-center
+                        justify-between
+                        gap-4
                         border-t
-
-                        border-[#cdbb9f]/40
-
-                        pt-3
-
+                        border-[#c9ae8a]/65
+                        bg-[linear-gradient(180deg,#f3eadf_0%,#eee2d4_100%)]
+                        px-5
+                        py-3.5
                     "
-
                 >
-
-                    <button
-
-                        type="button"
-
-                        @click="armorOpen = false"
-
+                    <span
                         class="
+                            text-[10px]
+                            font-semibold
 
-                            rounded-lg
-
-                            px-3
-
-                            py-2
-
-                            text-[8px]
-
-                            font-black
-
-                            uppercase
-
-                            tracking-widest
-
-                            text-[#8c6239]
-
-                            transition
-
-                            hover:bg-[#efe9dc]
-
+                            text-[#8c6239]/75
                         "
-
                     >
-
-                        Cancelar
-
-                    </button>
+                        Equipamentos são aplicados na hora. Base e bônus precisam ser salvos.
+                    </span>
 
                     <button
-
                         type="button"
 
                         @click="saveArmor()"
@@ -1595,65 +1652,55 @@
                         :disabled="savingArmor"
 
                         class="
+                            inline-flex
+                            min-w-[132px]
+                            items-center
+                            justify-center
 
-                            rounded-lg
+                            rounded-xl
+                            border
+                            border-[#5b1812]/30
 
                             bg-[#6b1d14]
 
                             px-4
+                            py-2.5
 
-                            py-2
-
-                            text-[8px]
-
+                            text-[11px]
                             font-black
+                            leading-none
 
-                            uppercase
+                            text-[#fffaf2]
 
-                            tracking-widest
-
-                            text-[#f4f1e8]
+                            shadow-[0_3px_8px_rgba(83,21,15,.15)]
 
                             transition
 
+                            hover:-translate-y-px
                             hover:bg-[#53150f]
+                            hover:shadow-[0_5px_12px_rgba(83,21,15,.20)]
 
                             disabled:cursor-wait
-
+                            disabled:translate-y-0
                             disabled:opacity-50
-
                         "
-
                     >
 
                         <span x-show="!savingArmor">
-
-                            Salvar
-
+                            Salvar ajustes
                         </span>
 
+
                         <span
-
                             x-show="savingArmor"
-
                             x-cloak
-
                         >
-
                             Salvando...
-
                         </span>
 
                     </button>
-
-                </div>
-
+                </footer>
             </div>
-
         </div>
-
-    </div>
-
     </template>
-
 </div>

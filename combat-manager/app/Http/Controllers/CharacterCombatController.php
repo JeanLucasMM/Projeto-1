@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Character;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class CharacterCombatController extends Controller
 {
@@ -12,10 +15,47 @@ class CharacterCombatController extends Controller
         Request $request,
         Character $character
     ): JsonResponse {
-        abort_unless(
-            $character->user_id === $request->user()->id,
-            403
+        Gate::authorize(
+            'update',
+            $character
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | REGRA MORQUEN
+        |--------------------------------------------------------------------------
+        |
+        | Cicatrizes do Passado altera os limites dos death saves:
+        |
+        | padrão  -> 3 sucessos / 3 falhas
+        | Morquen -> 2 sucessos / 6 falhas
+        |
+        */
+
+        $sheetSettings =
+            is_array(
+                $character->sheet_settings
+                ?? null
+            )
+                ? $character->sheet_settings
+                : [];
+
+        $morquenRuleActive =
+            (bool) data_get(
+                $sheetSettings,
+                'optional_rules.morquen',
+                false
+            );
+
+        $deathSuccessLimit =
+            $morquenRuleActive
+                ? 2
+                : 3;
+
+        $deathFailureLimit =
+            $morquenRuleActive
+                ? 6
+                : 3;
 
         $combat = $character->combat()->firstOrCreate(
             [],
@@ -52,51 +92,60 @@ class CharacterCombatController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | JSON enviado via FormData
+        | ARRAYS ENVIADOS VIA FORMDATA
         |--------------------------------------------------------------------------
         |
-        | hit_dice e overrides chegam como strings JSON pela Blade.
-        | Decodificamos antes da validação estrutural.
+        | Alguns componentes da ficha enviam arrays como JSON.stringify(...).
+        | Decodificamos esses campos antes da validação para que o Laravel receba
+        | arrays reais, inclusive quando o valor enviado for [].
         |
         */
 
         $payload = $request->all();
 
-        if ($request->has('hit_dice')) {
+        foreach ([
+            'hit_dice',
+            'conditions',
+            'damage_resistances',
+            'damage_immunities',
+            'damage_vulnerabilities',
+            'overrides',
+        ] as $field) {
 
-            $decodedHitDice =
-                is_string($request->input('hit_dice'))
-                    ? json_decode(
-                        $request->input('hit_dice'),
-                        true
-                    )
-                    : $request->input('hit_dice');
+            if (!$request->has($field)) {
+                continue;
+            }
 
-            $payload['hit_dice'] =
-                is_array($decodedHitDice)
-                    ? $decodedHitDice
-                    : [];
-        }
+            $value =
+                $request->input($field);
 
-        if ($request->has('overrides')) {
+            if (!is_string($value)) {
+                $payload[$field] = $value;
+                continue;
+            }
 
-            $decodedOverrides =
-                is_string($request->input('overrides'))
-                    ? json_decode(
-                        $request->input('overrides'),
-                        true
-                    )
-                    : $request->input('overrides');
+            $decoded =
+                json_decode(
+                    $value,
+                    true
+                );
 
-            $payload['overrides'] =
-                is_array($decodedOverrides)
-                    ? $decodedOverrides
-                    : [];
+            /*
+            | JSON inválido permanece como string para que a validação falhe.
+            | Assim evitamos apagar dados silenciosamente por causa de payload
+            | malformado.
+            */
+            if (
+                json_last_error() === JSON_ERROR_NONE
+                && is_array($decoded)
+            ) {
+                $payload[$field] = $decoded;
+            }
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Validação
+        | VALIDAÇÃO
         |--------------------------------------------------------------------------
         */
 
@@ -219,14 +268,14 @@ class CharacterCombatController extends Controller
                     'sometimes',
                     'integer',
                     'min:0',
-                    'max:3',
+                    'max:' . $deathSuccessLimit,
                 ],
 
                 'death_save_failures' => [
                     'sometimes',
                     'integer',
                     'min:0',
-                    'max:3',
+                    'max:' . $deathFailureLimit,
                 ],
 
                 /*
@@ -261,7 +310,7 @@ class CharacterCombatController extends Controller
 
                 /*
                 |------------------------------------------------------------------
-                | Estados
+                | Estados e Defesas Especiais
                 |------------------------------------------------------------------
                 */
 
@@ -270,9 +319,19 @@ class CharacterCombatController extends Controller
                     'array',
                 ],
 
+                'conditions.*' => [
+                    'string',
+                    'max:160',
+                ],
+
                 'damage_resistances' => [
                     'sometimes',
                     'array',
+                ],
+
+                'damage_resistances.*' => [
+                    'string',
+                    'max:160',
                 ],
 
                 'damage_immunities' => [
@@ -280,9 +339,19 @@ class CharacterCombatController extends Controller
                     'array',
                 ],
 
+                'damage_immunities.*' => [
+                    'string',
+                    'max:160',
+                ],
+
                 'damage_vulnerabilities' => [
                     'sometimes',
                     'array',
+                ],
+
+                'damage_vulnerabilities.*' => [
+                    'string',
+                    'max:160',
                 ],
 
                 /*
@@ -300,14 +369,10 @@ class CharacterCombatController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Normalização dos Dados de Vida
+        | NORMALIZAÇÃO DOS DADOS DE VIDA
         |--------------------------------------------------------------------------
         |
-        | Garante que:
-        |
-        | current <= maximum
-        |
-        | e que os tipos permaneçam consistentes.
+        | Garante current <= maximum e mantém os tipos consistentes.
         |
         */
 
@@ -360,8 +425,12 @@ class CharacterCombatController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Normalização dos Estados
+        | NORMALIZAÇÃO DOS ESTADOS E DEFESAS ESPECIAIS
         |--------------------------------------------------------------------------
+        |
+        | Remove valores vazios, espaços extras e duplicatas sem alterar o texto
+        | efetivamente salvo pelo usuário.
+        |
         */
 
         foreach ([
@@ -371,18 +440,93 @@ class CharacterCombatController extends Controller
             'damage_vulnerabilities',
         ] as $field) {
 
-            if (array_key_exists($field, $validated)) {
-
-                $validated[$field] =
-                    array_values(
-                        $validated[$field]
-                    );
+            if (!array_key_exists($field, $validated)) {
+                continue;
             }
+
+            $validated[$field] =
+                collect($validated[$field])
+                    ->map(
+                        fn ($value) =>
+                            trim((string) $value)
+                    )
+                    ->filter(
+                        fn (string $value) =>
+                            $value !== ''
+                    )
+                    ->unique(
+                        fn (string $value) =>
+                            mb_strtolower($value)
+                    )
+                    ->values()
+                    ->all();
         }
 
         /*
         |--------------------------------------------------------------------------
-        | Persistência
+        | DETERMINAÇÃO FINAL — RECARGA
+        |--------------------------------------------------------------------------
+        |
+        | Após usar Determinação Final, o bloqueio permanece enquanto houver
+        | exaustão. Quando a exaustão chega a 0, liberamos a habilidade.
+        |
+        */
+
+        if (
+            array_key_exists(
+                'exhaustion_level',
+                $validated
+            )
+            && (int) $validated['exhaustion_level'] === 0
+        ) {
+            $existingOverrides =
+                $combat->overrides
+                ?? [];
+
+            if (is_string($existingOverrides)) {
+                $decodedOverrides =
+                    json_decode(
+                        $existingOverrides,
+                        true
+                    );
+
+                $existingOverrides =
+                    is_array($decodedOverrides)
+                        ? $decodedOverrides
+                        : [];
+            }
+
+            if (!is_array($existingOverrides)) {
+                $existingOverrides = [];
+            }
+
+            $incomingOverrides =
+                $validated['overrides']
+                ?? [];
+
+            if (!is_array($incomingOverrides)) {
+                $incomingOverrides = [];
+            }
+
+            $mergedOverrides =
+                array_replace_recursive(
+                    $existingOverrides,
+                    $incomingOverrides
+                );
+
+            data_set(
+                $mergedOverrides,
+                'morquen.determination_final_locked',
+                false
+            );
+
+            $validated['overrides'] =
+                $mergedOverrides;
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | PERSISTÊNCIA
         |--------------------------------------------------------------------------
         */
 
@@ -392,7 +536,7 @@ class CharacterCombatController extends Controller
 
         /*
         |--------------------------------------------------------------------------
-        | Retorno
+        | RETORNO
         |--------------------------------------------------------------------------
         */
 
@@ -403,4 +547,244 @@ class CharacterCombatController extends Controller
                 $combat->fresh(),
         ]);
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | REGRA MORQUEN — DETERMINAÇÃO FINAL
+    |--------------------------------------------------------------------------
+    |
+    | Enquanto morto pela sexta falha da Regra Morquen:
+    |
+    | - retorna com 1 PV;
+    | - recebe PV temporários iguais à metade do máximo de PV;
+    | - zera sucessos e falhas contra a morte;
+    | - recebe 3 níveis de exaustão;
+    | - não pode usar novamente enquanto ainda possuir exaustão.
+    |
+    */
+
+    public function determinationFinal(
+        Request $request,
+        Character $character
+    ): JsonResponse {
+        Gate::authorize(
+            'update',
+            $character
+        );
+
+        $sheetSettings =
+            is_array(
+                $character->sheet_settings
+                ?? null
+            )
+                ? $character->sheet_settings
+                : [];
+
+        $morquenRuleActive =
+            (bool) data_get(
+                $sheetSettings,
+                'optional_rules.morquen',
+                false
+            );
+
+        if (!$morquenRuleActive) {
+            throw ValidationException::withMessages([
+                'morquen' =>
+                    'A Regra Morquen não está ativa para este personagem.',
+            ]);
+        }
+
+        $result = DB::transaction(
+            function () use (
+                $character
+            ): array {
+                $lockedCharacter =
+                    Character::query()
+                        ->whereKey(
+                            $character->getKey()
+                        )
+                        ->lockForUpdate()
+                        ->firstOrFail();
+
+                $combat =
+                    $lockedCharacter
+                        ->combat()
+                        ->lockForUpdate()
+                        ->first();
+
+                if (!$combat) {
+                    throw ValidationException::withMessages([
+                        'combat' =>
+                            'Os dados de combate do personagem ainda não existem.',
+                    ]);
+                }
+
+                $currentHp =
+                    max(
+                        0,
+                        (int) (
+                            $combat->current_hp
+                            ?? 0
+                        )
+                    );
+
+                $deathFailures =
+                    max(
+                        0,
+                        (int) (
+                            $combat->death_save_failures
+                            ?? 0
+                        )
+                    );
+
+                if (
+                    $currentHp > 0
+                    || $deathFailures < 6
+                ) {
+                    throw ValidationException::withMessages([
+                        'morquen' =>
+                            'Determinação Final só pode ser usada enquanto o personagem estiver morto.',
+                    ]);
+                }
+
+                $exhaustion =
+                    min(
+                        6,
+                        max(
+                            0,
+                            (int) (
+                                $combat->exhaustion_level
+                                ?? 0
+                            )
+                        )
+                    );
+
+                $overrides =
+                    $combat->overrides
+                    ?? [];
+
+                if (is_string($overrides)) {
+                    $decoded =
+                        json_decode(
+                            $overrides,
+                            true
+                        );
+
+                    $overrides =
+                        is_array($decoded)
+                            ? $decoded
+                            : [];
+                }
+
+                if (!is_array($overrides)) {
+                    $overrides = [];
+                }
+
+                $determinationLocked =
+                    (bool) data_get(
+                        $overrides,
+                        'morquen.determination_final_locked',
+                        false
+                    );
+
+                /*
+                 * Mesmo que a flag antiga continue true, exaustão 0 libera
+                 * novamente a habilidade, como exige a regra.
+                 */
+                if (
+                    $determinationLocked
+                    && $exhaustion > 0
+                ) {
+                    throw ValidationException::withMessages([
+                        'morquen' =>
+                            'Determinação Final está indisponível até toda a exaustão ser removida.',
+                    ]);
+                }
+
+                $maxHp =
+                    max(
+                        1,
+                        (int) (
+                            $combat->max_hp
+                            ?? 1
+                        )
+                    );
+
+                $temporaryHp =
+                    intdiv(
+                        $maxHp,
+                        2
+                    );
+
+                $newExhaustion =
+                    min(
+                        6,
+                        $exhaustion + 3
+                    );
+
+                data_set(
+                    $overrides,
+                    'morquen.determination_final_locked',
+                    true
+                );
+
+                data_set(
+                    $overrides,
+                    'morquen.last_determination_final_at',
+                    now()->toIso8601String()
+                );
+
+                $combat->current_hp =
+                    1;
+
+                $combat->temporary_hp =
+                    $temporaryHp;
+
+                $combat->death_save_successes =
+                    0;
+
+                $combat->death_save_failures =
+                    0;
+
+                $combat->exhaustion_level =
+                    $newExhaustion;
+
+                $combat->overrides =
+                    $overrides;
+
+                $combat->save();
+
+                return [
+                    'combat' =>
+                        $combat->fresh(),
+
+                    'temporary_hp_granted' =>
+                        $temporaryHp,
+
+                    'exhaustion_added' =>
+                        3,
+                ];
+            }
+        );
+
+        return response()->json([
+            'success' =>
+                true,
+
+            'message' =>
+                'Determinação Final trouxe o personagem de volta à vida.',
+
+            'combat' =>
+                $result['combat'],
+
+            'morquen' => [
+                'temporary_hp_granted' =>
+                    $result['temporary_hp_granted'],
+
+                'exhaustion_added' =>
+                    $result['exhaustion_added'],
+            ],
+        ]);
+    }
+
 }

@@ -89,6 +89,29 @@
     $proficiencyBonus =
         (int) ($character->proficiency_bonus ?? 2);
 
+    $exhaustionRuleActive =
+        (bool) data_get(
+            is_array($character->sheet_settings ?? null)
+                ? $character->sheet_settings
+                : [],
+            'optional_rules.exhaustion',
+            false
+        );
+
+    $initialExhaustionLevel =
+        $exhaustionRuleActive
+            ? min(
+                6,
+                max(
+                    0,
+                    (int) (
+                        $character->combat?->exhaustion_level
+                        ?? 0
+                    )
+                )
+            )
+            : 0;
+
     $signed = static fn (int $value): string =>
         $value >= 0 ? '+' . $value : (string) $value;
 
@@ -485,6 +508,394 @@
                 display: none !important;
             }
 
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V11 — FOLHA UNIFICADA / ATAQUES MAIS COMPACTOS
+            |--------------------------------------------------------------------------
+            |
+            | A área principal deixa de parecer uma caixa isolada e passa a funcionar
+            | como uma seção editorial da folha. A largura é limitada para que Ataques
+            | não domine a coluna principal, mantendo a tipografia confortável.
+            |
+            */
+
+            .character-attacks-sheet {
+                width: 100%;
+                max-width: 800px;
+                margin-inline: auto;
+                overflow: hidden;
+                border: 0 !important;
+                border-radius: 0 !important;
+                background: transparent !important;
+                box-shadow: none !important;
+            }
+
+            .character-attacks-sheet::before {
+                display: none !important;
+            }
+
+            .character-attacks-v11-header {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-height: 42px;
+                padding: 2px 4px 9px;
+                border-bottom: 1px solid rgba(205,187,159,.38);
+            }
+
+            .character-attacks-v11-title {
+                display: inline-flex;
+                min-width: 0;
+                align-items: center;
+                gap: 8px;
+                border-radius: 8px;
+                padding: 4px 6px;
+                transition: background .14s ease;
+            }
+
+            .character-attacks-v11-title:hover {
+                background: rgba(239,233,220,.58);
+            }
+
+            .character-attacks-v11-title h2 {
+                font-family: Georgia, serif;
+                font-size: 17px;
+                font-weight: 900;
+                line-height: 1;
+                color: #53150f;
+            }
+
+            .character-attacks-v11-count {
+                display: inline-flex;
+                min-width: 24px;
+                height: 23px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 999px;
+                background: #efe9dc;
+                padding: 0 7px;
+                font-family: Georgia, serif;
+                font-size: 11px;
+                font-weight: 900;
+                color: #8c6239;
+            }
+
+            .character-attacks-v11-add {
+                display: inline-flex;
+                width: 23px;
+                height: 23px;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(205,187,159,.62);
+                border-radius: 7px;
+                background: rgba(250,248,242,.82);
+                font-size: 14px;
+                font-weight: 800;
+                color: #8c6239;
+            }
+
+            .character-attacks-v11-table-wrap {
+                overflow-x: auto;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(140,98,57,.28) transparent;
+            }
+
+            .character-attacks-v11-table {
+                width: 100%;
+                min-width: 650px !important;
+                table-layout: fixed;
+                border-collapse: collapse;
+            }
+
+            .character-attacks-v11-table thead tr {
+                border-bottom: 1px solid rgba(205,187,159,.40) !important;
+                background: rgba(239,233,220,.24) !important;
+            }
+
+            .character-attacks-v11-table th {
+                border-right: 0 !important;
+                padding-top: 6px !important;
+                padding-bottom: 6px !important;
+                font-size: 8.5px !important;
+                line-height: 1 !important;
+                letter-spacing: .10em !important;
+                color: #7b5c48 !important;
+            }
+
+            .character-attacks-v11-table td {
+                border-right: 0 !important;
+                padding-top: 7px !important;
+                padding-bottom: 7px !important;
+            }
+
+            .character-attacks-v11-table .character-attack-row {
+                border-bottom: 1px solid rgba(216,199,171,.34) !important;
+            }
+
+            .character-attacks-v11-table .character-attack-row:hover {
+                background: rgba(239,233,220,.28);
+            }
+
+            .character-attacks-v11-table .character-attack-name {
+                font-size: 14px !important;
+                line-height: 1.15 !important;
+            }
+
+            .character-attacks-v11-table .character-attack-range {
+                margin-top: 3px !important;
+                font-size: 10.5px !important;
+                line-height: 1.15 !important;
+            }
+
+            .character-attacks-v11-table .character-attack-hit {
+                font-size: 15px !important;
+                line-height: 1 !important;
+            }
+
+            .character-attacks-v11-table .character-attack-damage-expression {
+                font-size: 13px !important;
+                line-height: 1 !important;
+            }
+
+            .character-attacks-v11-table .character-attack-damage-type {
+                font-size: 7.5px !important;
+                line-height: 1 !important;
+                letter-spacing: .045em !important;
+            }
+
+            .character-attacks-v11-table .character-attack-observation-title {
+                font-size: 10.5px !important;
+                line-height: 1.2 !important;
+            }
+
+            .character-attacks-v11-table .character-attack-observation-text {
+                margin-top: 2px !important;
+                font-size: 9.5px !important;
+                line-height: 1.25 !important;
+            }
+
+            .character-attacks-v11-table .character-attack-mastery-chip {
+                font-size: 7px !important;
+                line-height: 1 !important;
+            }
+
+            .character-attacks-v11-settings-button {
+                display: flex;
+                width: 26px !important;
+                height: 26px !important;
+                align-items: center;
+                justify-content: center;
+                border-radius: 8px !important;
+            }
+
+            @media (max-width: 820px) {
+                .character-attacks-sheet {
+                    max-width: 100%;
+                }
+            }
+
+        
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V12 — PALETA DO HEADER
+            |--------------------------------------------------------------------------
+            |
+            | A seção externa continua transparente porque pertence ao show.
+            | A tabela, por ser conteúdo operacional importante, recebe o
+            | mesmo papel quase branco usado nos campos do header.
+            |
+            */
+
+            .character-attacks-sheet {
+                max-width: 820px;
+            }
+
+            .character-attacks-v11-header {
+                min-height: 40px;
+
+                border-bottom-color:
+                    rgba(168,132,91,.32);
+
+                padding:
+                    1px 5px 8px;
+            }
+
+            .character-attacks-v11-title {
+                padding:
+                    4px 5px;
+            }
+
+            .character-attacks-v11-title:hover {
+                background:
+                    rgba(255,252,246,.52);
+            }
+
+            .character-attacks-v11-count {
+                background:
+                    #eadbc8;
+
+                color:
+                    #7e5735;
+            }
+
+            .character-attacks-v11-settings-button {
+                border-color:
+                    rgba(175,139,96,.48) !important;
+
+                background:
+                    #f8f2e8 !important;
+
+                color:
+                    #8c6239 !important;
+
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.60);
+            }
+
+            .character-attacks-v11-settings-button:hover {
+                background:
+                    #fffaf2 !important;
+
+                color:
+                    #53150f !important;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | TABELA
+            |--------------------------------------------------------------------------
+            */
+
+            .character-attacks-v11-table-wrap {
+                margin-top:
+                    2px;
+
+                overflow-x:
+                    auto;
+
+                border:
+                    1px solid
+                    rgba(176,140,98,.34);
+
+                border-radius:
+                    8px;
+
+                background:
+                    #fbf8f1;
+
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.70);
+            }
+
+            .character-attacks-v11-table {
+                background:
+                    #fbf8f1;
+            }
+
+            .character-attacks-v11-table thead tr {
+                border-bottom-color:
+                    rgba(160,119,77,.36) !important;
+
+                background:
+                    #eadbc8 !important;
+            }
+
+            .character-attacks-v11-table th {
+                color:
+                    #6f472f !important;
+            }
+
+            .character-attacks-v11-table .character-attack-row {
+                border-bottom-color:
+                    rgba(188,154,111,.28) !important;
+
+                background:
+                    rgba(255,253,248,.82);
+            }
+
+            .character-attacks-v11-table .character-attack-row:nth-child(even) {
+                background:
+                    rgba(247,240,230,.72);
+            }
+
+            .character-attacks-v11-table .character-attack-row:hover {
+                background:
+                    #f4e8d8 !important;
+            }
+
+            .character-attacks-v11-table td {
+                color:
+                    #432c21;
+            }
+
+            .character-attacks-v11-table .character-attack-range,
+            .character-attacks-v11-table .character-attack-observation-text {
+                color:
+                    #7d604d !important;
+            }
+
+            .character-attacks-v11-table .character-attack-damage-type {
+                color:
+                    #875a3c !important;
+            }
+
+            .character-attacks-v11-table .character-attack-mastery-chip {
+                border-color:
+                    rgba(107,29,20,.18) !important;
+
+                background:
+                    rgba(107,29,20,.05) !important;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | INTERAÇÕES
+            |--------------------------------------------------------------------------
+            */
+
+            .character-attack-roll:hover,
+            .character-attack-note-button:hover,
+            .character-attack-damage-all:hover {
+                background:
+                    #f0e1cf !important;
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | EDITOR / PAINÉIS
+            |--------------------------------------------------------------------------
+            */
+
+            .character-attack-editor,
+            .character-attack-note-drawer,
+            .character-attack-toast {
+                border-color:
+                    rgba(176,140,98,.62) !important;
+
+                background:
+                    #fbf8f1 !important;
+            }
+
+            .character-attack-modal-card {
+                border-color:
+                    rgba(188,154,111,.48) !important;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        #fffdf8 0%,
+                        #f7eee2 100%
+                    ) !important;
+            }
+
+            .character-attack-modal-tab.active {
+                background:
+                    #eadbc8 !important;
+            }
         </style>
     @endpush
 
@@ -497,6 +908,7 @@
                     initialRows,
                     abilityModifiers,
                     proficiencyBonus,
+                    initialExhaustionLevel,
                     abilityLabels,
                     damageTypeLabels,
                     masteryOptions,
@@ -507,6 +919,18 @@
                     abilityModifiers,
                     proficiencyBonus:
                         parseInt(proficiencyBonus) || 0,
+
+                    exhaustionLevel:
+                        Math.min(
+                            6,
+                            Math.max(
+                                0,
+                                parseInt(
+                                    initialExhaustionLevel
+                                ) || 0
+                            )
+                        ),
+
                     abilityLabels,
                     damageTypeLabels,
                     masteryOptions,
@@ -673,6 +1097,55 @@
                         return n >= 0
                             ? `+${n}`
                             : `${n}`;
+                    },
+
+
+                    get exhaustionRollPenalty() {
+                        return Math.max(
+                            0,
+                            this.exhaustionLevel * 2
+                        );
+                    },
+
+
+                    syncExhaustion(payload) {
+                        const level =
+                            payload?.level
+                            ?? 0;
+
+                        this.exhaustionLevel =
+                            Math.min(
+                                6,
+                                Math.max(
+                                    0,
+                                    parseInt(level) || 0
+                                )
+                            );
+                    },
+
+
+                    attackExpressionWithExhaustion(
+                        row
+                    ) {
+                        const baseModifier =
+                            parseInt(
+                                row?.attack_modifier
+                            ) || 0;
+
+                        const effectiveModifier =
+                            baseModifier
+                            -
+                            this.exhaustionRollPenalty;
+
+                        return (
+                            '1d20'
+                            +
+                            (
+                                effectiveModifier >= 0
+                                    ? `+${effectiveModifier}`
+                                    : `${effectiveModifier}`
+                            )
+                        );
                     },
 
                     modifierFor(key) {
@@ -2577,6 +3050,9 @@
                                 label,
                                 expression,
 
+                                exhaustionPenalty:
+                                    this.exhaustionRollPenalty,
+
                                 total:
                                     result.total,
 
@@ -2652,6 +3128,9 @@
                                 expression:
                                     part
                                         .roll_expression,
+
+                                exhaustionPenalty:
+                                    0,
 
                                 total:
                                     result.total,
@@ -2777,6 +3256,9 @@
                                 expression:
                                     null,
 
+                                exhaustionPenalty:
+                                    0,
+
                                 total,
 
                                 formatted:
@@ -2837,6 +3319,7 @@
         @js($rows),
         @js($abilityModifiers),
         {{ $proficiencyBonus }},
+        {{ $initialExhaustionLevel }},
         @js($abilityLabels),
         @js($damageTypeLabels),
         @js($masteryOptions),
@@ -2889,6 +3372,12 @@
         }
     "
 
+    @character-exhaustion-updated.window="
+        syncExhaustion(
+            $event.detail
+        )
+    "
+
     @resize.window="
         if (settingsOpen) {
             positionSettings();
@@ -2901,42 +3390,36 @@
         }
     "
 
-    class="character-attacks-sheet relative overflow-hidden rounded-2xl border border-[#cdbb9f]/65 bg-[#faf8f2]"
+    class="character-attacks-sheet relative"
 >
 
     {{-- =========================================================
          Cabeçalho
     ========================================================== --}}
 
-    <div class="relative z-20 flex items-center gap-2 border-b border-[#d8c7ab]/55 px-3 py-2">
-        <span class="h-px flex-1 bg-gradient-to-r from-transparent via-[#cdbb9f]/80 to-[#cdbb9f]/80"></span>
-
-        <span class="text-[8px] text-[#b29161]">◆</span>
-
-        {{-- O próprio título abre a criação. Mantém a ação discreta. --}}
+    <div class="character-attacks-v11-header relative z-20">
+        {{-- O título continua abrindo a criação, mas agora integra a seção à folha. --}}
         <button
             type="button"
             @click="openCreate()"
-            class="group inline-flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-0.5 transition hover:bg-[#efe9dc]/70"
+            class="character-attacks-v11-title"
             title="Criar novo ataque"
         >
-            <h2 class="font-serif text-[15px] font-black uppercase tracking-[0.08em] text-[#53150f]">
-                Ataques
-            </h2>
+            <h2>Ataques</h2>
 
             <span
-                class="text-[8px] font-black text-[#b29161] transition group-hover:text-[#6b1d14]"
-            >
-                ◆
-            </span>
+                class="character-attacks-v11-count"
+                x-text="visibleRows.length"
+            ></span>
+
+
         </button>
 
-        <span class="h-px flex-1 bg-gradient-to-l from-transparent via-[#cdbb9f]/80 to-[#cdbb9f]/80"></span>
 
 
         {{-- Configuração / ataques ocultos --}}
 
-        <div class="relative ml-1">
+        <div class="relative ml-auto">
             <button
                 x-ref="settingsButton"
 
@@ -2947,9 +3430,8 @@
                 "
 
                 class="
+                    character-attacks-v11-settings-button
                     flex
-                    h-4
-                    w-4
                     items-center
                     justify-center
 
@@ -2976,7 +3458,7 @@
                 title="Configurar ataques"
             >
 <svg
-    class="h-2 w-2"
+    class="h-3 w-3"
     fill="none"
     viewBox="0 0 24 24"
     stroke="currentColor"
@@ -3395,7 +3877,7 @@
                         "
                     >
                         Para criar um ataque novo,
-                        clique no título “Ataques ◆” da ficha.
+                        clique no título “Ataques” da ficha.
                     </p>
                 </div>
             </div>
@@ -3408,23 +3890,23 @@
          Tabela compacta — V5
     ========================================================== --}}
 
-    <div class="relative z-10 overflow-x-auto">
-        <table class="w-full min-w-[760px] table-fixed border-collapse">
+    <div class="character-attacks-v11-table-wrap relative z-10">
+        <table class="character-attacks-v11-table">
             <thead>
                 <tr class="border-b border-[#cdbb9f]/70 bg-[#efe9dc]/42">
-                    <th class="w-[25%] border-r border-[#d8c7ab]/55 px-2.5 py-1 text-left text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
+                    <th class="w-[27%] px-2.5 py-1 text-left text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
                         Nome
                     </th>
 
-                    <th class="w-[9%] border-r border-[#d8c7ab]/55 px-1.5 py-1 text-center text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
+                    <th class="w-[10%] px-1.5 py-1 text-center text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
                         Acerto
                     </th>
 
-                    <th class="w-[36%] border-r border-[#d8c7ab]/55 px-2.5 py-1 text-left text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
+                    <th class="w-[38%] px-2.5 py-1 text-left text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
                         Dano
                     </th>
 
-                    <th class="w-[30%] px-2.5 py-1 text-left text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
+                    <th class="w-[25%] px-2.5 py-1 text-left text-[7px] font-black uppercase tracking-[0.14em] text-[#53150f]">
                         Observação
                     </th>
                 </tr>
@@ -3436,7 +3918,7 @@
 
                         {{-- Nome + maestrias + alcance --}}
 
-                        <td class="border-r border-[#d8c7ab]/45 px-2.5 py-1 align-middle">
+                        <td class="px-2.5 py-1 align-middle">
                             <div class="min-w-0">
                                 <div class="flex min-w-0 items-center gap-1.5">
                                     <button
@@ -3446,7 +3928,7 @@
                                         :class="row.editable ? 'cursor-pointer' : 'cursor-default'"
                                     >
                                         <span
-                                            class="block truncate font-serif text-[13px] font-black leading-tight text-[#53150f]"
+                                            class="character-attack-name block truncate font-serif text-[13px] font-black leading-tight text-[#53150f]"
                                             :class="row.editable ? 'hover:underline' : ''"
                                             x-text="row.name"
                                         ></span>
@@ -3485,7 +3967,7 @@
                                 <div
                                     x-show="row.range"
                                     x-cloak
-                                    class="mt-0.5 flex items-center gap-1 text-[10px] font-bold leading-none text-[#8c6239]"
+                                    class="character-attack-range mt-0.5 flex items-center gap-1 text-[10px] font-bold leading-none text-[#8c6239]"
                                 >
                                     <span>→</span>
                                     <span x-text="row.range"></span>
@@ -3496,20 +3978,38 @@
 
                         {{-- Acerto --}}
 
-                        <td class="border-r border-[#d8c7ab]/45 px-1 py-1 text-center align-middle">
+                        <td class="px-1 py-1 text-center align-middle">
                             <button
                                 type="button"
-                                @click="roll(row.name + ' — Acerto', row.attack_expression)"
-                                class="character-attack-roll inline-flex w-full items-center justify-center rounded-md px-1 py-1 font-serif text-[16px] font-black text-[#6b1d14]"
-                                :title="'Rolar ' + row.attack_expression"
-                                x-text="signed(row.attack_modifier)"
+                                @click="
+                                    roll(
+                                        row.name + ' — Acerto',
+                                        attackExpressionWithExhaustion(
+                                            row
+                                        )
+                                    )
+                                "
+                                class="character-attack-hit character-attack-roll inline-flex w-full items-center justify-center rounded-md px-1 py-1 font-serif text-[16px] font-black text-[#6b1d14]"
+                                :title="
+                                    'Rolar '
+                                    +
+                                    attackExpressionWithExhaustion(
+                                        row
+                                    )
+                                "
+                                x-text="
+                                    signed(
+                                        row.attack_modifier
+                                        - exhaustionRollPenalty
+                                    )
+                                "
                             ></button>
                         </td>
 
 
                         {{-- Dano: uma única área clicável para todos os dados --}}
 
-                        <td class="border-r border-[#d8c7ab]/45 px-1.5 py-1 align-middle">
+                        <td class="px-1.5 py-1 align-middle">
                             <button
                                 type="button"
                                 @click="rollAllDamage(row)"
@@ -3539,12 +4039,12 @@
                                             </span>
 
                                             <strong
-                                                class="whitespace-nowrap font-serif text-[13px] leading-none text-[#53150f]"
+                                                class="character-attack-damage-expression whitespace-nowrap font-serif text-[13px] leading-none text-[#53150f]"
                                                 x-text="part.roll_expression || '—'"
                                             ></strong>
 
                                             <span
-                                                class="whitespace-nowrap text-[6.5px] font-black uppercase tracking-[0.055em] text-[#8c6239]"
+                                                class="character-attack-damage-type whitespace-nowrap text-[6.5px] font-black uppercase tracking-[0.055em] text-[#8c6239]"
                                                 x-text="part.type_label"
                                             ></span>
                                         </span>
@@ -3817,6 +4317,28 @@
                     class="mt-1 text-[8px] font-bold leading-relaxed text-[#8c6239]"
                 >
                     <span x-text="lastRoll?.formatted || lastRoll?.expression || ''"></span>
+
+                    <span
+                        x-show="
+                            (lastRoll?.exhaustionPenalty ?? 0) > 0
+                        "
+                        x-cloak
+                        class="
+                            ml-1
+                            font-black
+                            text-[#8b1e16]
+                        "
+                    >
+                        · Exaustão
+                        <span
+                            x-text="
+                                '-' + (
+                                    lastRoll?.exhaustionPenalty
+                                    ?? 0
+                                )
+                            "
+                        ></span>
+                    </span>
                 </div>
 
                 {{-- Rolagem conjunta de todos os danos --}}
@@ -3898,7 +4420,19 @@
             class="fixed inset-0 z-[180] flex items-center justify-center p-4"
         >
             <div
-                class="absolute inset-0 bg-[#2b1d17]/60 backdrop-blur-sm"
+                class="
+                    absolute
+                    inset-0
+
+                    bg-black/90
+                    backdrop-blur-[2px]
+                "
+
+                style="
+                    background-color:
+                        rgba(8, 6, 5, 0.88);
+                "
+
                 @click="closeModal()"
             ></div>
 
@@ -3907,7 +4441,7 @@
                 @click.stop
                 class="character-attack-editor relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl"
             >
-                <div class="shrink-0 border-b border-[#d8c7ab]/60 bg-[#efe9dc]/65">
+                <div class="shrink-0 border-b border-[#a0774d]/30 bg-[#eadbc8] shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
                     <div class="flex items-center justify-between gap-4 px-4 pb-3 pt-4">
                         <div>
                             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#8c6239]">
@@ -4592,13 +5126,31 @@
                 <div
                     x-show="deleteConfirmOpen"
                     x-cloak
-                    class="absolute inset-0 z-30 flex items-center justify-center bg-[#2b1d17]/45 p-4 backdrop-blur-[2px]"
+
+                    class="
+                        absolute
+                        inset-0
+                        z-30
+
+                        flex
+                        items-center
+                        justify-center
+
+                        bg-black/90
+                        p-4
+                        backdrop-blur-[2px]
+                    "
+
+                    style="
+                        background-color:
+                            rgba(8, 6, 5, 0.90);
+                    "
                 >
                     <div
                         @click.stop
                         class="w-full max-w-sm overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl"
                     >
-                        <div class="border-b border-[#d8c7ab]/60 bg-[#efe9dc]/65 px-4 py-3">
+                        <div class="border-b border-[#a0774d]/30 bg-[#eadbc8] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
                             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
                                 Excluir ataque
                             </p>

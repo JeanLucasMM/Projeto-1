@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Character;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class CharacterSheetController extends Controller
@@ -11,9 +11,22 @@ class CharacterSheetController extends Controller
     public function show(
         Character $character
     ): View {
-        abort_unless(
-            $character->user_id === Auth::id(),
-            403
+        /*
+        |--------------------------------------------------------------------------
+        | Autorização
+        |--------------------------------------------------------------------------
+        |
+        | Pode abrir a ficha:
+        |
+        | - o próprio dono;
+        | - o Mestre de uma campanha na qual essa ficha foi
+        |   explicitamente compartilhada.
+        |
+        */
+
+        Gate::authorize(
+            'view',
+            $character
         );
 
         $character->load([

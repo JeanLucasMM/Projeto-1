@@ -6,6 +6,7 @@ use App\Models\Character;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 
 class CharacterSheetStatsController extends Controller
@@ -45,9 +46,19 @@ class CharacterSheetStatsController extends Controller
         Character $character,
         string $ability
     ): JsonResponse {
-        abort_unless(
-            $character->user_id === $request->user()->id,
-            403
+        /*
+        |--------------------------------------------------------------------------
+        | Autorização
+        |--------------------------------------------------------------------------
+        |
+        | Alterar atributos, salvaguardas e perícias é uma mutação da ficha.
+        | CharacterPolicy::update permanece exclusiva do dono.
+        |
+        */
+
+        Gate::authorize(
+            'update',
+            $character
         );
 
         abort_unless(

@@ -14,6 +14,11 @@ use App\Repositories\Eloquent\CombatPlayerRepository;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use App\Repositories\Eloquent\FolderRepository;
 use Illuminate\Support\Facades\Blade;
+use App\Models\Campaign;
+use App\Models\Character;
+use App\Policies\CampaignPolicy;
+use App\Policies\CharacterPolicy;
+use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,10 +59,15 @@ class AppServiceProvider extends ServiceProvider
 
 
 public function boot(): void
-{
-    Blade::anonymousComponentPath(
-        resource_path('views/npc-builder/components'),
-        'builder'
-    );
-}
+    {
+        Gate::policy(
+            Campaign::class,
+            CampaignPolicy::class
+        );
+
+        Gate::policy(
+            Character::class,
+            CharacterPolicy::class
+        );
+    }
 }
