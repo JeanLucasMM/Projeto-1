@@ -7,7 +7,6 @@ use App\Services\Characters\CharacterCreationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 
@@ -16,6 +15,7 @@ class CharacterController extends Controller
     public function index(): View
     {
         $characters = Character::query()
+            ->standalone()
             ->where('user_id', Auth::id())
             ->with([
                 'classes',
@@ -362,9 +362,9 @@ class CharacterController extends Controller
     public function destroy(
         Character $character
     ): RedirectResponse {
-        Gate::authorize(
-            'delete',
-            $character
+        abort_unless(
+            $character->user_id === Auth::id(),
+            403
         );
 
         if ($character->image_path) {

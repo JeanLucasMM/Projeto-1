@@ -6,16 +6,20 @@ use App\Models\Campaign;
 use App\Models\CampaignInvitation;
 use App\Models\Character;
 use App\Services\Campaigns\CampaignService;
+use App\Services\Campaigns\CampaignLiveStateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class CampaignController extends Controller
 {
     public function __construct(
-        private CampaignService $campaignService
+        private CampaignService $campaignService,
+        private CampaignLiveStateService $liveState
     ) {
     }
 
@@ -38,6 +42,9 @@ class CampaignController extends Controller
                 ->with([
                     'campaign.owner',
                 ])
+                ->whereHas(
+                    'campaign'
+                )
                 ->where(
                     'invited_user_id',
                     $user->id
@@ -164,6 +171,10 @@ class CampaignController extends Controller
         $campaignCombats =
             collect();
 
+        $masterShieldInitial = [
+            'players' => [],
+        ];
+
         if ($isOwner) {
             $campaign->load([
                 'combats' =>
@@ -184,6 +195,12 @@ class CampaignController extends Controller
 
             $campaignCombats =
                 $campaign->combats;
+
+            $masterShieldInitial =
+                $this->liveState
+                    ->masterShield(
+                        $campaign
+                    );
         }
 
         /*
@@ -201,6 +218,7 @@ class CampaignController extends Controller
 
         $availableCharacters =
             Character::query()
+                ->standalone()
                 ->where(
                     'user_id',
                     $user->id
@@ -225,19 +243,116 @@ class CampaignController extends Controller
                 'isOwner',
                 'isMember',
                 'availableCharacters',
-                'campaignCombats'
+                'campaignCombats',
+                'masterShieldInitial'
+            )
+        );
+    }
+
+
+    public function confirmDestroy(
+        Campaign $campaign
+    ): View {
+        Gate::authorize(
+            'delete',
+            $campaign
+        );
+
+        return view(
+            'campaigns.delete-confirmation',
+            compact(
+                'campaign'
             )
         );
     }
 
 
     public function destroy(
+        Request $request,
         Campaign $campaign
     ): RedirectResponse {
         Gate::authorize(
             'delete',
             $campaign
         );
+
+        $validated =
+            $request->validate([
+                'confirmation_text' => [
+                    'required',
+                    'string',
+                    'max:255',
+                ],
+
+                'understand' => [
+                    'accepted',
+                ],
+
+                'delete_intent' => [
+                    'required',
+                    'in:archive_campaign',
+                ],
+            ]);
+
+        $expectedText =
+            'EXCLUIR '
+            .
+            $campaign->name;
+
+        if (
+            !hash_equals(
+                $expectedText,
+                trim(
+                    $validated['confirmation_text']
+                )
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'confirmation_text' =>
+                    'A confirmação não corresponde. Digite exatamente: '
+                    .
+                    $expectedText,
+            ]);
+        }
+
+        Log::warning(
+            'Campaign moved to trash by owner.',
+            [
+                'campaign_id' =>
+                    (int) $campaign->id,
+
+                'campaign_name' =>
+                    $campaign->name,
+
+                'user_id' =>
+                    (int) Auth::id(),
+
+                'ip' =>
+                    $request->ip(),
+
+                'route' =>
+                    optional(
+                        $request->route()
+                    )->getName(),
+
+                'method' =>
+                    $request->method(),
+
+                'user_agent' =>
+                    $request->userAgent(),
+            ]
+        );
+
+        /*
+        |--------------------------------------------------------------------------
+        | Exclusão segura
+        |--------------------------------------------------------------------------
+        |
+        | Campaign usa SoftDeletes. Portanto, esta chamada NÃO dispara os
+        | cascadeOnDelete das tabelas relacionadas. A campanha some das consultas
+        | normais, mas os dados continuam preservados no banco para recuperação.
+        |
+        */
 
         $campaign->delete();
 
@@ -247,7 +362,7 @@ class CampaignController extends Controller
             )
             ->with(
                 'success',
-                'Campanha removida.'
+                'Campanha movida para a lixeira. Os dados vinculados foram preservados.'
             );
     }
 }

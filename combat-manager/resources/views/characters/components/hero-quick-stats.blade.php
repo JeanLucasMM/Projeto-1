@@ -8,22 +8,87 @@
     $combat = $character->combat;
     $abilities = $character->abilities;
 
+    /*
+    |--------------------------------------------------------------------------
+    | ATRIBUTOS EFETIVOS
+    |--------------------------------------------------------------------------
+    |
+    | Quick Stats usa os valores mecânicos atuais, incluindo overrides
+    | e bônus temporários.
+    |
+    */
+
+    $temporaryBonuses =
+        is_array($abilities?->temporary_bonuses ?? null)
+            ? $abilities->temporary_bonuses
+            : [];
+
+    $abilityOverrides =
+        is_array($abilities?->overrides ?? null)
+            ? $abilities->overrides
+            : [];
+
+    $resolveAbilityScore =
+        static function (
+            string $key,
+            string $shortKey
+        ) use (
+            $abilities,
+            $temporaryBonuses,
+            $abilityOverrides
+        ): int {
+            $base =
+                (int) data_get(
+                    $abilities,
+                    $key,
+                    10
+                );
+
+            $temporary =
+                (int) (
+                    $temporaryBonuses[$key]
+                    ?? $temporaryBonuses[$shortKey]
+                    ?? 0
+                );
+
+            $override =
+                $abilityOverrides[$key]
+                ?? $abilityOverrides[$shortKey]
+                ?? null;
+
+            if (
+                $override !== null
+                &&
+                $override !== ''
+            ) {
+                return max(
+                    1,
+                    (int) $override
+                );
+            }
+
+            return max(
+                1,
+                $base + $temporary
+            );
+        };
+
     $strengthScore =
-        (int) (
-            $abilities?->strength
-            ?? 10
+        $resolveAbilityScore(
+            'strength',
+            'str'
         );
 
     $dexterityScore =
-        (int) (
-            $abilities?->dexterity
-            ?? 10
+        $resolveAbilityScore(
+            'dexterity',
+            'dex'
         );
 
     $wisdomScore =
-        (int) (
-            $abilities?->wisdom
-            ?? 10
+        $resolveAbilityScore(
+            'wisdom',
+            'wis'
         );
 
     $strengthModifier =
@@ -390,8 +455,393 @@
             $perceptionConfig['bonus']
             ?? 0
         );
+
+
+    $combatCallEnabled =
+        auth()->check()
+        &&
+        session('dashboard_mode') === 'player'
+        &&
+        (int) auth()->id() === (int) $character->user_id;
+
+    $combatCallConfig = [
+        'enabled' => $combatCallEnabled,
+        'status_url' => $combatCallEnabled
+            ? route('characters.combat-call.show', $character)
+            : null,
+        'respond_url' => $combatCallEnabled
+            ? route('characters.combat-call.respond', $character)
+            : null,
+        'initiative_url' => $combatCallEnabled
+            ? route('characters.combat-call.initiative', $character)
+            : null,
+    ];
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA ATUAL
+    |--------------------------------------------------------------------------
+    |
+    | Os editores usam x-teleport="body" e precisam reaplicar o tema.
+    |
+    */
+
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme =
+        strtolower(
+            trim(
+                (string) data_get(
+                    $sheetSettings,
+                    'appearance.theme',
+                    'spellbound'
+                )
+            )
+        );
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
+
 @endphp
 
+
+
+@once
+    @push('styles')
+        <style>
+            /*
+            |--------------------------------------------------------------------------
+            | HERO QUICK STATS V2 — PADRÃO VISUAL UNIFICADO
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stats-bar {
+                height: 60px !important;
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+                box-shadow:
+                    var(--theme-module-shadow, 0 3px 12px rgba(0,0,0,.05)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stat-item {
+                border-color: var(--theme-border-soft) !important;
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stat-item:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stat-item
+            > span:first-of-type {
+                font-size: 8px !important;
+                line-height: 1 !important;
+                letter-spacing: .08em !important;
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stat-item
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stat-item
+            [class*="text-[#6b1d14]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stat-item
+            [class*="text-[#8c6239]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-v2
+            .hero-quick-stats-bar[data-current-turn="true"] {
+                border-color: var(--theme-accent) !important;
+                box-shadow:
+                    inset 0 0 0 1px
+                    color-mix(in srgb, var(--theme-accent) 18%, transparent),
+                    var(--theme-module-shadow, 0 3px 12px rgba(0,0,0,.05)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal {
+                display: flex;
+                width: min(560px, calc(100vw - 28px)) !important;
+                max-width: 560px !important;
+                max-height: min(92dvh, 860px) !important;
+                flex-direction: column;
+                overflow: hidden;
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 18px !important;
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow:
+                    var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.30)) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme]
+                .hero-quick-stats-modal {
+                    max-height: min(92vh, 860px) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            > div:first-child {
+                flex: 0 0 auto;
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            > div:not(:first-child) {
+                min-height: 0;
+                overflow-y: auto;
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                scrollbar-width: thin;
+                scrollbar-color:
+                    color-mix(in srgb, var(--theme-label) 30%, transparent)
+                    transparent;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            h3,
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            h4 {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#6b1d14]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#4a1813]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#3c120a]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#93623d]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#755847]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#80604b]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="text-[#a1846b]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="border-[#cdbb9f]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="border-[#d8c7ab]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="border-[#a0774d]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="border-[#93623d]"] {
+                border-color: var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="bg-[#f4f1e8]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="bg-[#f3e7d8]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="bg-[#efe9dc]"] {
+                background: var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="bg-[#faf8f2]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="bg-[#fffdf8]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            [class*="bg-white"] {
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            input,
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            select {
+                border-color: var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            input:focus,
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            select:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(in srgb, var(--theme-input-focus) 15%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            button[class*="bg-[#6b1d14]"] {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            button[class*="bg-[#6b1d14]"]:hover {
+                background: var(--theme-button-hover, var(--theme-accent-deep)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            button[class*="bg-[#efe9dc]"],
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            button[class*="bg-[#e8dfd1]"] {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-close {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-close:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal-footer {
+                position: sticky;
+                bottom: 0;
+                z-index: 5;
+                margin-inline: -16px;
+                margin-bottom: -16px;
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+                padding: 12px 16px 14px !important;
+                box-shadow:
+                    0 -8px 20px
+                    color-mix(in srgb, var(--theme-accent-deep) 4%, transparent);
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal-footer
+            > button:first-child {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal-footer
+            > button:last-child {
+                border: 1px solid var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-combat-call-modal {
+                width: min(500px, calc(100vw - 28px)) !important;
+                max-width: 500px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-combat-call-countdown {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            @media (max-width: 560px) {
+                .character-sheet-theme[data-theme]
+                .hero-quick-stats-modal {
+                    width: calc(100vw - 20px) !important;
+                    border-radius: 15px !important;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .hero-quick-stats-modal {
+                    transition-duration: 1ms !important;
+                }
+            }
+        </style>
+    @endpush
+@endonce
 
 @once
     <script>
@@ -408,8 +858,10 @@
                         perceptionSkillModifier,
                         initialExhaustionLevel,
                         initialConfig,
+                        initialOverrides,
                         persistCombatCallback,
-                        rollUrl
+                        rollUrl,
+                        combatCallConfig
                     ) => ({
                         proficiencyBonus:
                             parseInt(
@@ -447,8 +899,52 @@
                                 )
                             ),
 
+                        combatOverrides:
+                            (
+                                initialOverrides
+                                &&
+                                typeof initialOverrides === 'object'
+                                &&
+                                !Array.isArray(initialOverrides)
+                            )
+                                ? { ...initialOverrides }
+                                : {},
+
                         persistCombatCallback,
                         rollUrl,
+
+                        combatCallEnabled:
+                            !!combatCallConfig?.enabled,
+
+                        combatCallStatusUrl:
+                            combatCallConfig?.status_url
+                            ?? null,
+
+                        combatCallRespondUrl:
+                            combatCallConfig?.respond_url
+                            ?? null,
+
+                        combatCallInitiativeUrl:
+                            combatCallConfig?.initiative_url
+                            ?? null,
+
+                        combatCall: null,
+                        combatCallSecondsLeft: null,
+                        combatCallBusy: false,
+                        combatCallRolling: false,
+                        combatCallDie: null,
+                        combatCallFinalInitiative: null,
+                        combatCallRollingPreview: 20,
+                        combatCallRollingTimer: null,
+
+                        /*
+                         * Proteção contra uma resposta atrasada do polling
+                         * reabrir um chamado cuja iniciativa já foi enviada.
+                         */
+                        completedCombatCallRequestId: null,
+                        combatCallError: null,
+                        combatCallPollTimer: null,
+                        combatCallCountdownTimer: null,
 
                         initiativeOpen: false,
                         movementOpen: false,
@@ -773,6 +1269,590 @@
                             };
                         },
 
+                        /*
+                        |--------------------------------------------------------------
+                        | CHAMADO DE COMBATE — não altera a Quick Stat existente
+                        |--------------------------------------------------------------
+                        */
+
+                        init() {
+                            if (
+                                !this.combatCallEnabled
+                                ||
+                                !this.combatCallStatusUrl
+                            ) {
+                                return;
+                            }
+
+                            this.checkCombatCall();
+
+                            this.combatCallPollTimer = window.setInterval(
+                                () => this.checkCombatCall(),
+                                2000
+                            );
+
+                            this.combatCallCountdownTimer = window.setInterval(
+                                () => this.tickCombatCall(),
+                                1000
+                            );
+                        },
+
+                        destroy() {
+                            if (this.combatCallPollTimer) {
+                                window.clearInterval(this.combatCallPollTimer);
+                            }
+
+                            if (this.combatCallCountdownTimer) {
+                                window.clearInterval(this.combatCallCountdownTimer);
+                            }
+
+                            if (this.combatCallRollingTimer) {
+                                window.clearInterval(this.combatCallRollingTimer);
+                                this.combatCallRollingTimer = null;
+                            }
+                        },
+
+                        get combatCallCountdownLabel() {
+                            const seconds = Math.max(
+                                0,
+                                parseInt(this.combatCallSecondsLeft) || 0
+                            );
+
+                            return `00:${String(seconds).padStart(2, '0')}`;
+                        },
+
+                        get combatCallEffectiveBonus() {
+                            return (
+                                this.initiativeModifier
+                                -
+                                this.exhaustionRollPenalty
+                            );
+                        },
+
+                        get combatCallEffectiveBonusLabel() {
+                            const value =
+                                this.combatCallEffectiveBonus;
+
+                            return (
+                                value >= 0
+                                    ? '+'
+                                    : ''
+                            ) + value;
+                        },
+
+                        get combatCallRolledTotal() {
+                            const die =
+                                parseInt(
+                                    this.combatCallDie
+                                );
+
+                            if (
+                                Number.isNaN(die)
+                                ||
+                                die < 1
+                                ||
+                                die > 20
+                            ) {
+                                return null;
+                            }
+
+                            return (
+                                die
+                                +
+                                this.combatCallEffectiveBonus
+                            );
+                        },
+
+                        /*
+                         * A iniciativa FINAL é um valor separado do d20.
+                         *
+                         * - Ao rolar pelo Spellbound, ela é preenchida
+                         *   automaticamente com d20 + bônus efetivo.
+                         *
+                         * - Se usar dado físico ou outra regra, o Player
+                         *   informa diretamente o valor FINAL.
+                         *
+                         * - Nunca enviamos automaticamente após a rolagem.
+                         */
+                        get combatCallFinalValue() {
+                            const value =
+                                parseInt(
+                                    this.combatCallFinalInitiative
+                                );
+
+                            if (
+                                Number.isNaN(value)
+                                ||
+                                value < -100
+                                ||
+                                value > 200
+                            ) {
+                                return null;
+                            }
+
+                            return value;
+                        },
+
+                        async checkCombatCall() {
+                            if (
+                                !this.combatCallEnabled
+                                ||
+                                !this.combatCallStatusUrl
+                                ||
+                                document.hidden
+                                ||
+                                this.combatCallBusy
+                                ||
+                                this.combatCallRolling
+                            ) {
+                                return;
+                            }
+
+                            try {
+                                const response = await fetch(
+                                    this.combatCallStatusUrl,
+                                    {
+                                        method: 'GET',
+                                        headers: {
+                                            'Accept': 'application/json',
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                        },
+                                        cache: 'no-store',
+                                    }
+                                );
+
+                                if (response.status === 401 || response.status === 403) {
+                                    this.destroy();
+                                    return;
+                                }
+
+                                if (!response.ok) {
+                                    return;
+                                }
+
+                                const data = await response.json();
+                                let nextCall = data?.call ?? null;
+
+                                /*
+                                 * Um GET iniciado imediatamente antes do POST
+                                 * da iniciativa pode terminar depois do POST e
+                                 * ainda carregar o estado antigo
+                                 * "accepted / initiative".
+                                 *
+                                 * Nesse caso ignoramos somente o MESMO
+                                 * request_id já concluído. Um novo chamado,
+                                 * com outro id, continua aparecendo normalmente.
+                                 */
+                                if (
+                                    nextCall
+                                    &&
+                                    this.completedCombatCallRequestId !== null
+                                    &&
+                                    Number(
+                                        nextCall.request_id
+                                    )
+                                    ===
+                                    Number(
+                                        this.completedCombatCallRequestId
+                                    )
+                                ) {
+                                    nextCall =
+                                        null;
+                                }
+
+                                const changedRequest =
+                                    nextCall?.request_id !== this.combatCall?.request_id;
+
+                                if (changedRequest) {
+                                    this.combatCallDie =
+                                        null;
+
+                                    this.combatCallFinalInitiative =
+                                        null;
+
+                                    this.combatCallError =
+                                        null;
+                                }
+
+                                this.combatCall = nextCall;
+                                this.combatCallSecondsLeft =
+                                    nextCall?.phase === 'join'
+                                        ? (parseInt(nextCall.seconds_left) || 0)
+                                        : null;
+                            } catch (error) {
+                                // polling silencioso
+                            }
+                        },
+
+                        tickCombatCall() {
+                            if (
+                                this.combatCall?.phase !== 'join'
+                                ||
+                                this.combatCallBusy
+                            ) {
+                                return;
+                            }
+
+                            this.combatCallSecondsLeft = Math.max(
+                                0,
+                                (parseInt(this.combatCallSecondsLeft) || 0) - 1
+                            );
+
+                            if (this.combatCallSecondsLeft <= 0) {
+                                this.respondCombatCall(false);
+                            }
+                        },
+
+                        async respondCombatCall(accepted) {
+                            if (
+                                this.combatCall?.phase !== 'join'
+                                ||
+                                this.combatCallBusy
+                            ) {
+                                return;
+                            }
+
+                            this.combatCallBusy = true;
+                            this.combatCallError = null;
+
+                            try {
+                                const response = await fetch(
+                                    this.combatCallRespondUrl,
+                                    {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json',
+                                            'X-CSRF-TOKEN': document
+                                                .querySelector('meta[name="csrf-token"]')
+                                                ?.getAttribute('content')
+                                                ?? '{{ csrf_token() }}',
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                        },
+                                        body: JSON.stringify({
+                                            request_id: this.combatCall.request_id,
+                                            accepted: !!accepted,
+                                        }),
+                                    }
+                                );
+
+                                const data = await response.json().catch(() => ({}));
+
+                                if (!response.ok) {
+                                    throw new Error(
+                                        data?.message
+                                        ?? 'Não foi possível responder ao combate.'
+                                    );
+                                }
+
+                                this.combatCall =
+                                    data?.call
+                                    ?? null;
+
+                                this.combatCallSecondsLeft =
+                                    null;
+
+                                this.combatCallDie =
+                                    null;
+
+                                this.combatCallFinalInitiative =
+                                    null;
+                            } catch (error) {
+                                this.combatCallError =
+                                    error?.message
+                                    ?? 'Não foi possível responder ao combate.';
+                            } finally {
+                                this.combatCallBusy = false;
+                            }
+                        },
+
+                        async rollCombatCallInitiative() {
+                            if (
+                                this.combatCall?.phase !== 'initiative'
+                                ||
+                                this.combatCallBusy
+                                ||
+                                this.combatCallRolling
+                            ) {
+                                return;
+                            }
+
+                            this.combatCallRolling = true;
+                            this.combatCallError = null;
+
+                            if (this.combatCallRollingTimer) {
+                                window.clearInterval(
+                                    this.combatCallRollingTimer
+                                );
+                            }
+
+                            this.combatCallRollingPreview =
+                                Math.floor(
+                                    Math.random() * 20
+                                ) + 1;
+
+                            this.combatCallRollingTimer =
+                                window.setInterval(
+                                    () => {
+                                        this.combatCallRollingPreview =
+                                            Math.floor(
+                                                Math.random() * 20
+                                            ) + 1;
+                                    },
+                                    70
+                                );
+
+                            let roll = Math.floor(Math.random() * 20) + 1;
+                            const startedAt = Date.now();
+
+                            try {
+                                const response = await fetch(
+                                    this.rollUrl,
+                                    {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json',
+                                            'X-CSRF-TOKEN': document
+                                                .querySelector('meta[name="csrf-token"]')
+                                                ?.getAttribute('content')
+                                                ?? '{{ csrf_token() }}',
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                        },
+                                        body: JSON.stringify({ expression: '1d20' }),
+                                    }
+                                );
+
+                                if (response.ok) {
+                                    const result = await response.json();
+                                    const apiValue =
+                                        result?.data?.total
+                                        ?? result?.data?.result
+                                        ?? result?.data?.value
+                                        ?? result?.data?.sum
+                                        ?? result?.total
+                                        ?? result?.result
+                                        ?? null;
+
+                                    if (
+                                        apiValue !== null
+                                        &&
+                                        !Number.isNaN(parseInt(apiValue))
+                                    ) {
+                                        roll = Math.max(1, Math.min(20, parseInt(apiValue)));
+                                    }
+                                }
+                            } catch (error) {
+                                // mesmo fallback local já usado pela iniciativa atual
+                            }
+
+                            const elapsed = Date.now() - startedAt;
+
+                            if (elapsed < 700) {
+                                await new Promise(
+                                    resolve => window.setTimeout(resolve, 700 - elapsed)
+                                );
+                            }
+
+                            if (this.combatCallRollingTimer) {
+                                window.clearInterval(
+                                    this.combatCallRollingTimer
+                                );
+
+                                this.combatCallRollingTimer =
+                                    null;
+                            }
+
+                            this.combatCallRollingPreview =
+                                roll;
+
+                            this.combatCallDie =
+                                roll;
+
+                            this.combatCallFinalInitiative =
+                                (
+                                    roll
+                                    +
+                                    this.combatCallEffectiveBonus
+                                );
+
+                            this.combatCallRolling =
+                                false;
+
+                            /*
+                             * Importante:
+                             * NÃO envia automaticamente.
+                             *
+                             * O Player precisa ver o d20, o bônus e a
+                             * iniciativa final antes de confirmar.
+                             */
+                        },
+
+                        async submitCombatCallInitiative() {
+                            if (
+                                this.combatCall?.phase !== 'initiative'
+                                ||
+                                this.combatCallBusy
+                                ||
+                                this.combatCallRolling
+                            ) {
+                                return;
+                            }
+
+                            const parsedDieRoll =
+                                parseInt(
+                                    this.combatCallDie
+                                );
+
+                            const dieRoll =
+                                (
+                                    Number.isNaN(
+                                        parsedDieRoll
+                                    )
+                                    ||
+                                    parsedDieRoll < 1
+                                    ||
+                                    parsedDieRoll > 20
+                                )
+                                    ? null
+                                    : parsedDieRoll;
+
+                            const finalInitiative =
+                                this.combatCallFinalValue;
+
+                            if (
+                                finalInitiative === null
+                            ) {
+                                this.combatCallError =
+                                    'Informe a iniciativa final entre -100 e 200.';
+
+                                return;
+                            }
+
+                            this.combatCallBusy = true;
+                            this.combatCallError = null;
+
+                            const requestId =
+                                this.combatCall.request_id;
+
+                            try {
+                                const response = await fetch(
+                                    this.combatCallInitiativeUrl,
+                                    {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'Accept': 'application/json',
+                                            'X-CSRF-TOKEN': document
+                                                .querySelector('meta[name="csrf-token"]')
+                                                ?.getAttribute('content')
+                                                ?? '{{ csrf_token() }}',
+                                            'X-Requested-With': 'XMLHttpRequest',
+                                        },
+                                        /*
+                                         * Enviamos os dois formatos por
+                                         * compatibilidade:
+                                         *
+                                         * - die_roll:
+                                         *     controller novo calcula o total.
+                                         *
+                                         * - initiative:
+                                         *     controllers antigos esperavam o
+                                         *     total final já calculado.
+                                         */
+                                        body: JSON.stringify({
+                                            request_id:
+                                                requestId,
+
+                                            die_roll:
+                                                dieRoll,
+
+                                            initiative:
+                                                finalInitiative,
+                                        }),
+                                    }
+                                );
+
+                                const responseText =
+                                    await response.text();
+
+                                let data = {};
+
+                                if (responseText) {
+                                    try {
+                                        data =
+                                            JSON.parse(
+                                                responseText
+                                            );
+                                    } catch (error) {
+                                        data = {};
+                                    }
+                                }
+
+                                if (!response.ok) {
+                                    const validationMessage =
+                                        data?.errors
+                                            ? Object
+                                                .values(
+                                                    data.errors
+                                                )
+                                                .flat()
+                                                .find(
+                                                    message =>
+                                                        !!message
+                                                )
+                                            : null;
+
+                                    throw new Error(
+                                        validationMessage
+                                        ?? data?.message
+                                        ?? (
+                                            `Não foi possível enviar a iniciativa. HTTP ${response.status}.`
+                                        )
+                                    );
+                                }
+
+                                const total =
+                                    parseInt(
+                                        data?.total
+                                        ?? finalInitiative
+                                    );
+
+                                if (!Number.isNaN(total)) {
+                                    this.combatInitiative =
+                                        total;
+
+                                    this.lastInitiativeRoll =
+                                        dieRoll;
+
+                                    this.emitInitiativeChange(
+                                        'combat-call'
+                                    );
+                                }
+
+                                this.completedCombatCallRequestId =
+                                    requestId;
+
+                                this.combatCall =
+                                    null;
+
+                                this.combatCallDie =
+                                    null;
+
+                                this.combatCallFinalInitiative =
+                                    null;
+
+                                this.combatCallSecondsLeft =
+                                    null;
+                            } catch (error) {
+                                this.combatCallError =
+                                    error?.message
+                                    ?? 'Não foi possível enviar a iniciativa.';
+                            } finally {
+                                this.combatCallBusy = false;
+                            }
+                        },
+
                         closeAll() {
                             this.initiativeOpen = false;
                             this.movementOpen = false;
@@ -824,6 +1904,13 @@
                             this.saving = true;
 
                             try {
+                                const nextOverrides = {
+                                    ...this.combatOverrides,
+
+                                    quick_stats:
+                                        this.quickStatsPayload,
+                                };
+
                                 const response =
                                     await this.persistCombatCallback({
                                         speed:
@@ -833,10 +1920,9 @@
                                             this.initiativeModifier,
 
                                         overrides:
-                                            JSON.stringify({
-                                                quick_stats:
-                                                    this.quickStatsPayload,
-                                            }),
+                                            JSON.stringify(
+                                                nextOverrides
+                                            ),
                                     });
 
                                 if (!response) {
@@ -844,6 +1930,9 @@
                                         'Não foi possível salvar os dados rápidos.'
                                     );
                                 }
+
+                                this.combatOverrides =
+                                    nextOverrides;
 
                                 if (closeAfterSave) {
                                     this.closeAll();
@@ -1085,8 +2174,10 @@
                     $passivePerceptionBonus,
             ],
         ]),
+        @js($overrides),
         (fields) => persistCombat(fields),
-        @js(url('/api/roll'))
+        @js(url('/api/roll')),
+        @js($combatCallConfig)
     )"
 
     @keydown.escape.window="
@@ -1105,7 +2196,7 @@
         )
     "
 
-    class="w-full"
+    class="hero-quick-stats hero-quick-stats-v2 w-full"
 >
     {{-- ============================================================
          BARRA COMPACTA
@@ -1113,6 +2204,7 @@
 
     <div
         class="
+            hero-quick-stats-bar
             grid
             h-[58px]
             w-full
@@ -1124,10 +2216,11 @@
             bg-[#faf8f2]
         "
 
-        :class="{
-            'ring-1 ring-[#6b1d14]/20':
-                isCurrentTurn
-        }"
+        :data-current-turn="
+            isCurrentTurn
+                ? 'true'
+                : 'false'
+        "
     >
         {{-- INICIATIVA --}}
         <button
@@ -1138,6 +2231,7 @@
             "
 
             class="
+                hero-quick-stat-item hero-quick-stat-item--initiative
                 group
                 flex
                 min-w-0
@@ -1194,6 +2288,7 @@
             "
 
             class="
+                hero-quick-stat-item hero-quick-stat-item--movement
                 group
                 flex
                 min-w-0
@@ -1323,6 +2418,7 @@
             "
 
             class="
+                hero-quick-stat-item hero-quick-stat-item--perception
                 group
                 flex
                 min-w-0
@@ -1371,18 +2467,719 @@
 
 
     {{-- ============================================================
+         CHAMADO DE COMBATE DA CAMPANHA
+
+         Este modal é adicional. A barra Quick Stat e seus modais originais
+         permanecem exatamente com o mesmo HTML/CSS.
+    ============================================================= --}}
+    <template x-teleport="body">
+        <div
+                role="dialog"
+                aria-modal="true"
+
+            x-show="combatCall !== null"
+            x-cloak
+
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                hero-quick-stats-modal-layer
+                fixed
+                inset-0
+                z-[210]
+                flex
+                items-center
+                justify-center
+                p-4
+            "
+        >
+            <div
+                class="
+                    character-theme-modal-backdrop
+                    absolute
+                    inset-0
+                "
+            ></div>
+
+            <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
+                @click.stop
+                class="
+                    character-theme-modal
+                    hero-quick-stats-modal
+                    hero-combat-call-modal
+                    relative
+                    z-10
+                    w-full
+                    max-w-sm
+                    overflow-hidden
+                    rounded-2xl
+                    border
+                    border-[#cdbb9f]
+                    bg-[#faf8f2]
+                    shadow-2xl
+                "
+            >
+                <div
+                    class="
+                        flex
+                        items-center
+                        justify-between
+                        border-b
+                        border-[#a0774d]/30
+                        bg-[#eadbc8]
+                        px-4
+                        py-3
+                    "
+                >
+                    <div class="min-w-0">
+                        <p
+                            class="
+                                text-[11px]
+                                font-black
+                                uppercase
+                                tracking-[0.2em]
+                                text-[#8c6239]
+                            "
+                        >
+                            Chamado do Mestre
+                        </p>
+
+                        <h3
+                            class="
+                                truncate
+                                font-serif
+                                text-xl
+                                font-black
+                                text-[#53150f]
+                            "
+                            x-text="combatCall?.combat_name ?? 'Combate'"
+                        ></h3>
+                    </div>
+
+                    <div
+                        x-show="combatCall?.phase === 'join'"
+                        class="
+                            hero-combat-call-countdown
+                            rounded-lg
+                            border
+                            border-[#cdbb9f]
+                            bg-white
+                            px-2.5
+                            py-1
+                            font-serif
+                            text-lg
+                            font-black
+                            text-[#53150f]
+                        "
+                        x-text="combatCallCountdownLabel"
+                    ></div>
+                </div>
+
+                <div
+                    x-show="combatCall?.phase === 'join'"
+                    class="space-y-4 p-4"
+                >
+                    <div class="text-center">
+                        <p
+                            class="
+                                font-serif
+                                text-xl
+                                font-black
+                                text-[#53150f]
+                            "
+                        >
+                            Participar do combate?
+                        </p>
+
+                        <p
+                            class="
+                                mt-1.5
+                                text-[11px]
+                                leading-5
+                                text-[#8c6239]
+                            "
+                        >
+                            Se não responder em um minuto, sua resposta será Não automaticamente.
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button
+                            type="button"
+                            @click="respondCombatCall(false)"
+                            :disabled="combatCallBusy"
+                            class="
+                                rounded-lg
+                                border
+                                border-[#cdbb9f]
+                                bg-[#efe9dc]
+                                px-3
+                                py-2.5
+                                text-[10px]
+                                font-black
+                                uppercase
+                                tracking-widest
+                                text-[#53150f]
+                                transition
+                                hover:bg-[#fffdf8]/55
+                                disabled:opacity-50
+                            "
+                        >
+                            Não
+                        </button>
+
+                        <button
+                            type="button"
+                            @click="respondCombatCall(true)"
+                            :disabled="combatCallBusy"
+                            class="
+                                rounded-lg
+                                bg-[#6b1d14]
+                                px-3
+                                py-2.5
+                                text-[10px]
+                                font-black
+                                uppercase
+                                tracking-widest
+                                text-[#f4f1e8]
+                                transition
+                                hover:bg-[#53150f]
+                                disabled:opacity-50
+                            "
+                        >
+                            Sim
+                        </button>
+                    </div>
+                </div>
+
+                <div
+                    x-show="combatCall?.phase === 'initiative'"
+                    x-cloak
+                    class="p-4 sm:p-5"
+                >
+                    <div class="text-center">
+                        <p
+                            class="
+                                text-[9px]
+                                font-black
+                                uppercase
+                                tracking-[0.16em]
+                                text-[#93623d]
+                            "
+                        >
+                            Você entrou no combate
+                        </p>
+
+                        <h4
+                            class="
+                                mt-1
+                                font-serif
+                                text-[22px]
+                                font-black
+                                leading-none
+                                text-[#53150f]
+                            "
+                        >
+                            Defina sua iniciativa
+                        </h4>
+
+                        <p
+                            class="
+                                mx-auto
+                                mt-2
+                                max-w-[330px]
+                                text-[10px]
+                                leading-relaxed
+                                text-[#755847]
+                            "
+                        >
+                            Role o d20 pelo Spellbound ou informe diretamente
+                            sua iniciativa final.
+                        </p>
+                    </div>
+
+
+                    {{-- ====================================================
+                         D20 CANÔNICO
+                    ===================================================== --}}
+
+                    <button
+                        type="button"
+                        @click="
+                            rollCombatCallInitiative()
+                        "
+                        :disabled="
+                            combatCallBusy
+                            ||
+                            combatCallRolling
+                        "
+                        class="
+                            group
+                            mx-auto
+                            mt-4
+                            block
+                            disabled:cursor-wait
+                        "
+                    >
+                        <span
+                            class="
+                                inline-flex
+                                transition
+                                duration-150
+                                group-hover:-translate-y-0.5
+                            "
+                        >
+                            <x-dice.polyhedral
+                                :sides="20"
+                                :size="88"
+                            >
+                                <span
+                                    class="tabular-nums"
+                                    x-text="
+                                        combatCallRolling
+                                            ? combatCallRollingPreview
+                                            : (
+                                                combatCallDie
+                                                ?? 20
+                                            )
+                                    "
+                                ></span>
+                            </x-dice.polyhedral>
+                        </span>
+
+                        <span
+                            class="
+                                mt-1.5
+                                block
+                                text-[8px]
+                                font-black
+                                uppercase
+                                tracking-[0.13em]
+                                text-[#93623d]
+                            "
+                        >
+                            <span
+                                x-show="
+                                    !combatCallRolling
+                                    &&
+                                    combatCallDie === null
+                                "
+                            >
+                                Rolar d20
+                            </span>
+
+                            <span
+                                x-show="
+                                    !combatCallRolling
+                                    &&
+                                    combatCallDie !== null
+                                "
+                                x-cloak
+                            >
+                                Rolar novamente
+                            </span>
+
+                            <span
+                                x-show="
+                                    combatCallRolling
+                                "
+                                x-cloak
+                            >
+                                Rolando...
+                            </span>
+                        </span>
+                    </button>
+
+
+                    {{-- ====================================================
+                         BÔNUS x INICIATIVA FINAL
+                    ===================================================== --}}
+
+                    <div
+                        class="
+                            mt-5
+                            grid
+                            grid-cols-[1fr_auto_1fr]
+                            items-stretch
+                            gap-2
+                        "
+                    >
+                        {{-- Bônus efetivo --}}
+                        <div
+                            class="
+                                rounded-xl
+                                border
+                                border-[#cdbb9f]/80
+                                bg-[#f3e7d8]/55
+                                px-3
+                                py-3
+                            "
+                        >
+                            <span
+                                class="
+                                    block
+                                    text-[8px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.12em]
+                                    text-[#93623d]
+                                "
+                            >
+                                Bônus
+                            </span>
+
+                            <strong
+                                class="
+                                    mt-1
+                                    block
+                                    font-serif
+                                    text-[24px]
+                                    font-black
+                                    leading-none
+                                    text-[#53150f]
+                                    tabular-nums
+                                "
+                                x-text="
+                                    combatCallEffectiveBonusLabel
+                                "
+                            ></strong>
+
+                            <p
+                                class="
+                                    mt-1.5
+                                    text-[8px]
+                                    leading-snug
+                                    text-[#80604b]
+                                "
+                            >
+                                <span
+                                    x-text="
+                                        initiativeModifierLabel
+                                    "
+                                ></span>
+
+                                <span
+                                    x-show="
+                                        exhaustionRollPenalty > 0
+                                    "
+                                    x-cloak
+                                >
+                                    · Exaustão
+                                    -<span
+                                        x-text="
+                                            exhaustionRollPenalty
+                                        "
+                                    ></span>
+                                </span>
+                            </p>
+                        </div>
+
+
+                        {{-- Separador matemático --}}
+                        <div
+                            class="
+                                flex
+                                items-center
+                                justify-center
+                                px-1
+                                font-serif
+                                text-[17px]
+                                font-black
+                                text-[#a1846b]
+                            "
+                            aria-hidden="true"
+                        >
+                            =
+                        </div>
+
+
+                        {{-- Final editável --}}
+                        <label
+                            class="
+                                rounded-xl
+                                border
+                                border-[#93623d]/35
+                                bg-[#fffdf8]
+                                px-3
+                                py-3
+                                shadow-[inset_0_1px_2px_rgba(83,21,15,.04)]
+                                transition
+                                focus-within:border-[#6b1d14]/55
+                                focus-within:ring-2
+                                focus-within:ring-[#93623d]/10
+                            "
+                        >
+                            <span
+                                class="
+                                    block
+                                    text-[8px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.12em]
+                                    text-[#93623d]
+                                "
+                            >
+                                Iniciativa final
+                            </span>
+
+                            <input
+                                type="number"
+                                min="-100"
+                                max="200"
+                                step="1"
+                                inputmode="numeric"
+                                x-model.number="
+                                    combatCallFinalInitiative
+                                "
+                                @input="
+                                    combatCallError = null
+                                "
+                                @keydown.enter.prevent="
+                                    if (
+                                        combatCallFinalValue !== null
+                                    ) {
+                                        submitCombatCallInitiative()
+                                    }
+                                "
+                                placeholder="—"
+                                class="
+                                    mt-0.5
+                                    block
+                                    w-full
+                                    border-0
+                                    bg-transparent
+                                    p-0
+                                    font-serif
+                                    text-[24px]
+                                    font-black
+                                    leading-none
+                                    text-[#53150f]
+                                    placeholder:text-[#b9a28f]
+                                    focus:border-0
+                                    focus:outline-none
+                                    focus:ring-0
+                                    tabular-nums
+                                "
+                            >
+
+                            <span
+                                class="
+                                    mt-1.5
+                                    block
+                                    text-[8px]
+                                    leading-snug
+                                    text-[#80604b]
+                                "
+                            >
+                                Informe o total, não o valor do dado.
+                            </span>
+                        </label>
+                    </div>
+
+
+                    {{-- ====================================================
+                         RESULTADO DA ROLAGEM
+                    ===================================================== --}}
+
+                    <div
+                        x-show="
+                            combatCallDie !== null
+                            &&
+                            !combatCallRolling
+                        "
+                        x-cloak
+                        class="
+                            mt-3
+                            flex
+                            items-center
+                            justify-between
+                            gap-3
+                            rounded-lg
+                            border
+                            border-[#d8c7ab]/65
+                            bg-[#f8f0e6]/72
+                            px-3
+                            py-2
+                        "
+                    >
+                        <span
+                            class="
+                                text-[8px]
+                                font-bold
+                                text-[#755847]
+                            "
+                        >
+                            Rolagem:
+                            <strong
+                                class="
+                                    ml-1
+                                    font-serif
+                                    text-[11px]
+                                    text-[#53150f]
+                                "
+                                x-text="
+                                    combatCallDie
+                                "
+                            ></strong>
+
+                            <span class="mx-1">
+                                +
+                            </span>
+
+                            <strong
+                                class="
+                                    font-serif
+                                    text-[11px]
+                                    text-[#53150f]
+                                "
+                                x-text="
+                                    combatCallEffectiveBonusLabel
+                                "
+                            ></strong>
+                        </span>
+
+                        <strong
+                            class="
+                                font-serif
+                                text-[13px]
+                                font-black
+                                text-[#53150f]
+                            "
+                        >
+                            =
+                            <span
+                                x-text="
+                                    combatCallRolledTotal
+                                "
+                            ></span>
+                        </strong>
+                    </div>
+
+
+                    {{-- ====================================================
+                         CONFIRMAÇÃO
+                    ===================================================== --}}
+
+                    <button
+                        type="button"
+                        @click="
+                            submitCombatCallInitiative()
+                        "
+                        :disabled="
+                            combatCallBusy
+                            ||
+                            combatCallRolling
+                            ||
+                            combatCallFinalValue === null
+                        "
+                        class="
+                            mt-4
+                            w-full
+                            rounded-lg
+                            border
+                            border-[#53150f]/35
+                            bg-[#6b1d14]
+                            px-3
+                            py-2.5
+                            text-[9px]
+                            font-black
+                            uppercase
+                            tracking-[0.12em]
+                            text-[#fffaf2]
+                            shadow-[0_7px_18px_rgba(83,21,15,.14)]
+                            transition
+                            hover:bg-[#53150f]
+                            disabled:cursor-not-allowed
+                            disabled:bg-[#b98f86]
+                            disabled:shadow-none
+                            disabled:opacity-70
+                        "
+                    >
+                        <span
+                            x-show="
+                                !combatCallBusy
+                            "
+                        >
+                            Confirmar iniciativa
+                        </span>
+
+                        <span
+                            x-show="
+                                combatCallBusy
+                            "
+                            x-cloak
+                        >
+                            Enviando...
+                        </span>
+                    </button>
+                </div>
+
+                <div
+                    x-show="combatCallError"
+                    x-cloak
+                    class="
+                        border-t
+                        border-red-900/15
+                        bg-red-50
+                        px-4
+                        py-2.5
+                        text-center
+                        text-[10px]
+                        font-bold
+                        text-red-800
+                    "
+                    x-text="combatCallError"
+                ></div>
+            </div>
+        </div>
+    </template>
+
+
+    {{-- ============================================================
          MODAL — INICIATIVA
     ============================================================= --}}
 
     <template x-teleport="body">
         <div
+                role="dialog"
+                aria-modal="true"
+
             x-show="
                 initiativeOpen
             "
 
             x-cloak
 
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+                hero-quick-stats-modal-layer
                 fixed
                 inset-0
                 z-[160]
@@ -1394,16 +3191,10 @@
         >
             <div
                 class="
+                    character-theme-modal-backdrop
                     absolute
                     inset-0
 
-                    bg-black/70
-                    backdrop-blur-[2px]
-                "
-
-                style="
-                    background-color:
-                        rgba(12, 8, 7, 0.72);
                 "
 
                 @click="
@@ -1412,9 +3203,18 @@
             ></div>
 
             <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
 
                 class="
+                    character-theme-modal
+                    hero-quick-stats-modal
                     relative
                     z-10
                     w-full
@@ -1502,6 +3302,7 @@
                             "
 
                             class="
+                            hero-quick-stats-close
                                 flex
                                 h-8
                                 w-8
@@ -2043,6 +3844,7 @@
                     {{-- AÇÕES --}}
                     <div
                         class="
+                            hero-quick-stats-modal-footer
                             flex
                             justify-end
                             gap-2
@@ -2115,13 +3917,29 @@
 
     <template x-teleport="body">
         <div
+                role="dialog"
+                aria-modal="true"
+
             x-show="
                 movementOpen
             "
 
             x-cloak
 
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+                hero-quick-stats-modal-layer
                 fixed
                 inset-0
                 z-[160]
@@ -2133,16 +3951,10 @@
         >
             <div
                 class="
+                    character-theme-modal-backdrop
                     absolute
                     inset-0
 
-                    bg-black/70
-                    backdrop-blur-[2px]
-                "
-
-                style="
-                    background-color:
-                        rgba(12, 8, 7, 0.72);
                 "
 
                 @click="
@@ -2151,9 +3963,18 @@
             ></div>
 
             <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
 
                 class="
+                    character-theme-modal
+                    hero-quick-stats-modal
                     relative
                     z-10
                     w-full
@@ -2215,6 +4036,7 @@
                         "
 
                         class="
+                            hero-quick-stats-close
                             flex
                             h-8
                             w-8
@@ -2768,6 +4590,7 @@
                     {{-- AÇÕES --}}
                     <div
                         class="
+                            hero-quick-stats-modal-footer
                             flex
                             justify-end
                             gap-2
@@ -2840,13 +4663,29 @@
 
     <template x-teleport="body">
         <div
+                role="dialog"
+                aria-modal="true"
+
             x-show="
                 perceptionOpen
             "
 
             x-cloak
 
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+                hero-quick-stats-modal-layer
                 fixed
                 inset-0
                 z-[160]
@@ -2858,16 +4697,10 @@
         >
             <div
                 class="
+                    character-theme-modal-backdrop
                     absolute
                     inset-0
 
-                    bg-black/70
-                    backdrop-blur-[2px]
-                "
-
-                style="
-                    background-color:
-                        rgba(12, 8, 7, 0.72);
                 "
 
                 @click="
@@ -2876,9 +4709,18 @@
             ></div>
 
             <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
 
                 class="
+                    character-theme-modal
+                    hero-quick-stats-modal
                     relative
                     z-10
                     w-full
@@ -2940,6 +4782,7 @@
                         "
 
                         class="
+                            hero-quick-stats-close
                             flex
                             h-8
                             w-8
@@ -3178,6 +5021,7 @@
                     {{-- AÇÕES --}}
                     <div
                         class="
+                            hero-quick-stats-modal-footer
                             flex
                             justify-end
                             gap-2

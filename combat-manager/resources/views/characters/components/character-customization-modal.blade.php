@@ -114,9 +114,15 @@
                         $proficiencyCustomEnabled,
                 ],
 
+                'appearance' => [
+                    'theme' =>
+                        'spellbound',
+                ],
+
                 'optional_rules' => [
                     'morquen' => false,
                     'exhaustion' => false,
+                    'transformations' => false,
                 ],
             ],
             $sheetSettings
@@ -134,6 +140,71 @@
                 $character->image_path
             )
             : null;
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMAS DA FICHA
+    |--------------------------------------------------------------------------
+    */
+
+    $themeOptions = [
+        'spellbound' => [
+            'name' => 'Spellbound',
+            'subtitle' => 'Vinho & Pergaminho',
+            'description' =>
+                'A identidade clássica da ficha: vinho, terracota, madeira e papel quente.',
+        ],
+
+        'emerald' => [
+            'name' => 'Esmeralda',
+            'subtitle' => 'Floresta & Jade',
+            'description' =>
+                'Verdes naturais, musgo e marfim para uma ficha orgânica e feérica.',
+        ],
+
+        'rose' => [
+            'name' => 'Rosa Antigo',
+            'subtitle' => 'Rosé & Creme',
+            'description' =>
+                'Rosa envelhecido, vinho rosado e creme com acabamento delicado.',
+        ],
+
+        'sapphire' => [
+            'name' => 'Safira',
+            'subtitle' => 'Azul & Ardósia',
+            'description' =>
+                'Azul profundo, tons frios e papel claro para uma presença nobre.',
+        ],
+
+        'arcane' => [
+            'name' => 'Arcano',
+            'subtitle' => 'Violeta & Ameixa',
+            'description' =>
+                'Violetas, lavanda envelhecida e ameixa com atmosfera de magia antiga.',
+        ],
+
+        'midnight' => [
+            'name' => 'Meia-Noite',
+            'subtitle' => 'Marinho & Névoa',
+            'description' =>
+                'Tema escuro azul-marinho com contraste frio e leitura confortável.',
+        ],
+
+        'obsidian' => [
+            'name' => 'Obsidiana',
+            'subtitle' => 'Carvão & Cobre',
+            'description' =>
+                'Carvão, vinho profundo e cobre para uma ficha escura e dramática.',
+        ],
+
+        'aurora' => [
+            'name' => 'Aurora',
+            'subtitle' => 'Petróleo & Violeta',
+            'description' =>
+                'Azul petróleo, verde-água e violeta em gradientes mágicos.',
+        ],
+    ];
+
 
     $initialPayload = [
         'name' =>
@@ -217,6 +288,188 @@
 @endphp
 
 
+
+@once
+    @push('styles')
+        <style>
+            .character-sheet-theme[data-theme] .character-customization-v18-modal {
+                border-color: var(--theme-modal-border) !important;
+                background: var(--theme-modal-surface) !important;
+                color: var(--theme-modal-text) !important;
+                box-shadow: var(--theme-modal-shadow) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-header,
+            .character-sheet-theme[data-theme] .character-customization-v18-footer {
+                border-color: var(--theme-modal-border) !important;
+                background: var(--theme-modal-header-background) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-body {
+                background: var(--theme-modal-surface) !important;
+                color: var(--theme-modal-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-title {
+                color: var(--theme-modal-title) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-copy {
+                color: var(--theme-modal-muted) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-tabs {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-tab {
+                border-color: var(--theme-divider) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-tab--inactive {
+                background: transparent !important;
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-tab--inactive:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-tab--active {
+                background: var(--theme-surface-card) !important;
+                color: var(--theme-text-strong) !important;
+                box-shadow: inset 0 -2px 0 var(--theme-accent-strong);
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#6b1d14]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#93623d]"] {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#7d604d]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#725644]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#6f4c36]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#6f472f]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="text-[#5f4031]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="border-[#b08c62]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="border-[#a0774d]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="border-[#cdbb9f]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="border-[#d8c7ab]"] {
+                border-color: var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#fffdf8]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#fbf8f1]"] {
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#f4f1e8]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#efe9dc]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#f7f0e6]"],
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#f7eee2]"] {
+                background: var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal [class*="bg-[#eadbc8]"] {
+                background: var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+            .character-sheet-theme[data-theme] .character-customization-v18-modal select,
+            .character-sheet-theme[data-theme] .character-customization-v18-modal textarea {
+                border-color: var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-primary {
+                border: 1px solid var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-primary:hover:not(:disabled) {
+                background: var(--theme-button-hover-background) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-secondary {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-secondary:hover:not(:disabled) {
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-modal button[class*="bg-[#6b1d14]"] {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .me-border) !important;
+                background: var(--theme-surface-card) !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,.045) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-theme-card:hover {
+                border-color: var(--theme-border-strong) !important;
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-theme-card--selected {
+                border-color: var(--theme-accent-strong) !important;
+                box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-accent-strong) 18%, transparent), 0 5px 16px rgba(0,0,0,.07) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-theme-check--idle {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: transparent !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-theme-check--selected {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-accent-strong) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-customization-v18-confirm-backdrop {
+                background: rgba(0,0,0,.56) !important;
+                backdrop-filter: blur(5px);
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-confirm {
+                border-color: var(--theme-modal-border) !important;
+                background: var(--theme-modal-surface) !important;
+                box-shadow: 0 24px 70px rgba(0,0,0,.30) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-confirm-header,
+            .character-sheet-theme[data-theme] .character-customization-v18-confirm-footer {
+                border-color: var(--theme-divider) !important;
+                background: var(--theme-modal-header-background) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-customization-v18-confirm-summary {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+            }
+        </style>
+    @endpush
+@endonce
+
+
 {{-- ================================================================
      ALPINE
 ================================================================= --}}
@@ -230,6 +483,13 @@
                 () => ({
                     open: false,
                     activeTab: 'identity',
+
+                    themeKeys:
+                        @js(
+                            array_keys(
+                                $themeOptions
+                            )
+                        ),
 
                     saving: false,
                     saveError: null,
@@ -290,6 +550,7 @@
                             optional_rules: {
                                 morquen: false,
                                 exhaustion: false,
+                                transformations: false,
                             },
                         },
 
@@ -329,6 +590,7 @@
                             optional_rules: {
                                 morquen: false,
                                 exhaustion: false,
+                                transformations: false,
                             },
                         },
 
@@ -447,6 +709,12 @@
                                 ? settings.optional_rules
                                 : {};
 
+                        const appearance =
+                            settings.appearance
+                            && typeof settings.appearance === 'object'
+                                ? settings.appearance
+                                : {};
+
                         const proficiency =
                             source.proficiency
                             && typeof source.proficiency === 'object'
@@ -529,11 +797,25 @@
                                             : !!proficiency.custom_enabled,
                                 },
 
+                                appearance: {
+                                    theme:
+                                        this.normalizeTheme(
+                                            appearance.theme
+                                            ?? 'spellbound'
+                                        ),
+                                },
+
                                 optional_rules: {
                                     ...optionalRules,
 
                                     morquen:
                                         !!optionalRules.morquen,
+
+                                    exhaustion:
+                                        !!optionalRules.exhaustion,
+
+                                    transformations:
+                                        !!optionalRules.transformations,
                                 },
                             },
 
@@ -545,6 +827,95 @@
                                     : [],
                         };
                     },
+
+                    normalizeTheme(value) {
+                        const theme =
+                            String(
+                                value
+                                ?? 'spellbound'
+                            )
+                                .trim()
+                                .toLowerCase();
+
+                        return this.themeKeys.includes(
+                            theme
+                        )
+                            ? theme
+                            : 'spellbound';
+                    },
+
+                    sheetThemeRoot() {
+                        return document
+                            .querySelector(
+                                '.character-sheet-theme'
+                            );
+                    },
+
+                    applyThemePreview(theme) {
+                        const normalized =
+                            this.normalizeTheme(
+                                theme
+                            );
+
+                        if (
+                            !this.draft.settings.appearance
+                            || typeof this.draft.settings.appearance !== 'object'
+                        ) {
+                            this.draft.settings.appearance =
+                                {};
+                        }
+
+                        this.draft.settings.appearance.theme =
+                            normalized;
+
+                        const root =
+                            this.sheetThemeRoot();
+
+                        if (root) {
+                            root.setAttribute(
+                                'data-theme',
+                                normalized
+                            );
+                        }
+                    },
+
+                    restoreThemePreview() {
+                        const initialTheme =
+                            this.normalizeTheme(
+                                this.initial
+                                    ?.settings
+                                    ?.appearance
+                                    ?.theme
+                                ?? 'spellbound'
+                            );
+
+                        const root =
+                            this.sheetThemeRoot();
+
+                        if (root) {
+                            root.setAttribute(
+                                'data-theme',
+                                initialTheme
+                            );
+                        }
+                    },
+
+                    themeSelected(theme) {
+                        return (
+                            this.normalizeTheme(
+                                this.draft
+                                    ?.settings
+                                    ?.appearance
+                                    ?.theme
+                                ?? 'spellbound'
+                            )
+                            ===
+                            this.normalizeTheme(
+                                theme
+                            )
+                        );
+                    },
+
 
                     resetDraft() {
                         this.draft =
@@ -932,6 +1303,7 @@
                             [
                                 'identity',
                                 'progression',
+                                'themes',
                                 'rules',
                             ].includes(tab)
                                 ? tab
@@ -986,6 +1358,8 @@
                             window.location.reload();
                             return;
                         }
+
+                        this.restoreThemePreview();
 
                         this.open =
                             false;
@@ -1737,7 +2111,20 @@
             x-show="open"
             x-cloak
 
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            :data-theme="normalizeTheme(draft?.settings?.appearance?.theme)"
+
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+                character-customization-v18-layer
+
                 fixed
                 inset-0
                 z-[190]
@@ -1758,14 +2145,7 @@
             {{-- BACKDROP --}}
 
             <div
-                class="
-                    absolute
-                    inset-0
-
-                    bg-[#2a1712]/60
-                    backdrop-blur-[2px]
-                "
-
+                class="character-theme-modal-backdrop absolute inset-0"
                 @click="closeModal()"
             ></div>
 
@@ -1775,43 +2155,17 @@
             <div
                 @click.stop
 
-                x-transition:enter="
-                    transition
-                    ease-out
-                    duration-150
-                "
-
-                x-transition:enter-start="
-                    opacity-0
-                    translate-y-1
-                    scale-[.99]
-                "
-
-                x-transition:enter-end="
-                    opacity-100
-                    translate-y-0
-                    scale-100
-                "
-
-                x-transition:leave="
-                    transition
-                    ease-in
-                    duration-100
-                "
-
-                x-transition:leave-start="
-                    opacity-100
-                    translate-y-0
-                    scale-100
-                "
-
-                x-transition:leave-end="
-                    opacity-0
-                    translate-y-1
-                    scale-[.99]
-                "
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
 
                 class="
+                    character-theme-modal
+                    character-customization-v18-modal
+
                     relative
                     z-10
 
@@ -1825,11 +2179,6 @@
 
                     rounded-2xl
                     border
-                    border-[#b08c62]/70
-
-                    bg-[#fbf8f1]
-
-                    shadow-[0_28px_80px_rgba(42,23,18,.30)]
                 "
             >
 
@@ -1839,12 +2188,12 @@
 
                 <header
                     class="
+                        character-theme-modal-header
+                        character-customization-v18-header
+
                         shrink-0
 
                         border-b
-                        border-[#a0774d]/30
-
-                        bg-[#eadbc8]
 
                         px-4
                         pb-3
@@ -1889,7 +2238,8 @@
                                     font-black
                                     leading-none
 
-                                    text-[#53150f]
+                                    character-theme-modal-title
+                                    character-customization-v18-title
                                 "
                             >
                                 Configurações
@@ -1902,7 +2252,8 @@
                                     text-[12px]
                                     leading-relaxed
 
-                                    text-[#6f4c36]
+                                    character-theme-modal-copy
+                                    character-customization-v18-copy
                                 "
                             >
                                 Identidade, progressão e regras opcionais da ficha.
@@ -1967,7 +2318,7 @@
                             mt-4
 
                             grid
-                            grid-cols-3
+                            grid-cols-4
 
                             overflow-hidden
 
@@ -1992,6 +2343,8 @@
                                 px-2
                                 py-3
 
+                                character-customization-v18-tab
+
                                 text-[11px]
                                 font-black
                                 uppercase
@@ -2002,8 +2355,8 @@
 
                             :class="
                                 activeTab === 'identity'
-                                    ? 'bg-[#fffdf8] text-[#53150f]'
-                                    : 'text-[#8c6239] hover:bg-[#fffdf8]/50'
+                                    ? 'character-customization-v18-tab--active'
+                                    : 'character-customization-v18-tab--inactive'
                             "
                         >
                             Identidade
@@ -2022,6 +2375,8 @@
                                 px-2
                                 py-3
 
+                                character-customization-v18-tab
+
                                 text-[11px]
                                 font-black
                                 uppercase
@@ -2032,11 +2387,43 @@
 
                             :class="
                                 activeTab === 'progression'
-                                    ? 'bg-[#fffdf8] text-[#53150f]'
-                                    : 'text-[#8c6239] hover:bg-[#fffdf8]/50'
+                                    ? 'character-customization-v18-tab--active'
+                                    : 'character-customization-v18-tab--inactive'
                             "
                         >
                             Progressão
+                        </button>
+
+
+                        <button
+                            type="button"
+
+                            @click="setTab('themes')"
+
+                            class="
+                                border-r
+                                border-[#a0774d]/22
+
+                                px-2
+                                py-3
+
+                                character-customization-v18-tab
+
+                                text-[11px]
+                                font-black
+                                uppercase
+                                tracking-[0.12em]
+
+                                transition
+                            "
+
+                            :class="
+                                activeTab === 'themes'
+                                    ? 'character-customization-v18-tab--active'
+                                    : 'character-customization-v18-tab--inactive'
+                            "
+                        >
+                            Temas
                         </button>
 
 
@@ -2049,6 +2436,8 @@
                                 px-2
                                 py-3
 
+                                character-customization-v18-tab
+
                                 text-[11px]
                                 font-black
                                 uppercase
@@ -2059,8 +2448,8 @@
 
                             :class="
                                 activeTab === 'rules'
-                                    ? 'bg-[#fffdf8] text-[#53150f]'
-                                    : 'text-[#8c6239] hover:bg-[#fffdf8]/50'
+                                    ? 'character-customization-v18-tab--active'
+                                    : 'character-customization-v18-tab--inactive'
                             "
                         >
                             Regras Opcionais
@@ -2077,6 +2466,8 @@
 
                 <div
                     class="
+                        character-customization-v18-body
+
                         min-h-0
                         flex-1
                         overflow-y-auto
@@ -3766,6 +4157,316 @@
 
 
                     {{-- =================================================
+                         TEMAS
+                    ================================================== --}}
+
+                    <section
+                        x-show="
+                            activeTab === 'themes'
+                        "
+                        x-cloak
+                    >
+                        <div
+                            class="
+                                mb-5
+                                border-b
+                                border-[#b08c62]/28
+                                pb-3
+                            "
+                        >
+                            <div
+                                class="
+                                    flex
+                                    flex-wrap
+                                    items-end
+                                    justify-between
+                                    gap-3
+                                "
+                            >
+                                <div>
+                                    <p
+                                        class="
+                                            text-[8px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.16em]
+                                            text-[#93623d]
+                                        "
+                                    >
+                                        Aparência da ficha
+                                    </p>
+
+                                    <h3
+                                        class="
+                                            mt-0.5
+                                            font-serif
+                                            text-[19px]
+                                            font-black
+                                            text-[#53150f]
+                                        "
+                                    >
+                                        Escolha seu tema
+                                    </h3>
+
+                                    <p
+                                        class="
+                                            mt-1
+                                            max-w-[620px]
+                                            text-[10px]
+                                            leading-relaxed
+                                            text-[#7d604d]
+                                        "
+                                    >
+                                        A seleção altera apenas a ficha deste personagem.
+                                        Clique em uma paleta para visualizar e use Salvar
+                                        para manter a escolha.
+                                    </p>
+                                </div>
+
+                                <div
+                                    class="
+                                        rounded-lg
+                                        border
+                                        border-[#cdbb9f]/60
+                                        bg-[#fffdf8]/72
+                                        px-2.5
+                                        py-1.5
+                                        text-right
+                                    "
+                                >
+                                    <span
+                                        class="
+                                            block
+                                            text-[7px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.11em]
+                                            text-[#93623d]
+                                        "
+                                    >
+                                        Selecionado
+                                    </span>
+
+                                    <strong
+                                        class="
+                                            mt-0.5
+                                            block
+                                            font-serif
+                                            text-[11px]
+                                            text-[#53150f]
+                                        "
+                                        x-text="
+                                            {
+                                                spellbound: 'Spellbound',
+                                                emerald: 'Esmeralda',
+                                                rose: 'Rosa Antigo',
+                                                sapphire: 'Safira',
+                                                arcane: 'Arcano',
+                                                midnight: 'Meia-Noite',
+                                                obsidian: 'Obsidiana',
+                                                aurora: 'Aurora'
+                                            }[
+                                                normalizeTheme(
+                                                    draft
+                                                        ?.settings
+                                                        ?.appearance
+                                                        ?.theme
+                                                )
+                                            ]
+                                            ?? 'Spellbound'
+                                        "
+                                    ></strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div
+                            class="
+                                character-theme-picker
+                                grid
+                                grid-cols-1
+                                gap-3
+                                sm:grid-cols-2
+                            "
+                        >
+                            @foreach($themeOptions as $themeKey => $theme)
+                                <button
+                                    type="button"
+
+                                    @click="
+                                        applyThemePreview(
+                                            @js($themeKey)
+                                        )
+                                    "
+
+                                    :aria-pressed="
+                                        themeSelected(
+                                            @js($themeKey)
+                                        )
+                                    "
+
+                                    :class="
+                                        themeSelected(
+                                            @js($themeKey)
+                                        )
+                                            ? 'character-customization-v18-theme-card--selected'
+                                            : ''
+                                    "
+
+                                    class="
+                                        character-customization-v18-theme-card
+
+                                        group
+                                        relative
+                                        overflow-hidden
+                                        rounded-xl
+                                        border
+                                        border-[#cdbb9f]/72
+                                        bg-[#fffdf8]
+                                        p-2.5
+                                        text-left
+                                        shadow-[0_2px_8px_rgba(83,21,15,.045)]
+                                        transition
+                                        duration-150
+                                        hover:-translate-y-0.5
+                                        hover:border-[#a0774d]/65
+                                        hover:shadow-[0_5px_14px_rgba(83,21,15,.08)]
+                                        focus:outline-none
+                                        focus-visible:ring-2
+                                        focus-visible:ring-[#8c6239]/25
+                                    "
+                                >
+                                    <div
+                                        class="character-theme-preview"
+                                        data-preview-theme="{{ $themeKey }}"
+                                        aria-hidden="true"
+                                    >
+                                        <span class="character-theme-preview__paper"></span>
+                                        <span class="character-theme-preview__panel"></span>
+                                        <span class="character-theme-preview__accent"></span>
+                                        <span class="character-theme-preview__line"></span>
+                                    </div>
+
+                                    <div
+                                        class="
+                                            mt-2.5
+                                            flex
+                                            items-start
+                                            justify-between
+                                            gap-3
+                                        "
+                                    >
+                                        <div class="min-w-0">
+                                            <strong
+                                                class="
+                                                    block
+                                                    truncate
+                                                    font-serif
+                                                    text-[14px]
+                                                    font-black
+                                                    text-[#53150f]
+                                                "
+                                            >
+                                                {{ $theme['name'] }}
+                                            </strong>
+
+                                            <span
+                                                class="
+                                                    mt-0.5
+                                                    block
+                                                    text-[8px]
+                                                    font-black
+                                                    uppercase
+                                                    tracking-[0.10em]
+                                                    text-[#93623d]
+                                                "
+                                            >
+                                                {{ $theme['subtitle'] }}
+                                            </span>
+                                        </div>
+
+                                        <span
+                                            class="
+                                                character-customization-v18-theme-check
+
+                                                flex
+                                                h-6
+                                                w-6
+                                                shrink-0
+                                                items-center
+                                                justify-center
+                                                rounded-full
+                                                border
+                                                transition
+                                            "
+
+                                            :class="
+                                                themeSelected(
+                                                    @js($themeKey)
+                                                )
+                                                    ? 'character-customization-v18-theme-check--selected'
+                                                    : 'character-customization-v18-theme-check--idle'
+                                            "
+                                        >
+                                            <svg
+                                                class="h-3.5 w-3.5"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2.2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                aria-hidden="true"
+                                            >
+                                                <path d="m5 12 4 4L19 6" />
+                                            </svg>
+                                        </span>
+                                    </div>
+
+                                    <p
+                                        class="
+                                            mt-2
+                                            text-[9px]
+                                            leading-relaxed
+                                            text-[#725644]
+                                        "
+                                    >
+                                        {{ $theme['description'] }}
+                                    </p>
+                                </button>
+                            @endforeach
+                        </div>
+
+                        <div
+                            class="
+                                mt-4
+                                rounded-xl
+                                border
+                                border-[#d8c7ab]/65
+                                bg-[#f7f0e6]/55
+                                px-3
+                                py-2.5
+                            "
+                        >
+                            <p
+                                class="
+                                    text-[9px]
+                                    leading-relaxed
+                                    text-[#725644]
+                                "
+                            >
+                                <strong class="text-[#53150f]">
+                                    Prévia ao vivo:
+                                </strong>
+                                a paleta selecionada é aplicada na ficha enquanto
+                                este modal estiver aberto. Fechar sem salvar restaura
+                                o tema anterior.
+                            </p>
+                        </div>
+                    </section>
+
+
+                    {{-- =================================================
                          REGRAS
                     ================================================== --}}
 
@@ -4109,6 +4810,105 @@
                             </label>
 
 
+                            {{-- TRANSFORMAÇÕES --}}
+                            <label
+                                class="
+                                    flex
+                                    cursor-pointer
+                                    items-center
+                                    justify-between
+                                    gap-4
+
+                                    rounded-xl
+                                    border
+                                    border-[#d8c7ab]/75
+
+                                    bg-[#fffdf8]
+
+                                    px-3.5
+                                    py-3
+
+                                    transition
+                                    hover:bg-[#f7eee2]/55
+                                "
+                            >
+                                <span class="min-w-0">
+                                    <span
+                                        class="
+                                            block
+                                            font-serif
+                                            text-[13px]
+                                            font-black
+                                            text-[#53150f]
+                                        "
+                                    >
+                                        Transformações
+                                    </span>
+
+                                    <span
+                                        class="
+                                            mt-1
+                                            block
+                                            text-[10px]
+                                            leading-relaxed
+                                            text-[#7d604d]
+                                        "
+                                    >
+                                        Permite criar e utilizar formas alternativas para este personagem.
+                                    </span>
+                                </span>
+
+                                <span
+                                    class="
+                                        relative
+                                        h-5
+                                        w-9
+                                        shrink-0
+                                        rounded-full
+                                        transition
+                                    "
+
+                                    :class="
+                                        draft.settings.optional_rules.transformations
+                                            ? 'bg-[#6b1d14]'
+                                            : 'bg-[#d8c7ab]'
+                                    "
+                                >
+                                    <input
+                                        type="checkbox"
+
+                                        x-model="
+                                            draft.settings.optional_rules.transformations
+                                        "
+
+                                        class="sr-only"
+                                    >
+
+                                    <span
+                                        class="
+                                            absolute
+                                            top-0.5
+
+                                            h-4
+                                            w-4
+
+                                            rounded-full
+                                            bg-[#fffdf8]
+                                            shadow-sm
+
+                                            transition
+                                        "
+
+                                        :class="
+                                            draft.settings.optional_rules.transformations
+                                                ? 'translate-x-[18px]'
+                                                : 'translate-x-0.5'
+                                        "
+                                    ></span>
+                                </span>
+                            </label>
+
+
                             {{-- =================================================
                                  REGRAS ESPECIAIS — ACESSO COMPACTO
                             ================================================== --}}
@@ -4412,6 +5212,8 @@
 
                 <footer
                     class="
+                        character-customization-v18-footer
+
                         flex
                         shrink-0
                         items-center
@@ -4419,9 +5221,6 @@
                         gap-3
 
                         border-t
-                        border-[#a0774d]/28
-
-                        bg-[#eadbc8]/72
 
                         px-4
                         py-3
@@ -4440,7 +5239,7 @@
                             sm:block
                         "
                     >
-                        Identidade, opções da ficha e regras especiais são salvas juntas.
+                        Identidade, tema, opções da ficha e regras especiais são salvas juntas.
                     </p>
 
 
@@ -4466,6 +5265,8 @@
                             "
 
                             class="
+                                character-customization-v18-secondary
+
                                 rounded-lg
 
                                 px-3.5
@@ -4504,11 +5305,11 @@
                             "
 
                             class="
+                                character-customization-v18-primary
+
                                 min-w-[118px]
 
                                 rounded-lg
-
-                                bg-[#6b1d14]
 
                                 px-4
                                 py-2.5
@@ -4566,6 +5367,8 @@
                 x-cloak
 
                 class="
+                    character-customization-v18-confirm-layer
+
                     absolute
                     inset-0
                     z-30
@@ -4580,11 +5383,10 @@
 
                 <div
                     class="
+                        character-customization-v18-confirm-backdrop
+
                         absolute
                         inset-0
-
-                        bg-[#2a1712]/38
-                        backdrop-blur-[1px]
                     "
 
                     @click="
@@ -4613,6 +5415,8 @@
                     "
 
                     class="
+                        character-customization-v18-confirm
+
                         relative
                         z-10
 
@@ -4635,10 +5439,9 @@
 
                     <div
                         class="
-                            border-b
-                            border-[#a0774d]/28
+                            character-customization-v18-confirm-header
 
-                            bg-[#eadbc8]
+                            border-b
 
                             px-4
                             py-3.5
@@ -4725,6 +5528,8 @@
 
                         <div
                             class="
+                                character-customization-v18-confirm-summary
+
                                 mt-3
 
                                 grid
@@ -4907,6 +5712,8 @@
 
                     <div
                         class="
+                            character-customization-v18-confirm-footer
+
                             flex
                             items-center
                             justify-end

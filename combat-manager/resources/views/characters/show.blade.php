@@ -1,6 +1,190 @@
 @php
     /*
     |--------------------------------------------------------------------------
+    | CHARACTER ORIGINAL x FICHA MECÂNICA
+    |--------------------------------------------------------------------------
+    |
+    | $character      = identidade + sistemas compartilhados.
+    | $sheetCharacter = ficha mecânica renderizada.
+    |--------------------------------------------------------------------------
+    */
+    $sheetCharacter =
+        $character;
+
+    $sheetTransformation =
+        null;
+
+    $editingTransformationSheet =
+        false;
+
+    $requestedTransformationId =
+        request()->integer(
+            'transformation_sheet'
+        );
+
+    $activeSheetState =
+        null;
+
+    if (
+        method_exists(
+            $character,
+            'transformationState'
+        )
+    ) {
+        $activeSheetState =
+            $character
+                ->transformationState()
+                ->with([
+                    'transformation.formCharacter',
+                ])
+                ->first();
+
+        if (
+            $activeSheetState
+            && $activeSheetState->is_active
+            && $activeSheetState->transformation
+            && $activeSheetState->transformation->type
+                ===
+                \App\Models\CharacterTransformation::TYPE_CHARACTER_SHEET
+            && $activeSheetState->transformation->formCharacter
+        ) {
+            $sheetTransformation =
+                $activeSheetState
+                    ->transformation;
+
+            $sheetCharacter =
+                $sheetTransformation
+                    ->formCharacter;
+        }
+    }
+
+    if (
+        $requestedTransformationId > 0
+        && method_exists(
+            $character,
+            'transformations'
+        )
+    ) {
+        $requestedTransformation =
+            $character
+                ->transformations()
+                ->with(
+                    'formCharacter'
+                )
+                ->whereKey(
+                    $requestedTransformationId
+                )
+                ->where(
+                    'type',
+                    \App\Models\CharacterTransformation::TYPE_CHARACTER_SHEET
+                )
+                ->first();
+
+        abort_unless(
+            $requestedTransformation
+            && $requestedTransformation->formCharacter,
+            404
+        );
+
+        if (
+            $sheetTransformation
+            && (int) $sheetTransformation->id
+                !==
+                (int) $requestedTransformation->id
+        ) {
+            abort(
+                409,
+                'Volte à Forma Normal antes de editar outra transformação.'
+            );
+        }
+
+        $sheetTransformation =
+            $requestedTransformation;
+
+        $sheetCharacter =
+            $requestedTransformation
+                ->formCharacter;
+
+        $editingTransformationSheet =
+            !(
+                $activeSheetState
+                && $activeSheetState->is_active
+                && (int) $activeSheetState->character_transformation_id
+                    ===
+                    (int) $requestedTransformation->id
+            );
+    }
+
+    $sheetCharacter->loadMissing([
+        'classes',
+        'abilities',
+        'skills',
+        'savingThrows',
+        'features',
+        'resources',
+        'combat',
+        'attacks',
+    ]);
+
+    $sheetTransformationImageUrl =
+        null;
+
+    if (
+        $sheetTransformation
+        && $sheetTransformation->image_path
+    ) {
+        $normalizedTransformationImagePath =
+            str_replace(
+                '\\',
+                '/',
+                trim(
+                    (string) $sheetTransformation->image_path
+                )
+            );
+
+        foreach (
+            [
+                'storage/app/public/',
+                'public/storage/',
+                'storage/',
+                'public/',
+            ]
+            as $prefix
+        ) {
+            $position =
+                stripos(
+                    $normalizedTransformationImagePath,
+                    $prefix
+                );
+
+            if ($position !== false) {
+                $normalizedTransformationImagePath =
+                    substr(
+                        $normalizedTransformationImagePath,
+                        $position
+                        + strlen(
+                            $prefix
+                        )
+                    );
+            }
+        }
+
+        $normalizedTransformationImagePath =
+            ltrim(
+                $normalizedTransformationImagePath,
+                '/'
+            );
+
+        if ($normalizedTransformationImagePath !== '') {
+            $sheetTransformationImageUrl =
+                '/storage/'
+                . $normalizedTransformationImagePath;
+        }
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
     | VISIBILIDADE DO MÓDULO DE DEFESAS
     |--------------------------------------------------------------------------
     |
@@ -58,7 +242,7 @@
     };
 
     $characterCombat =
-        $character->combat;
+        $sheetCharacter->combat;
 
     $hasHeroDefenses =
         count(
@@ -145,6 +329,43 @@
         session('dashboard_mode')
             ===
             'player';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA VISUAL DA FICHA
+    |--------------------------------------------------------------------------
+    |
+    | O tema pertence ao Character original.
+    | A Nova Ficha usa a mesma aparência do Player.
+    |
+    | Neste primeiro estágio só existe o tema visual padrão,
+    | mas o atributo data-theme já deixa o Show preparado para
+    | Emerald, Arcane, Midnight, Infernal, Royal etc.
+    |--------------------------------------------------------------------------
+    */
+
+    $characterTheme =
+        trim(
+            (string) data_get(
+                $character->sheet_settings,
+                'appearance.theme',
+                'spellbound'
+            )
+        );
+
+    if ($characterTheme === '') {
+        $characterTheme =
+            'spellbound';
+    }
+
+    $characterTheme =
+        preg_replace(
+            '/[^a-z0-9_-]/i',
+            '',
+            $characterTheme
+        )
+        ?: 'spellbound';
 @endphp
 
 <x-app-layout>
@@ -949,9 +1170,13 @@
 
             border-right: 0;
 
-            background: #53150f;
+            background:
 
-            color: #f4f1e8;
+                var(--theme-side-tab-background);
+
+            color:
+
+                var(--theme-side-tab-text);
 
             box-shadow:
 
@@ -971,7 +1196,9 @@
 
         .character-side-tab.active {
 
-            background: #6b1d14;
+            background:
+
+                var(--theme-side-tab-hover-background);
 
         }
 
@@ -985,15 +1212,7 @@
 
             background:
 
-                linear-gradient(
-
-                    180deg,
-
-                    #f7f3ea 0%,
-
-                    #f1eadf 100%
-
-                );
+                var(--theme-drawer-background);
 
         }
 
@@ -1041,25 +1260,7 @@
 
             background:
 
-                radial-gradient(
-
-                    circle at 20% 2%,
-
-                    rgba(255,255,255,.42),
-
-                    transparent 30%
-
-                ),
-
-                linear-gradient(
-
-                    180deg,
-
-                    #ece6dc 0%,
-
-                    #e2d9cd 100%
-
-                ) !important;
+                var(--theme-page-background) !important;
 
         }
 
@@ -1067,47 +1268,15 @@
 
             border-color:
 
-                rgba(167,132,91,.54) !important;
+                var(--theme-canvas-border) !important;
 
-            background-color:
+            background:
 
-                #eadfce !important;
-
-            background-image:
-
-                linear-gradient(
-
-                    rgba(140,98,57,.018) 1px,
-
-                    transparent 1px
-
-                ),
-
-                linear-gradient(
-
-                    90deg,
-
-                    rgba(140,98,57,.014) 1px,
-
-                    transparent 1px
-
-                ),
-
-                radial-gradient(
-
-                    circle at 30% 4%,
-
-                    rgba(255,255,255,.42),
-
-                    transparent 38%
-
-                ) !important;
+                var(--theme-canvas-background) !important;
 
             box-shadow:
 
-                inset 0 1px 0 rgba(255,255,255,.58),
-
-                0 12px 28px rgba(83,21,15,.065) !important;
+                var(--theme-shadow) !important;
 
         }
 
@@ -1115,7 +1284,7 @@
 
             border-color:
 
-                rgba(180,145,103,.28) !important;
+                var(--theme-canvas-inner-border) !important;
 
         }
 
@@ -1139,9 +1308,9 @@
 
                     transparent,
 
-                    rgba(151,112,72,.42) 8%,
+                    color-mix(in srgb, var(--theme-accent) 42%, transparent) 8%,
 
-                    rgba(151,112,72,.42) 92%,
+                    color-mix(in srgb, var(--theme-accent) 42%, transparent) 92%,
 
                     transparent
 
@@ -1443,29 +1612,41 @@
 
         .character-sheet-page {
 
-            --sheet-paper: #fbf8f1;
+            --sheet-paper:
+                var(--theme-paper);
 
-            --sheet-paper-strong: #fffdf8;
+            --sheet-paper-strong:
+                var(--theme-paper-strong);
 
-            --sheet-paper-alt: #f7f0e6;
+            --sheet-paper-alt:
+                var(--theme-paper-alt);
 
-            --sheet-band: #eadbc8;
+            --sheet-band:
+                var(--theme-band);
 
-            --sheet-band-soft: #f0e4d5;
+            --sheet-band-soft:
+                var(--theme-band-soft);
 
-            --sheet-hover: #f4e8d8;
+            --sheet-hover:
+                var(--theme-hover);
 
-            --sheet-border: rgba(176,140,98,.34);
+            --sheet-border:
+                var(--theme-border);
 
-            --sheet-border-strong: rgba(160,119,77,.36);
+            --sheet-border-strong:
+                var(--theme-border-strong);
 
-            --sheet-heading: #53150f;
+            --sheet-heading:
+                var(--theme-title);
 
-            --sheet-text: #432c21;
+            --sheet-text:
+                var(--theme-text);
 
-            --sheet-muted: #7d604d;
+            --sheet-muted:
+                var(--theme-muted);
 
-            --sheet-label: #6f472f;
+            --sheet-label:
+                var(--theme-label);
 
         }
 
@@ -1481,7 +1662,7 @@
 
             background-color:
 
-                #eee5d9 !important;
+                var(--theme-canvas-bg) !important;
 
         }
 
@@ -2620,7 +2801,2036 @@
         |
         */
 
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V24 — RESPIRO PARA AS ABAS LATERAIS
+        |--------------------------------------------------------------------------
+        |
+        | Reserva uma faixa própria para Party / Inventário / Grimório no desktop.
+        | As abas deixam de encostar na moldura da ficha e passam a flutuar com
+        | uma pequena distância visual do canvas.
+        |
+        */
+
+        .character-side-tabs {
+            right: 0;
+            align-items: flex-end;
+        }
+
+        .character-side-tab {
+            border-right:
+                1px solid
+                rgba(205,187,159,.88) !important;
+
+            border-radius:
+                14px !important;
+        }
+
+        .character-side-tab:hover {
+            padding-right:
+                .75rem;
+
+            transform:
+                translateX(-2px);
+        }
+
+        @media (min-width: 1024px) {
+            .character-sheet-page {
+                /*
+                 * Reserva apenas o suficiente para o trilho lateral.
+                 * O card da Loja fica solto da moldura, sem criar um corredor
+                 * vazio exagerado entre a ficha e as abas.
+                 */
+                padding-right:
+                    88px !important;
+            }
+
+            .character-side-tabs {
+                right:
+                    8px !important;
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V30 — SUPERFÍCIES CONTROLADAS PELO THEME CORE
+        |--------------------------------------------------------------------------
+        |
+        | O Show acumulou versões visuais antigas (V7/V8/V9) que ainda
+        | forçavam gradientes claros com !important. Isso fazia temas escuros
+        | ficarem divididos: Hero escuro + corpo claro.
+        |
+        | Este bloco fica por último de propósito e passa a autoridade das
+        | superfícies estruturais para resources/css/character-sheet.css.
+        |--------------------------------------------------------------------------
+        */
+
+        .character-sheet-theme .character-sheet-main-column {
+            background:
+                transparent !important;
+        }
+
+        .character-sheet-theme .character-sheet-abilities {
+            background:
+                var(
+                    --theme-module-alt-background
+                ) !important;
+
+            border-color:
+                var(
+                    --theme-border
+                ) !important;
+        }
+
+        .character-sheet-theme .character-sheet-abilities::before {
+            background:
+                linear-gradient(
+                    180deg,
+                    transparent,
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 25%,
+                        transparent
+                    ) 10%,
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 25%,
+                        transparent
+                    ) 90%,
+                    transparent
+                ) !important;
+        }
+
+        .character-sheet-theme .character-sheet-attacks {
+            background:
+                var(
+                    --theme-module-background
+                ) !important;
+        }
+
+        .character-sheet-theme .character-sheet-features {
+            background:
+                var(
+                    --theme-module-alt-background
+                ) !important;
+        }
+
+        .character-sheet-theme .character-sheet-bottom-grid {
+            border-top-color:
+                var(
+                    --theme-border
+                ) !important;
+
+            background:
+                var(
+                    --theme-module-alt-background
+                ) !important;
+        }
+
+        .character-sheet-theme .character-sheet-bottom-cell {
+            background:
+                transparent !important;
+        }
+
+        .character-sheet-theme
+        .character-sheet-training-under-abilities {
+            border-top-color:
+                var(
+                    --theme-border
+                ) !important;
+        }
+
+        @media (min-width: 1024px) {
+            .character-sheet-theme .character-sheet-abilities {
+                border-right-color:
+                    var(
+                        --theme-border
+                    ) !important;
+            }
+
+            .character-sheet-theme
+            .character-sheet-bottom-cell
+            +
+            .character-sheet-bottom-cell {
+                border-left-color:
+                    var(
+                        --theme-border
+                    ) !important;
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V33 — ALTURA GUIADA PELOS ATRIBUTOS / SLOTS VISUAIS SINCRONIZADOS
+        |--------------------------------------------------------------------------
+        |
+        | A coluna esquerda é a referência real de altura da ficha.
+        | Ela nunca recebe scroll interno nem altura artificial.
+        |
+        | Na coluna direita:
+        | - Ataques fica no topo;
+        | - Habilidades reserva 4 linhas por coluna;
+        | - Traços & Talentos fica ancorado no rodapé;
+        | - Traços e Talentos reservam 3 linhas por coluna;
+        | - somente o conteúdo que ultrapassar esses limites rola internamente.
+        |
+        | As duas colunas de Habilidades rolam de forma independente. Isso evita
+        | que uma lista longa mova a outra e mantém o divisor central exatamente
+        | alinhado com a faixa ESQUERDA / DIREITA.
+        |
+        */
+
+        .character-sheet-page {
+            --sheet-feature-row-height:
+                92px;
+
+            --sheet-features-window-height:
+                368px;
+
+            --sheet-traits-row-height:
+                92px;
+
+            --sheet-traits-window-height:
+                276px;
+        }
+
+
+        @media (min-width: 1024px) {
+
+            /* ================================================================
+               COLUNA ESQUERDA = LIMITADOR REAL DA FICHA
+            ================================================================= */
+
+            .character-sheet-main-grid {
+                height:
+                    auto !important;
+
+                min-height:
+                    0 !important;
+
+                align-items:
+                    stretch !important;
+            }
+
+
+            .character-sheet-abilities {
+                height:
+                    auto !important;
+
+                min-height:
+                    0 !important;
+
+                max-height:
+                    none !important;
+
+                overflow:
+                    visible !important;
+            }
+
+
+            .character-sheet-main-column {
+                display:
+                    flex !important;
+
+                min-width:
+                    0;
+
+                min-height:
+                    100% !important;
+
+                height:
+                    auto !important;
+
+                align-self:
+                    stretch !important;
+
+                flex-direction:
+                    column !important;
+
+                overflow:
+                    visible !important;
+            }
+
+
+            .character-sheet-attacks,
+            .character-sheet-features,
+            .character-sheet-traits-feats {
+                flex:
+                    0 0 auto;
+            }
+
+
+            /*
+             * Tudo que sobrar entre Habilidades e o fim da coluna esquerda
+             * vira respiro acima do rodapé. Traços & Talentos permanece sempre
+             * encostado na base definida por Atributos.
+             */
+            .character-sheet-traits-feats {
+                margin-top:
+                    auto !important;
+            }
+
+
+            /* ================================================================
+               HABILIDADES — 4 SLOTS POR COLUNA
+            ================================================================= */
+
+            /*
+             * O wrapper geral deixa de rolar. Ele apenas define a janela.
+             * Quem rola agora é cada coluna individualmente.
+             */
+            .character-sheet-features
+            .character-features-v12-scroll {
+                position:
+                    relative;
+
+                height:
+                    var(--sheet-features-window-height) !important;
+
+                min-height:
+                    var(--sheet-features-window-height) !important;
+
+                max-height:
+                    var(--sheet-features-window-height) !important;
+
+                overflow:
+                    hidden !important;
+
+                scrollbar-gutter:
+                    auto !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v12-scroll
+            > .character-features-v9-columns {
+                position:
+                    relative;
+
+                height:
+                    100% !important;
+
+                min-height:
+                    0 !important;
+
+                align-items:
+                    stretch !important;
+            }
+
+
+            /*
+             * Divisor central independente do conteúdo e das scrollbars.
+             * Assim ele começa e termina exatamente no centro da janela.
+             */
+            .character-sheet-features
+            .character-features-v12-scroll::after {
+                content:
+                    '';
+
+                position:
+                    absolute;
+
+                z-index:
+                    8;
+
+                top:
+                    0;
+
+                bottom:
+                    0;
+
+                left:
+                    50%;
+
+                width:
+                    1px;
+
+                pointer-events:
+                    none;
+
+                background:
+                    var(--theme-border) !important;
+            }
+
+
+            /*
+             * O divisor antigo dependia da altura do conteúdo da coluna direita.
+             * Agora a linha central acima é a única autoridade.
+             */
+            .character-sheet-features
+            .character-features-v9-column
+            +
+            .character-features-v9-column {
+                border-left:
+                    0 !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column {
+                position:
+                    relative;
+
+                height:
+                    100% !important;
+
+                min-height:
+                    0 !important;
+
+                max-height:
+                    100% !important;
+
+                overflow-x:
+                    hidden !important;
+
+                overflow-y:
+                    auto !important;
+
+                overscroll-behavior:
+                    contain;
+
+                scrollbar-gutter:
+                    auto;
+
+                scrollbar-width:
+                    thin !important;
+
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 48%,
+                        transparent
+                    )
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 28%,
+                        transparent
+                    ) !important;
+
+                /*
+                 * As linhas permanecem visíveis mesmo quando existem menos de
+                 * quatro registros, transformando o vazio em slots da ficha.
+                 */
+                background:
+                    repeating-linear-gradient(
+                        to bottom,
+                        transparent 0,
+                        transparent calc(
+                            var(--sheet-feature-row-height)
+                            - 1px
+                        ),
+                        var(--theme-border-soft) calc(
+                            var(--sheet-feature-row-height)
+                            - 1px
+                        ),
+                        var(--theme-border-soft)
+                        var(--sheet-feature-row-height)
+                    ),
+                    var(--theme-card-background) !important;
+            }
+
+
+            .character-sheet-features
+            .character-feature-v9-card,
+            .character-sheet-features
+            .character-features-v9-empty {
+                box-sizing:
+                    border-box !important;
+
+                height:
+                    var(--sheet-feature-row-height) !important;
+
+                min-height:
+                    var(--sheet-feature-row-height) !important;
+
+                max-height:
+                    var(--sheet-feature-row-height) !important;
+            }
+
+
+            /*
+             * O estado vazio do partial não deve ocupar as quatro linhas.
+             * Ele representa somente o primeiro slot; os demais permanecem
+             * desenhados pelo fundo quadriculado da coluna.
+             */
+            .character-sheet-features
+            .character-features-v9-empty {
+                align-items:
+                    center !important;
+
+                justify-content:
+                    center !important;
+            }
+
+
+            /* Scrollbar independente de cada lado. */
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar {
+                display:
+                    block !important;
+
+                width:
+                    6px !important;
+
+                height:
+                    6px !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-track {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 18%,
+                        transparent
+                    ) !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-thumb {
+                border:
+                    1px solid transparent;
+
+                border-radius:
+                    999px;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 50%,
+                        transparent
+                    ) !important;
+
+                background-clip:
+                    padding-box !important;
+            }
+
+
+            /* ================================================================
+               TRAÇOS & TALENTOS — 3 SLOTS POR COLUNA
+            ================================================================= */
+
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-columns {
+                position:
+                    relative;
+
+                align-items:
+                    stretch !important;
+            }
+
+
+            /* Linha central única, seguindo a mesma regra de Habilidades. */
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-columns::after {
+                content:
+                    '';
+
+                position:
+                    absolute;
+
+                z-index:
+                    8;
+
+                top:
+                    0;
+
+                bottom:
+                    0;
+
+                left:
+                    50%;
+
+                width:
+                    1px;
+
+                pointer-events:
+                    none;
+
+                background:
+                    var(--theme-border) !important;
+            }
+
+
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-column
+            +
+            .character-traits-feats-v6-column {
+                border-left:
+                    0 !important;
+            }
+
+
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list {
+                height:
+                    var(--sheet-traits-window-height) !important;
+
+                min-height:
+                    var(--sheet-traits-window-height) !important;
+
+                max-height:
+                    var(--sheet-traits-window-height) !important;
+
+                overflow-x:
+                    hidden !important;
+
+                overflow-y:
+                    auto !important;
+
+                overscroll-behavior:
+                    contain;
+
+                scrollbar-gutter:
+                    auto;
+
+                scrollbar-width:
+                    thin !important;
+
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 48%,
+                        transparent
+                    )
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 28%,
+                        transparent
+                    ) !important;
+
+                /* Três slots visíveis mesmo com poucos registros. */
+                background:
+                    repeating-linear-gradient(
+                        to bottom,
+                        transparent 0,
+                        transparent calc(
+                            var(--sheet-traits-row-height)
+                            - 1px
+                        ),
+                        var(--theme-border-soft) calc(
+                            var(--sheet-traits-row-height)
+                            - 1px
+                        ),
+                        var(--theme-border-soft)
+                        var(--sheet-traits-row-height)
+                    ),
+                    var(--theme-card-background) !important;
+            }
+
+
+            .character-sheet-traits-feats
+            .character-mini-feature-row,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-empty {
+                box-sizing:
+                    border-box !important;
+
+                height:
+                    var(--sheet-traits-row-height) !important;
+
+                min-height:
+                    var(--sheet-traits-row-height) !important;
+
+                max-height:
+                    var(--sheet-traits-row-height) !important;
+            }
+
+
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar {
+                display:
+                    block !important;
+
+                width:
+                    6px !important;
+
+                height:
+                    6px !important;
+            }
+
+
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-track {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 18%,
+                        transparent
+                    ) !important;
+            }
+
+
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-thumb {
+                border:
+                    1px solid transparent;
+
+                border-radius:
+                    999px;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 50%,
+                        transparent
+                    ) !important;
+
+                background-clip:
+                    padding-box !important;
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V34 — LARGURA FLUIDA + TRAÇOS COESOS + SCROLL DISCRETO
+        |--------------------------------------------------------------------------
+        |
+        | Este bloco é a autoridade final do layout da coluna direita no desktop.
+        |
+        | - módulos ocupam toda a largura disponível;
+        | - Traços & Talentos usa a mesma superfície de Habilidades;
+        | - scroll não cria faixa branca nem botões nativos nas extremidades;
+        | - thumb permanece muito discreto e aparece com mais contraste no hover;
+        | - nenhuma largura fixa é criada dentro das duas colunas.
+        |
+        */
+
+        @media (min-width: 1024px) {
+
+            /* ================================================================
+               LARGURA FLUIDA — COLUNA DIREITA
+            ================================================================= */
+
+            .character-sheet-main-column,
+            .character-sheet-attacks,
+            .character-sheet-features,
+            .character-sheet-traits-feats {
+                width:
+                    100% !important;
+
+                max-width:
+                    none !important;
+
+                min-width:
+                    0 !important;
+            }
+
+
+            .character-sheet-features
+            > .character-features-v11,
+            .character-sheet-features
+            .character-features-v11,
+            .character-sheet-features
+            .character-features-v11-table-wrap,
+            .character-sheet-features
+            .character-features-v12-scroll,
+            .character-sheet-features
+            .character-features-v9-columns,
+            .character-sheet-traits-feats
+            > .character-traits-feats-v6,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-table,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-columns {
+                width:
+                    100% !important;
+
+                max-width:
+                    none !important;
+
+                min-width:
+                    0 !important;
+
+                margin-inline:
+                    0 !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-columns,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-columns {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr)) !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-column {
+                width:
+                    auto !important;
+
+                max-width:
+                    none !important;
+
+                min-width:
+                    0 !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v10-column-bar {
+                width:
+                    100% !important;
+
+                max-width:
+                    none !important;
+
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr)) !important;
+            }
+
+
+            /* ================================================================
+               TRAÇOS & TALENTOS — MESMA SUPERFÍCIE DE HABILIDADES
+            ================================================================= */
+
+            .character-sheet-theme
+            .character-sheet-traits-feats {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-module-alt-background) !important;
+
+                box-shadow:
+                    var(--theme-module-shadow) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-traits-feats-v6-table {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-card-background) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-traits-feats-v6-column-head {
+                border-bottom-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-traits-feats-v6-list {
+                background-color:
+                    var(--theme-card-background) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-traits-feats-v6
+            .character-mini-feature-row {
+                background:
+                    var(--theme-card-background) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-traits-feats-v6
+            .character-mini-feature-row:nth-child(even) {
+                background:
+                    var(--theme-card-alt-background) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-traits-feats-v6
+            .character-mini-feature-quick {
+                border-left-color:
+                    var(--theme-accent) !important;
+
+                background:
+                    var(--theme-inset-background) !important;
+            }
+
+
+            /* ================================================================
+               SCROLL INTERNO — FINO, SEM SETAS E SEM FAIXA VISÍVEL
+            ================================================================= */
+
+            .character-sheet-features
+            .character-features-v9-column,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list {
+                scrollbar-gutter:
+                    auto !important;
+
+                scrollbar-width:
+                    thin !important;
+
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 20%,
+                        transparent
+                    )
+                    transparent !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column:hover,
+            .character-sheet-features
+            .character-features-v9-column:focus-within,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list:hover,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list:focus-within {
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 34%,
+                        transparent
+                    )
+                    transparent !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar {
+                display:
+                    block !important;
+
+                width:
+                    3px !important;
+
+                height:
+                    3px !important;
+
+                background:
+                    transparent !important;
+            }
+
+
+            /* Windows/Chromium pode desenhar setas nas pontas do scrollbar. */
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-button,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-button {
+                display:
+                    none !important;
+
+                width:
+                    0 !important;
+
+                height:
+                    0 !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-track,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-track,
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-track-piece,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-track-piece,
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-corner,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-corner {
+                background:
+                    transparent !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-thumb,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-thumb {
+                border:
+                    0 !important;
+
+                border-radius:
+                    999px !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 18%,
+                        transparent
+                    ) !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column:hover::-webkit-scrollbar-thumb,
+            .character-sheet-features
+            .character-features-v9-column:focus-within::-webkit-scrollbar-thumb,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list:hover::-webkit-scrollbar-thumb,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list:focus-within::-webkit-scrollbar-thumb {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 34%,
+                        transparent
+                    ) !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar-thumb:hover,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar-thumb:hover {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 48%,
+                        transparent
+                    ) !important;
+            }
+        }
+
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V35 — SCROLL INVISÍVEL + INDICADOR DISCRETO DE CONTINUIDADE
+        |--------------------------------------------------------------------------
+        |
+        | A rolagem continua funcionando normalmente, mas nenhuma barra fica
+        | visível. Quando ainda existe conteúdo abaixo da janela, o JavaScript
+        | adiciona uma pequena seta temática no rodapé da respectiva coluna.
+        |
+        */
+
+        @media (min-width: 1024px) {
+
+            .character-sheet-features
+            .character-features-v9-column,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list {
+                scrollbar-width:
+                    none !important;
+
+                -ms-overflow-style:
+                    none !important;
+
+                scrollbar-gutter:
+                    auto !important;
+            }
+
+
+            .character-sheet-features
+            .character-features-v9-column::-webkit-scrollbar,
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list::-webkit-scrollbar {
+                display:
+                    none !important;
+
+                width:
+                    0 !important;
+
+                height:
+                    0 !important;
+
+                background:
+                    transparent !important;
+            }
+
+
+            /*
+             * O indicador é inserido fora do elemento rolável. Assim ele não
+             * ocupa largura, não cria faixa lateral e não interfere no divisor.
+             */
+            .sheet-scroll-more-hint {
+                position:
+                    absolute;
+
+                z-index:
+                    40;
+
+                bottom:
+                    5px;
+
+                display:
+                    flex;
+
+                width:
+                    18px;
+
+                height:
+                    14px;
+
+                align-items:
+                    center;
+
+                justify-content:
+                    center;
+
+                pointer-events:
+                    none;
+
+                opacity:
+                    0;
+
+                transform:
+                    translate(-50%, 2px);
+
+                transition:
+                    opacity .16s ease,
+                    transform .16s ease;
+            }
+
+
+            .sheet-scroll-more-hint::before {
+                content:
+                    '';
+
+                width:
+                    6px;
+
+                height:
+                    6px;
+
+                border-right:
+                    1.5px solid
+                    var(--theme-label);
+
+                border-bottom:
+                    1.5px solid
+                    var(--theme-label);
+
+                transform:
+                    translateY(-2px)
+                    rotate(45deg);
+
+                opacity:
+                    .52;
+
+                filter:
+                    drop-shadow(
+                        0 1px 0
+                        color-mix(
+                            in srgb,
+                            var(--theme-paper-strong) 72%,
+                            transparent
+                        )
+                    );
+            }
+
+
+            .sheet-scroll-more-hint.is-visible {
+                opacity:
+                    1;
+
+                transform:
+                    translate(-50%, 0);
+            }
+
+
+            .sheet-scroll-more-hint--left {
+                left:
+                    25%;
+            }
+
+
+            .sheet-scroll-more-hint--right {
+                left:
+                    75%;
+            }
+
+
+            /*
+             * Suave halo de papel apenas atrás da seta. Ele serve para a seta
+             * permanecer legível sobre texto sem virar um botão ou um scrollbar.
+             */
+            .sheet-scroll-more-hint.is-visible::after {
+                content:
+                    '';
+
+                position:
+                    absolute;
+
+                z-index:
+                    -1;
+
+                inset:
+                    -2px -4px;
+
+                border-radius:
+                    999px;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-card-background) 74%,
+                        transparent
+                    );
+
+                box-shadow:
+                    0 0 7px
+                    color-mix(
+                        in srgb,
+                        var(--theme-card-background) 82%,
+                        transparent
+                    );
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V36 — HABILIDADES: LEITURA, TRACKERS E VAZIO LIMPO
+        |--------------------------------------------------------------------------
+        |
+        | - compacta o cabeçalho para a descrição rápida respirar dentro dos 92px;
+        | - centraliza verticalmente o texto da descrição rápida;
+        | - dá presença visual aos rastreadores sem fugir do tema;
+        | - mantém o espaço reservado, mas remove as linhas dos slots vazios;
+        | - aplica o mesmo vazio limpo em Traços & Talentos.
+        |
+        */
+
+        @media (min-width: 1024px) {
+
+            /* ================================================================
+               HABILIDADES — DESCRIÇÃO RÁPIDA CENTRALIZADA
+            ================================================================= */
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-head {
+                padding:
+                    8px 10px 4px !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-meta {
+                margin-top:
+                    2px !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-quick-wrap {
+                display:
+                    flex !important;
+
+                min-height:
+                    0 !important;
+
+                flex:
+                    1 1 auto !important;
+
+                align-items:
+                    stretch !important;
+
+                padding:
+                    0 10px 8px !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-quick,
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-quick-empty {
+                display:
+                    flex !important;
+
+                width:
+                    100% !important;
+
+                min-height:
+                    31px !important;
+
+                align-items:
+                    center !important;
+
+                margin:
+                    0 !important;
+
+                padding:
+                    5px 9px !important;
+
+                overflow:
+                    hidden !important;
+
+                line-height:
+                    1.28 !important;
+            }
+
+
+            /* ================================================================
+               HABILIDADES — TRACKER COM COR E PROFUNDIDADE
+            ================================================================= */
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-tracker {
+                height:
+                    31px !important;
+
+                overflow:
+                    hidden !important;
+
+                border:
+                    1px solid
+                    var(--theme-border-strong) !important;
+
+                border-radius:
+                    8px !important;
+
+                background:
+                    var(--theme-paper-strong) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 76%,
+                        white 24%
+                    ),
+                    0 2px 5px
+                    color-mix(
+                        in srgb,
+                        var(--theme-text-strong) 13%,
+                        transparent
+                    ) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-tracker
+            button {
+                width:
+                    29px !important;
+
+                min-width:
+                    29px !important;
+
+                height:
+                    100% !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-soft) 72%,
+                        var(--theme-paper-strong) 28%
+                    ) !important;
+
+                color:
+                    var(--theme-accent-strong) !important;
+
+                text-shadow:
+                    0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 80%,
+                        transparent
+                    );
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 75%,
+                        transparent
+                    ) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-tracker
+            button:hover:not(:disabled) {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 25%,
+                        var(--theme-paper-strong) 75%
+                    ) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-tracker
+            button:disabled {
+                opacity:
+                    .38 !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-feature-v9-tracker
+            strong {
+                min-width:
+                    43px !important;
+
+                height:
+                    100% !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 62%,
+                        transparent
+                    ) !important;
+            }
+
+
+            /* ================================================================
+               ESPAÇO RESERVADO — SEM RISCOS NOS SLOTS VAZIOS
+            ================================================================= */
+
+            .character-sheet-theme
+            .character-sheet-features
+            .character-features-v9-column {
+                background:
+                    var(--theme-card-background) !important;
+            }
+
+
+            .character-sheet-theme
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-list {
+                background:
+                    var(--theme-card-background) !important;
+            }
+
+
+            /*
+             * Se uma coluna estiver totalmente vazia, o placeholder do partial
+             * continua centralizado, mas sem desenhar uma linha de "slot".
+             */
+            .character-sheet-theme
+            .character-sheet-features
+            .character-features-v9-empty,
+            .character-sheet-theme
+            .character-sheet-traits-feats
+            .character-traits-feats-v6-empty {
+                border-bottom:
+                    0 !important;
+
+                background:
+                    transparent !important;
+            }
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V31 — DARK THEMES / MÓDULOS SEM REFLEXO BRANCO
+        |--------------------------------------------------------------------------
+        |
+        | A V7/V8 do Show ainda aplica em todos os módulos:
+        | inset 0 1px 0 rgba(255,255,255,.78) !important.
+        |
+        | Como esse CSS vive dentro do próprio Show, ele pode vencer ajustes do
+        | arquivo global. Nos temas escuros removemos o inset e usamos somente
+        | sombra escura externa.
+        |
+        */
+
+        .character-sheet-theme:is(
+            [data-theme="midnight"],
+            [data-theme="obsidian"]
+        )
+        .character-sheet-abilities,
+        .character-sheet-theme:is(
+            [data-theme="midnight"],
+            [data-theme="obsidian"]
+        )
+        .character-sheet-attacks,
+        .character-sheet-theme:is(
+            [data-theme="midnight"],
+            [data-theme="obsidian"]
+        )
+        .character-sheet-features,
+        .character-sheet-theme:is(
+            [data-theme="midnight"],
+            [data-theme="obsidian"]
+        )
+        .character-sheet-traits-feats,
+        .character-sheet-theme:is(
+            [data-theme="midnight"],
+            [data-theme="obsidian"]
+        )
+        .character-sheet-bottom-cell {
+            box-shadow:
+                0 5px 14px rgba(0,0,0,.22) !important;
+        }
+
+        .character-sheet-theme[data-theme="midnight"]
+        .character-sheet-abilities,
+        .character-sheet-theme[data-theme="midnight"]
+        .character-sheet-attacks,
+        .character-sheet-theme[data-theme="midnight"]
+        .character-sheet-features,
+        .character-sheet-theme[data-theme="midnight"]
+        .character-sheet-traits-feats,
+        .character-sheet-theme[data-theme="midnight"]
+        .character-sheet-bottom-cell {
+            border-color:
+                rgba(151,162,173,.24) !important;
+        }
+
+        .character-sheet-theme[data-theme="obsidian"]
+        .character-sheet-abilities,
+        .character-sheet-theme[data-theme="obsidian"]
+        .character-sheet-attacks,
+        .character-sheet-theme[data-theme="obsidian"]
+        .character-sheet-features,
+        .character-sheet-theme[data-theme="obsidian"]
+        .character-sheet-traits-feats,
+        .character-sheet-theme[data-theme="obsidian"]
+        .character-sheet-bottom-cell {
+            border-color:
+                rgba(154,122,102,.24) !important;
+        }
+
+        /* O canvas também perde o reflexo superior branco nos temas escuros. */
+        .character-sheet-theme:is(
+            [data-theme="midnight"],
+            [data-theme="obsidian"]
+        )
+        .character-sheet-canvas {
+            box-shadow:
+                0 12px 28px rgba(0,0,0,.24) !important;
+        }
+
+        /* Remove o glow branco radial do papel apenas nos dark themes. */
+        .character-sheet-theme[data-theme="midnight"]
+        .character-sheet-page {
+            background:
+                radial-gradient(
+                    circle at 18% 3%,
+                    rgba(111,140,166,.045),
+                    transparent 28%
+                ),
+                linear-gradient(
+                    180deg,
+                    var(--theme-page-bg-start) 0%,
+                    var(--theme-page-bg-end) 100%
+                ) !important;
+        }
+
+        .character-sheet-theme[data-theme="obsidian"]
+        .character-sheet-page {
+            background:
+                radial-gradient(
+                    circle at 18% 3%,
+                    rgba(183,136,105,.035),
+                    transparent 28%
+                ),
+                linear-gradient(
+                    180deg,
+                    var(--theme-page-bg-start) 0%,
+                    var(--theme-page-bg-end) 100%
+                ) !important;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | V34 — LOJA DO PLAYER / ATALHO LATERAL
+        |--------------------------------------------------------------------------
+        |
+        | A loja deixa de ocupar o Hero e passa a viver no mesmo trilho de
+        | Party / Inventário / Grimório. O cartão usa exclusivamente tokens
+        | do Theme Core para acompanhar Spellbound, Emerald, Obsidian etc.
+        |
+        */
+
+        .player-shop-side-wrap {
+            position: relative;
+            display: flex;
+            width: auto;
+            justify-content: center;
+            margin-bottom: 8px;
+            transform:
+                translate(2px, -16px);
+        }
+
+        .player-shop-side-tab {
+            position: relative;
+            display: flex;
+            width: 70px;
+            height: 74px;
+            flex: 0 0 70px;
+            flex-direction: column;
+            justify-content: center;
+            overflow: hidden;
+            border:
+                1px solid
+                color-mix(
+                    in srgb,
+                    var(--theme-accent) 44%,
+                    var(--theme-border-strong)
+                );
+            border-radius: 16px;
+            background:
+                var(--theme-side-tab-background);
+            padding: 8px 7px 8px;
+            color: var(--theme-side-tab-text);
+            box-shadow:
+                0 8px 20px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 16%,
+                        transparent
+                    ),
+                inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 38%,
+                        transparent
+                    );
+            cursor: pointer;
+            isolation: isolate;
+            animation:
+                playerShopSidePulse
+                2.35s
+                ease-in-out
+                infinite;
+            transition:
+                transform .16s ease,
+                border-color .16s ease,
+                background .16s ease,
+                box-shadow .16s ease;
+        }
+
+        .player-shop-side-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 4px;
+            z-index: 0;
+            background:
+                var(--theme-accent);
+            opacity: .78;
+            pointer-events: none;
+        }
+
+        .player-shop-side-tab:hover {
+            transform:
+                translateX(-2px)
+                translateY(-1px);
+            border-color:
+                color-mix(
+                    in srgb,
+                    var(--theme-accent) 62%,
+                    var(--theme-border-strong)
+                );
+            background:
+                var(--theme-side-tab-hover-background);
+            box-shadow:
+                0 11px 25px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 23%,
+                        transparent
+                    ),
+                inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 44%,
+                        transparent
+                    );
+        }
+
+        .player-shop-side-tab__top {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .player-shop-side-tab__icon {
+            position: relative;
+            display: grid;
+            width: 26px;
+            height: 26px;
+            flex: 0 0 26px;
+            place-items: center;
+            border:
+                1px solid
+                color-mix(
+                    in srgb,
+                    var(--theme-accent) 42%,
+                    var(--theme-border)
+                );
+            border-radius: 9px;
+            background:
+                var(--theme-inset-background);
+            color:
+                var(--theme-accent);
+            box-shadow:
+                inset 0 1px 0
+                color-mix(
+                    in srgb,
+                    var(--theme-paper-strong) 38%,
+                    transparent
+                );
+        }
+
+        .player-shop-side-tab__icon svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .player-shop-side-tab__dot {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            width: 7px;
+            height: 7px;
+            border:
+                2px solid
+                var(--theme-side-tab-background);
+            border-radius: 999px;
+            background: #10b981;
+            box-sizing: content-box;
+            box-shadow:
+                0 0 0 2px
+                color-mix(
+                    in srgb,
+                    #10b981 15%,
+                    transparent
+                );
+        }
+
+        .player-shop-side-tab__label {
+            color:
+                var(--theme-side-tab-text);
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: .08em;
+            line-height: 1.04;
+            text-align: center;
+            text-transform: uppercase;
+            opacity: .88;
+        }
+
+        .player-shop-side-tab__name {
+            position: relative;
+            z-index: 1;
+            display: -webkit-box;
+            width: 100%;
+            overflow: hidden;
+            margin-top: 5px;
+            color:
+                var(--theme-side-tab-text);
+            font-family: Georgia, serif;
+            font-size: 10.5px;
+            font-weight: 900;
+            line-height: 1.03;
+            text-align: center;
+            overflow-wrap: anywhere;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        @keyframes playerShopSidePulse {
+            0%,
+            100% {
+                box-shadow:
+                    0 8px 20px
+                        color-mix(
+                            in srgb,
+                            var(--theme-accent) 13%,
+                            transparent
+                        ),
+                    0 0 0 0
+                        color-mix(
+                            in srgb,
+                            var(--theme-accent) 17%,
+                            transparent
+                        ),
+                    inset 0 1px 0
+                        color-mix(
+                            in srgb,
+                            var(--theme-paper-strong) 36%,
+                            transparent
+                        );
+            }
+
+            50% {
+                box-shadow:
+                    0 10px 24px
+                        color-mix(
+                            in srgb,
+                            var(--theme-accent) 22%,
+                            transparent
+                        ),
+                    0 0 0 4px
+                        color-mix(
+                            in srgb,
+                            var(--theme-accent) 7%,
+                            transparent
+                        ),
+                    inset 0 1px 0
+                        color-mix(
+                            in srgb,
+                            var(--theme-paper-strong) 40%,
+                            transparent
+                        );
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .player-shop-side-tab {
+                animation: none;
+            }
+        }
+
+        @media (max-width: 1023px) {
+            .player-shop-side-wrap {
+                transform:
+                    translate(1px, -10px);
+            }
+
+            .player-shop-side-tab {
+                width: 68px;
+                height: 70px;
+                flex-basis: 68px;
+                border-radius: 14px;
+            }
+
+            .player-shop-side-tab__name {
+                font-size: 9.8px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .player-shop-side-wrap {
+                transform:
+                    translate(0, -6px);
+            }
+
+            .player-shop-side-tab {
+                width: 64px;
+                height: 62px;
+                flex-basis: 64px;
+                padding: 6px;
+                border-radius: 13px;
+            }
+
+            .player-shop-side-tab__icon {
+                width: 24px;
+                height: 24px;
+                flex-basis: 24px;
+            }
+
+            .player-shop-side-tab__label {
+                font-size: 5.8px;
+            }
+
+            .player-shop-side-tab__name {
+                margin-top: 4px;
+                font-size: 8.6px;
+                -webkit-line-clamp: 2;
+            }
+        }
+
 </style>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const configurations = [
+            {
+                rootSelector:
+                    '.character-sheet-features .character-features-v12-scroll',
+
+                scrollerSelector:
+                    '.character-features-v9-column',
+            },
+            {
+                rootSelector:
+                    '.character-sheet-traits-feats .character-traits-feats-v6-columns',
+
+                scrollerSelector:
+                    '.character-traits-feats-v6-list',
+            },
+        ];
+
+
+        const bindScrollHints = (root, scrollerSelector) => {
+            if (root.dataset.scrollHintsBound === '1') {
+                return;
+            }
+
+            const scrollers = Array.from(
+                root.querySelectorAll(scrollerSelector)
+            ).slice(0, 2);
+
+            if (scrollers.length === 0) {
+                return;
+            }
+
+            root.dataset.scrollHintsBound = '1';
+
+            const hints = [0, 1].map((index) => {
+                const hint = document.createElement('span');
+
+                hint.className = [
+                    'sheet-scroll-more-hint',
+                    index === 0
+                        ? 'sheet-scroll-more-hint--left'
+                        : 'sheet-scroll-more-hint--right',
+                ].join(' ');
+
+                hint.setAttribute('aria-hidden', 'true');
+
+                root.appendChild(hint);
+
+                return hint;
+            });
+
+
+            const update = () => {
+                scrollers.forEach((scroller, index) => {
+                    const remaining =
+                        scroller.scrollHeight
+                        - scroller.scrollTop
+                        - scroller.clientHeight;
+
+                    const canContinue =
+                        scroller.scrollHeight
+                        > scroller.clientHeight + 2
+                        && remaining > 3;
+
+                    hints[index]
+                        ?.classList
+                        .toggle(
+                            'is-visible',
+                            canContinue
+                        );
+                });
+            };
+
+
+            scrollers.forEach((scroller) => {
+                scroller.addEventListener(
+                    'scroll',
+                    update,
+                    {
+                        passive: true,
+                    }
+                );
+            });
+
+
+            const resizeObserver =
+                typeof ResizeObserver !== 'undefined'
+                    ? new ResizeObserver(update)
+                    : null;
+
+            resizeObserver?.observe(root);
+
+            scrollers.forEach((scroller) => {
+                resizeObserver?.observe(scroller);
+            });
+
+
+            const mutationObserver =
+                new MutationObserver(() => {
+                    requestAnimationFrame(update);
+                });
+
+            mutationObserver.observe(
+                root,
+                {
+                    childList: true,
+                    subtree: true,
+                    characterData: true,
+                }
+            );
+
+
+            requestAnimationFrame(() => {
+                requestAnimationFrame(update);
+            });
+        };
+
+
+        const scan = () => {
+            configurations.forEach((configuration) => {
+                document
+                    .querySelectorAll(
+                        configuration.rootSelector
+                    )
+                    .forEach((root) => {
+                        bindScrollHints(
+                            root,
+                            configuration.scrollerSelector
+                        );
+                    });
+            });
+        };
+
+
+        scan();
+
+        const pageObserver =
+            new MutationObserver(() => {
+                scan();
+            });
+
+        pageObserver.observe(
+            document.body,
+            {
+                childList: true,
+                subtree: true,
+            }
+        );
+
+        window.addEventListener(
+            'resize',
+            scan,
+            {
+                passive: true,
+            }
+        );
+    });
+</script>
 
 
 
@@ -2632,6 +4842,123 @@
 
             drawer: null,
 
+            shopPollUrl:
+                @js(
+                    $showPartyDrawer
+                        ? route(
+                            'characters.shops.index',
+                            ['character' => $character]
+                        )
+                        : null
+                ),
+
+            openShopCount: 0,
+
+            openShopName: '',
+
+            shopPollBusy: false,
+
+            shopPollTimer: null,
+
+            init() {
+
+                if (!this.shopPollUrl) {
+                    return;
+                }
+
+                this.refreshOpenShops();
+
+                this.shopPollTimer =
+                    window.setInterval(
+                        () => {
+                            this.refreshOpenShops();
+                        },
+                        7000
+                    );
+
+            },
+
+            destroy() {
+
+                if (this.shopPollTimer) {
+                    window.clearInterval(
+                        this.shopPollTimer
+                    );
+                }
+
+            },
+
+            async refreshOpenShops() {
+
+                if (
+                    !this.shopPollUrl
+                    ||
+                    this.shopPollBusy
+                    ||
+                    document.hidden
+                ) {
+                    return;
+                }
+
+                this.shopPollBusy = true;
+
+                try {
+                    const response =
+                        await fetch(
+                            this.shopPollUrl,
+                            {
+                                headers: {
+                                    'Accept':
+                                        'application/json',
+
+                                    'X-Requested-With':
+                                        'XMLHttpRequest',
+                                },
+
+                                cache:
+                                    'no-store',
+                            }
+                        );
+
+                    if (!response.ok) {
+                        return;
+                    }
+
+                    const data =
+                        await response.json();
+
+                    const shops =
+                        Array.isArray(
+                            data?.shops
+                        )
+                            ? data.shops
+                            : [];
+
+                    this.openShopCount =
+                        Math.max(
+                            0,
+                            parseInt(
+                                data?.shop_count
+                            )
+                            || shops.length
+                        );
+
+                    this.openShopName =
+                        shops[0]?.name
+                        ?? '';
+
+                } catch (error) {
+                    /*
+                    | A ficha continua funcionando normalmente
+                    | mesmo que a consulta da Loja falhe.
+                    */
+                } finally {
+                    this.shopPollBusy =
+                        false;
+                }
+
+            },
+
             openDrawer(name) {
 
                 this.drawer = name;
@@ -2641,6 +4968,23 @@
             closeDrawer() {
 
                 this.drawer = null;
+
+            },
+
+            openShopFromIndicator() {
+
+                this.drawer =
+                    null;
+
+                this.$nextTick(
+                    () => {
+                        window.dispatchEvent(
+                            new CustomEvent(
+                                'open-character-shop'
+                            )
+                        );
+                    }
+                );
 
             }
 
@@ -2664,9 +5008,12 @@
 
         "
 
+        data-theme="{{ $characterTheme }}"
+
         class="
 
             character-sheet-page
+            character-sheet-theme
 
             {{ $showHeroDefenses
                 ? 'character-sheet-page--with-defenses'
@@ -2905,6 +5252,78 @@
                 "
 
             >
+                @if (
+                    $sheetTransformation
+                    && $sheetTransformation->type === 'character_sheet'
+                )
+                    <div
+                        class="
+                            relative
+                            z-40
+                            flex
+                            flex-wrap
+                            items-center
+                            justify-between
+                            gap-2
+                            border-b
+                            border-[#b08c62]/35
+                            bg-[#eadbc8]/72
+                            px-4
+                            py-2
+                        "
+                    >
+                        <div class="min-w-0">
+                            <span
+                                class="
+                                    text-[7px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.14em]
+                                    text-[#93623d]
+                                "
+                            >
+                                {{ $editingTransformationSheet ? 'Editando Nova Ficha' : 'Transformação ativa' }}
+                            </span>
+
+                            <strong
+                                class="
+                                    ml-2
+                                    font-serif
+                                    text-[12px]
+                                    font-black
+                                    text-[#53150f]
+                                "
+                            >
+                                {{ $sheetTransformation->name }}
+                            </strong>
+                        </div>
+
+                        @if ($editingTransformationSheet)
+                            <a
+                                href="{{ route('characters.show', $character) }}"
+                                class="
+                                    rounded-lg
+                                    border
+                                    border-[#93623d]/30
+                                    bg-[#fffdf8]
+                                    px-3
+                                    py-1.5
+                                    text-[8px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.08em]
+                                    text-[#6b1d14]
+                                    transition
+                                    hover:bg-[#f3e7d8]
+                                "
+                            >
+                                Voltar à ficha original
+                            </a>
+                        @endif
+                    </div>
+                @endif
+
+
 
                 {{-- ========================================================
 
@@ -2942,7 +5361,17 @@
 
                             'character' =>
 
+                                $sheetCharacter,
+
+                            'identityCharacter' =>
                                 $character,
+
+                            'inventoryCharacter' =>
+                                $character,
+
+                            'imageOverrideUrl' =>
+                                $sheetTransformationImageUrl,
+
 
                         ]
 
@@ -2976,7 +5405,7 @@
 
                                     'character' =>
 
-                                        $character,
+                                        $sheetCharacter,
 
                                 ]
 
@@ -3029,6 +5458,15 @@
                         <aside class="character-sheet-abilities">
 
                             @include(
+                                'characters.components.character-transformations',
+                                [
+                                    'character' =>
+                                        $character,
+
+                                ]
+                            )
+
+                            @include(
 
                                 'characters.components.character-abilities',
 
@@ -3036,7 +5474,7 @@
 
                                     'character' =>
 
-                                        $character,
+                                        $sheetCharacter,
 
                                 ]
 
@@ -3052,7 +5490,7 @@
 
                                         'character' =>
 
-                                            $character,
+                                            $sheetCharacter,
 
                                     ]
 
@@ -3096,7 +5534,7 @@
 
                                         'character' =>
 
-                                            $character,
+                                            $sheetCharacter,
 
                                     ]
 
@@ -3130,7 +5568,7 @@
 
                                         'character' =>
 
-                                            $character,
+                                            $sheetCharacter,
 
                                     ]
 
@@ -3164,7 +5602,7 @@
 
                                         'character' =>
 
-                                            $character,
+                                            $sheetCharacter,
 
                                     ]
 
@@ -3204,6 +5642,8 @@
 
             class="
 
+                character-side-tabs
+
                 fixed
 
                 right-0
@@ -3225,6 +5665,97 @@
         >
 
             @if($showPartyDrawer)
+
+                {{-- LOJA ABERTA --}}
+                <div
+                    x-show="openShopCount > 0"
+                    x-cloak
+                    x-transition.opacity
+                    class="player-shop-side-wrap"
+                >
+                    <button
+                        type="button"
+                        @click="openShopFromIndicator()"
+                        class="player-shop-side-tab"
+                        :title="
+                            openShopCount === 1
+                                ? (
+                                    'Abrir loja '
+                                    + (
+                                        openShopName
+                                        || ''
+                                    )
+                                )
+                                : (
+                                    'Abrir '
+                                    + openShopCount
+                                    + ' lojas'
+                                )
+                        "
+                        :aria-label="
+                            openShopCount === 1
+                                ? (
+                                    'Abrir loja '
+                                    + (
+                                        openShopName
+                                        || 'disponível'
+                                    )
+                                )
+                                : (
+                                    'Abrir '
+                                    + openShopCount
+                                    + ' lojas disponíveis'
+                                )
+                        "
+                    >
+                        <span
+                            class="player-shop-side-tab__top"
+                        >
+                            <span
+                                class="player-shop-side-tab__icon"
+                                aria-hidden="true"
+                            >
+                                <svg
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="1.8"
+                                >
+                                    <path d="M4 10h16"></path>
+                                    <path d="M5 10 6.5 5h11L19 10"></path>
+                                    <path d="M6 10v8.5h12V10"></path>
+                                    <path d="M9 18.5v-5h6v5"></path>
+                                </svg>
+
+                                <span
+                                    class="player-shop-side-tab__dot"
+                                ></span>
+                            </span>
+
+                            <span
+                                class="player-shop-side-tab__label"
+                            >
+                                Loja<br>aberta
+                            </span>
+                        </span>
+
+                        <strong
+                            class="player-shop-side-tab__name"
+                            x-text="
+                                openShopCount === 1
+                                    ? (
+                                        openShopName
+                                        || 'Visitar loja'
+                                    )
+                                    : (
+                                        openShopCount
+                                        + ' lojas'
+                                    )
+                            "
+                        ></strong>
+                    </button>
+                </div>
+
 
                 {{-- PARTY --}}
 
@@ -4099,6 +6630,16 @@
             </aside>
 
         </div>
+
+        @if($showPartyDrawer)
+            @include(
+                'characters.components.shop',
+                [
+                    'character' => $character,
+                    'characterTheme' => $characterTheme,
+                ]
+            )
+        @endif
 
     </div>
 

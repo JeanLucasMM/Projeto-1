@@ -182,6 +182,46 @@
                 ($effectiveScore - 10) / 2
             );
     }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA ATUAL
+    |--------------------------------------------------------------------------
+    |
+    | O resumo permanece exatamente no formato antigo.
+    | Precisamos do tema apenas para o modal e o toast, pois ambos usam
+    | x-teleport="body" e deixam de herdar as variáveis da ficha.
+    |
+    */
+
+    $trainingAllowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $trainingTheme =
+        strtolower(
+            trim(
+                (string) data_get(
+                    is_array($character->sheet_settings ?? null)
+                        ? $character->sheet_settings
+                        : [],
+                    'appearance.theme',
+                    'spellbound'
+                )
+            )
+        );
+
+    if (!in_array($trainingTheme, $trainingAllowedThemes, true)) {
+        $trainingTheme = 'spellbound';
+    }
 @endphp
 
 @once
@@ -1683,6 +1723,567 @@
                 }
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | TRAINING V5 — SOMENTE TEMA + POSIÇÃO
+            |--------------------------------------------------------------------------
+            |
+            | Mantém integralmente a composição visual V3/V4.
+            | Esta camada só:
+            | 1. troca as cores fixas pelos tokens da ficha;
+            | 2. ancora o componente ao fundo quando estiver em um pai flex.
+            |
+            */
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only {
+                width:
+                    100%;
+
+                margin-top:
+                    auto !important;
+
+                align-self:
+                    stretch;
+
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+
+            /* ==============================================================
+               RESUMO — MESMO FORMATO ANTIGO
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        white 42%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-header {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-header:hover {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-band-background) 88%,
+                        var(--theme-card-hover)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-title {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-config {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-section {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-section:nth-child(odd),
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-section:nth-child(even) {
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-label {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-value,
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-roll-summary-name {
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-summary-empty {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+
+            /* ==============================================================
+               ARMADURAS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-armor-item {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-armor-item.active {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-diamond {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-armor-item.active
+            .training-v3-diamond {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-accent-strong) !important;
+            }
+
+
+            /* ==============================================================
+               ROLAGENS DO RESUMO
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-roll-summary-button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-only
+            .training-v3-roll-summary-bonus {
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+
+            /* ==============================================================
+               MODAL — MESMO LAYOUT, NOVAS CORES
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v3-backdrop {
+                background:
+                    rgba(8,8,8,.68) !important;
+
+                -webkit-backdrop-filter:
+                    blur(8px);
+
+                backdrop-filter:
+                    blur(8px);
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                box-shadow:
+                    var(--theme-modal-shadow, 0 22px 64px rgba(0,0,0,.24)) !important;
+
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-header {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-kicker {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-title {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-close {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-close:hover {
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-body {
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-editor-section {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-editor-title {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-editor-content {
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v3-editor-note {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+
+            /* ==============================================================
+               OPÇÕES / INPUTS / TAGS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v2-option {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-option:hover {
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-option.active {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 34%,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    var(--theme-accent-soft) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-check {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-option.active
+            .training-v2-check {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-accent-strong) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-input,
+            .character-sheet-theme[data-theme]
+            .training-v2-ability {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-input:focus,
+            .character-sheet-theme[data-theme]
+            .training-v2-ability:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 2px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 12%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-add,
+            .character-sheet-theme[data-theme]
+            .training-v3-done {
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-add:hover,
+            .character-sheet-theme[data-theme]
+            .training-v3-done:hover {
+                background:
+                    var(--theme-button-hover-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-tag {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-tag
+            button {
+                border-color:
+                    var(--theme-divider) !important;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-tag
+            button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    #991b1b !important;
+            }
+
+
+            /* ==============================================================
+               FERRAMENTAS / VEÍCULOS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v2-roll-list {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-roll-row,
+            .character-sheet-theme[data-theme]
+            .training-v2-roll-row:nth-child(even) {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-roll-name {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-roll {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-roll:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-remove {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v2-vehicles {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+            }
+
+
+            /* ==============================================================
+               FOOTER DO MODAL
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v3-modal-footer {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+
+            /* ==============================================================
+               RESULTADO DA ROLAGEM
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-toast {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                box-shadow:
+                    0 16px 42px rgba(0,0,0,.18),
+                    0 2px 8px rgba(0,0,0,.05) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-toast
+            [class*="text-[#53150f]"] {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-toast
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-toast
+            [class*="text-[#9a806d]"] {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .training-v5-theme-toast
+            button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
         </style>
     @endpush
 @endonce
@@ -1737,6 +2338,8 @@
         lastRoll: null,
         rollToastOpen: false,
         rollToastTimer: null,
+        rollingPreviewValue: null,
+        rollingPreviewTimer: null,
 
         armorOptions: [
             'Armaduras Leves',
@@ -2733,6 +3336,95 @@
             return '1d20';
         },
 
+        randomD20Value() {
+            return (
+                Math.floor(
+                    Math.random() * 20
+                ) + 1
+            );
+        },
+
+        get rollDisplayDie() {
+            if (this.rolling) {
+                return (
+                    this.rollingPreviewValue
+                    ?? '—'
+                );
+            }
+
+            return (
+                this.lastRoll?.die
+                ?? '—'
+            );
+        },
+
+        get rollDisplayTotal() {
+            if (
+                this.rolling
+                && this.lastRoll
+            ) {
+                return (
+                    (
+                        parseInt(
+                            this.rollingPreviewValue
+                        ) || 0
+                    )
+                    +
+                    (
+                        parseInt(
+                            this.lastRoll?.modifier
+                        ) || 0
+                    )
+                );
+            }
+
+            return (
+                this.lastRoll?.total
+                ?? '—'
+            );
+        },
+
+        startRollingPreview() {
+            this.stopRollingPreview();
+
+            this.rollingPreviewValue =
+                this.randomD20Value();
+
+            this.rollingPreviewTimer =
+                window.setInterval(
+                    () => {
+                        this.rollingPreviewValue =
+                            this.randomD20Value();
+                    },
+                    70
+                );
+        },
+
+        stopRollingPreview(finalValue = null) {
+            if (this.rollingPreviewTimer) {
+                window.clearInterval(
+                    this.rollingPreviewTimer
+                );
+            }
+
+            this.rollingPreviewTimer = null;
+
+            if (finalValue !== null) {
+                this.rollingPreviewValue =
+                    finalValue;
+            }
+        },
+
+        async wait(milliseconds) {
+            await new Promise(
+                resolve =>
+                    window.setTimeout(
+                        resolve,
+                        milliseconds
+                    )
+            );
+        },
+
         async roll(raw) {
             if (
                 this.rolling
@@ -2765,6 +3457,50 @@
                 exhaustionPenalty;
 
             this.rolling = true;
+
+            /*
+            | Abre o mesmo toast poligonal das Abilities imediatamente,
+            | para a pessoa enxergar o d20 rolando antes do resultado.
+            */
+            this.lastRoll = {
+                label:
+                    entry.name,
+
+                expression,
+
+                sides:
+                    20,
+
+                baseModifier:
+                    baseBonus,
+
+                exhaustionPenalty,
+
+                modifier:
+                    bonus,
+
+                die:
+                    null,
+
+                total:
+                    null,
+
+                formatted:
+                    null,
+            };
+
+            this.rollToastOpen = true;
+
+            if (this.rollToastTimer) {
+                window.clearTimeout(
+                    this.rollToastTimer
+                );
+            }
+
+            this.startRollingPreview();
+
+            const startedAt =
+                Date.now();
 
             let total = null;
             let die = null;
@@ -2825,6 +3561,18 @@
                         total - bonus;
                 }
 
+                if (
+                    die === null
+                    || die < 1
+                    || die > 20
+                ) {
+                    die =
+                        this.randomD20Value();
+
+                    total =
+                        die + bonus;
+                }
+
             } catch (error) {
                 console.error(
                     'Erro ao rolar dado:',
@@ -2832,22 +3580,44 @@
                 );
 
                 die =
-                    Math.floor(
-                        Math.random() * 20
-                    ) + 1;
+                    this.randomD20Value();
 
                 total =
                     die + bonus;
-
-            } finally {
-                this.rolling = false;
             }
+
+            const elapsed =
+                Date.now()
+                -
+                startedAt;
+
+            const minimumAnimation =
+                1350;
+
+            if (
+                elapsed
+                <
+                minimumAnimation
+            ) {
+                await this.wait(
+                    minimumAnimation
+                    -
+                    elapsed
+                );
+            }
+
+            this.stopRollingPreview(
+                die
+            );
 
             this.lastRoll = {
                 label:
                     entry.name,
 
                 expression,
+
+                sides:
+                    20,
 
                 baseModifier:
                     baseBonus,
@@ -2864,7 +3634,7 @@
                 formatted,
             };
 
-            this.rollToastOpen = true;
+            this.rolling = false;
 
             window.dispatchEvent(
                 new CustomEvent(
@@ -2876,19 +3646,13 @@
                 )
             );
 
-            if (this.rollToastTimer) {
-                clearTimeout(
-                    this.rollToastTimer
-                );
-            }
-
             this.rollToastTimer =
-                setTimeout(
+                window.setTimeout(
                     () => {
                         this.rollToastOpen =
                             false;
                     },
-                    4200
+                    5600
                 );
         },
     }"
@@ -2905,7 +3669,7 @@
         }
     "
 
-    class="training-v2 training-v3 training-v4"
+    class="training-v2 training-v3 training-v4 training-v5-theme-only"
 >
 
     {{-- ================================================================
@@ -3178,7 +3942,13 @@
         <div
             x-show="editorOpen"
             x-cloak
+
+            data-theme="{{ $trainingTheme }}"
+
             class="
+                character-sheet-theme
+                training-v5-theme-modal-layer
+
                 fixed
                 inset-0
                 z-[245]
@@ -3773,20 +4543,26 @@
 
 
     {{-- ============================================================
-         RESULTADO DA ROLAGEM — PADRÃO GLOBAL
+         RESULTADO DA ROLAGEM — D20 POLIGONAL
+         Mesmo padrão visual das Abilities.
     ============================================================= --}}
     <template x-teleport="body">
         <div
             x-show="rollToastOpen && lastRoll"
             x-cloak
             x-transition
+
+            data-theme="{{ $trainingTheme }}"
+
             class="
+                character-sheet-theme
+                training-v5-theme-toast
                 character-roll-toast
                 fixed
                 bottom-5
                 left-1/2
                 z-[190]
-                w-[min(92vw,340px)]
+                w-[min(94vw,390px)]
                 -translate-x-1/2
                 overflow-hidden
                 rounded-xl
@@ -3795,102 +4571,176 @@
                 bg-[#faf8f2]
             "
         >
-            <div class="flex items-center gap-3 px-3.5 py-3">
+            <div
+                class="
+                    flex
+                    items-center
+                    gap-3
+                    px-4
+                    pb-3
+                    pt-3.5
+                "
+            >
+                {{-- D20 oficial do Spellbound --}}
                 <div
                     class="
                         flex
-                        h-11
-                        w-11
+                        h-[74px]
+                        w-[74px]
                         shrink-0
                         items-center
                         justify-center
-                        rounded-lg
-                        bg-[#53150f]
-                        font-serif
-                        text-xl
-                        font-black
-                        text-[#f4f1e8]
                     "
-                    x-text="lastRoll?.total ?? '—'"
-                ></div>
-
-                <div class="min-w-0 flex-1">
-                    <p
-                        class="
-                            truncate
-                            text-[10px]
-                            font-black
-                            text-[#53150f]
-                        "
-                        x-text="lastRoll?.label ?? ''"
-                    ></p>
-
-                    <p
-                        class="
-                            mt-0.5
-                            text-[8px]
-                            font-bold
-                            text-[#8c6239]
-                        "
+                >
+                    <x-dice.polyhedral
+                        :sides="20"
+                        :size="70"
                     >
-                        <span x-text="lastRoll?.die ?? '—'"></span>
-                        <span> no d20</span>
-
-                        <span x-show="lastRoll?.baseModifier !== 0">
-                            ·
-                            <span
-                                x-text="
-                                    signed(
-                                        lastRoll?.baseModifier
-                                        ?? 0
-                                    )
-                                "
-                            ></span>
-                            modificador
-                        </span>
-
                         <span
-                            x-show="
-                                (lastRoll?.exhaustionPenalty ?? 0) > 0
-                            "
-                            x-cloak
-                        >
-                            ·
-                            <span
-                                class="
-                                    font-black
-                                    text-[#8b1e16]
-                                "
-                                x-text="
-                                    '-' + (
-                                        lastRoll?.exhaustionPenalty
-                                        ?? 0
-                                    )
-                                "
-                            ></span>
-                            exaustão
-                        </span>
-                    </p>
+                            class="tabular-nums"
+                            x-text="rollDisplayDie"
+                        ></span>
+                    </x-dice.polyhedral>
                 </div>
 
-                <button
-                    type="button"
-                    @click="rollToastOpen = false"
-                    class="
-                        flex
-                        h-7
-                        w-7
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-md
-                        text-[#8c6239]
-                        hover:bg-[#efe9dc]
-                    "
-                    title="Fechar"
-                >
-                    ×
-                </button>
+                <div class="min-w-0 flex-1">
+                    <div
+                        class="
+                            flex
+                            items-start
+                            justify-between
+                            gap-2
+                        "
+                    >
+                        <div class="min-w-0">
+                            <p
+                                class="
+                                    truncate
+                                    text-[11px]
+                                    font-black
+                                    text-[#53150f]
+                                "
+                                x-text="lastRoll?.label ?? ''"
+                            ></p>
+
+                            <p
+                                class="
+                                    mt-0.5
+                                    text-[9px]
+                                    font-bold
+                                    text-[#8c6239]
+                                "
+                            >
+                                <span
+                                    x-show="rolling"
+                                >
+                                    Rolando d20...
+                                </span>
+
+                                <span
+                                    x-show="!rolling"
+                                    x-cloak
+                                >
+                                    <span
+                                        x-text="lastRoll?.die ?? '—'"
+                                    ></span>
+                                    <span> no d20</span>
+                                </span>
+
+                                <span
+                                    x-show="lastRoll?.baseModifier !== 0"
+                                >
+                                    ·
+                                    <span
+                                        x-text="
+                                            signed(
+                                                lastRoll?.baseModifier
+                                                ?? 0
+                                            )
+                                        "
+                                    ></span>
+                                    modificador
+                                </span>
+
+                                <span
+                                    x-show="
+                                        (lastRoll?.exhaustionPenalty ?? 0) > 0
+                                    "
+                                    x-cloak
+                                >
+                                    ·
+                                    <span
+                                        class="
+                                            font-black
+                                            text-[#8b1e16]
+                                        "
+                                        x-text="
+                                            '-'
+                                            +
+                                            (
+                                                lastRoll?.exhaustionPenalty
+                                                ?? 0
+                                            )
+                                        "
+                                    ></span>
+                                    exaustão
+                                </span>
+                            </p>
+                        </div>
+
+                        <button
+                            type="button"
+                            @click="rollToastOpen = false"
+                            class="
+                                flex
+                                h-7
+                                w-7
+                                shrink-0
+                                items-center
+                                justify-center
+                                rounded-md
+                                text-[#8c6239]
+                                transition
+                                hover:bg-[#efe9dc]
+                            "
+                            title="Fechar"
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div
+                        class="
+                            mt-2
+                            flex
+                            items-baseline
+                            gap-2
+                        "
+                    >
+                        <span
+                            class="
+                                text-[7px]
+                                font-black
+                                uppercase
+                                tracking-[0.11em]
+                                text-[#9a806d]
+                            "
+                        >
+                            Total
+                        </span>
+
+                        <strong
+                            class="
+                                font-serif
+                                text-[25px]
+                                font-black
+                                leading-none
+                                text-[#53150f]
+                            "
+                            x-text="rollDisplayTotal"
+                        ></strong>
+                    </div>
+                </div>
             </div>
         </div>
     </template>

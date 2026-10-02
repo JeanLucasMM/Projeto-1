@@ -35,7 +35,7 @@
                 </span>
             </a>
 
-            {{-- Item: Cofre / NPCs --}}
+            {{-- Item: NPCs --}}
             @php $active = request()->routeIs('npcs.*'); @endphp
             <a href="{{ route('npcs.index') }}"
                class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
@@ -43,7 +43,21 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                 </svg>
                 <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Cofre
+                    NPCs
+                </span>
+            </a>
+
+            {{-- Item: Vault de Itens --}}
+            @php $active = request()->routeIs('master.vault.*'); @endphp
+            <a href="{{ route('master.vault.items.index') }}"
+               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
+                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <rect x="4" y="5" width="16" height="14" rx="2" />
+                    <path stroke-linecap="round" d="M8 9h8M8 13h5" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.5v4m-2-2h4" />
+                </svg>
+                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
+                    Vault de Itens
                 </span>
             </a>
 

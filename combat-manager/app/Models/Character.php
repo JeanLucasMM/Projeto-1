@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Builder;
 
 class Character extends Model
 {
@@ -21,6 +21,8 @@ class Character extends Model
         'proficiency_bonus',
         'heroic_inspiration',
         'image_path',
+        'sheet_settings',
+        'is_transformation_form',
     ];
 
     protected $casts = [
@@ -29,6 +31,7 @@ class Character extends Model
         'proficiency_bonus' => 'integer',
         'heroic_inspiration' => 'boolean',
         'sheet_settings' => 'array',
+        'is_transformation_form' => 'boolean',
     ];
 
     /*
@@ -40,28 +43,6 @@ class Character extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Campanhas
-    |--------------------------------------------------------------------------
-    |
-    | Uma ficha somente fica disponível para um Mestre quando existe
-    | explicitamente em campaign_characters.
-    |
-    */
-
-    public function campaigns(): BelongsToMany
-    {
-        return $this->belongsToMany(
-            Campaign::class,
-            'campaign_characters'
-        )
-            ->withPivot([
-                'is_active',
-            ])
-            ->withTimestamps();
     }
 
     /*
@@ -193,6 +174,125 @@ class Character extends Model
 
     /*
     |--------------------------------------------------------------------------
+    | Carteira
+    |--------------------------------------------------------------------------
+    */
+
+    public function wallet(): HasOne
+    {
+        return $this->hasOne(CharacterWallet::class);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Ataques Personalizados
+    |--------------------------------------------------------------------------
+    |
+    | Esta relação contém apenas ataques criados pelo usuário.
+    |
+    | Armas do inventário continuam em character_items.
+    | Ataque desarmado será gerado virtualmente pelo Attack Builder.
+    |
+    */
+
+    public function attacks(): HasMany
+    {
+        return $this
+            ->hasMany(CharacterAttack::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Transformações
+    |--------------------------------------------------------------------------
+    */
+
+    public function transformations(): HasMany
+    {
+        return $this
+            ->hasMany(
+                CharacterTransformation::class
+            )
+            ->orderBy('sort_order')
+            ->orderBy('id');
+    }
+
+
+    public function transformationState(): HasOne
+    {
+        return $this->hasOne(
+            CharacterTransformationState::class
+        );
+    }
+
+
+    /*
+     * Quando este Character for uma ficha mecânica auxiliar,
+     * esta relação aponta para a definição que o utiliza.
+     */
+    public function transformationDefinition(): HasOne
+    {
+        return $this->hasOne(
+            CharacterTransformation::class,
+            'form_character_id'
+        );
+    }
+
+
+    public function scopeStandalone(
+        Builder $query
+    ): Builder {
+        return $query->where(
+            'is_transformation_form',
+            false
+        );
+    }
+
+
+    public function transformationsEnabled(): bool
+    {
+        return (bool) data_get(
+            $this->sheet_settings,
+            'optional_rules.transformations',
+            false
+        );
+    }
+
+
+    public function hasActiveTransformation(): bool
+    {
+        $state =
+            $this->relationLoaded(
+                'transformationState'
+            )
+                ? $this->transformationState
+                : $this
+                    ->transformationState()
+                    ->first();
+
+        return (
+            $state !== null
+            && $state->hasActiveTransformation()
+        );
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Dados de Vida
+    |--------------------------------------------------------------------------
+    |
+    | Neste momento os dados de vida estão armazenados como JSON em
+    | character_combat.hit_dice.
+    |
+    | Portanto não existe relação hitDice().
+    |
+    */
+
+    /*
+    |--------------------------------------------------------------------------
     | Nível total das classes
     |--------------------------------------------------------------------------
     */
@@ -220,8 +320,8 @@ class Character extends Model
 
         return max(
             0,
-            (int) $this->combat->max_hp
-            + (int) $this->combat->temporary_max_hp
+            (int) $this->combat->max_hp +
+            (int) $this->combat->temporary_max_hp
         );
     }
 
@@ -285,35 +385,17 @@ class Character extends Model
 
         return $this->classes
             ->sortBy('sort_order')
-            ->map(function (CharacterClass $class) {
-                $label = $class->class;
+            ->map(
+                function (CharacterClass $class) {
+                    $label = $class->class;
 
-                if ($class->level > 0) {
-                    $label .= ' ' . $class->level;
+                    if ($class->level > 0) {
+                        $label .= ' ' . $class->level;
+                    }
+
+                    return $label;
                 }
-
-                return $label;
-            })
+            )
             ->implode(' / ');
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Ataques
-    |--------------------------------------------------------------------------
-    */
-
-    public function attacks(): HasMany
-    {
-        return $this->hasMany(
-            CharacterAttack::class
-        )->orderBy('sort_order');
-    }
-
-    public function wallet(): HasOne
-    {
-        return $this->hasOne(
-            CharacterWallet::class
-        );
     }
 }

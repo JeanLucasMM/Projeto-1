@@ -9,7 +9,278 @@
         'wis' => 'SAB',
         'cha' => 'CAR',
     ];
+
+    /*
+     * O modal é teleportado para <body>, então precisa receber o tema
+     * novamente para continuar consumindo os mesmos tokens da ficha.
+     */
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme = strtolower(trim((string) data_get(
+        $sheetSettings,
+        'appearance.theme',
+        'spellbound'
+    )));
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
+
 @endphp
+
+@once
+    @push('styles')
+        <style>
+            /* ==========================================================
+               CLASSE DE ARMADURA — CONTRATO VISUAL UNIFICADO
+            ========================================================== */
+
+            .character-sheet-theme[data-theme] .character-armor-trigger {
+                color: var(--theme-text-primary);
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-trigger-shape {
+                fill: var(--theme-surface-card) !important;
+                stroke: var(--theme-border-strong) !important;
+                transition: fill .16s ease, stroke .16s ease, filter .16s ease;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-trigger-detail {
+                stroke: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-trigger.is-equipped
+            .character-armor-trigger-shape {
+                fill: var(--theme-accent-softer) !important;
+                stroke: var(--theme-accent) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-trigger:hover
+            .character-armor-trigger-shape {
+                stroke: var(--theme-accent) !important;
+                filter: drop-shadow(0 3px 6px color-mix(in srgb, var(--theme-accent-deep) 12%, transparent));
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-trigger
+            [class*="text-[#8c6239]"] {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-trigger
+            [class*="text-[#53150f]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal {
+                color: var(--theme-text-primary);
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-header,
+            .character-sheet-theme[data-theme] .character-armor-modal-footer {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-title {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-label {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-copy {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-body {
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal section {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+                box-shadow: var(--theme-module-shadow) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal section > button:first-child {
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal section > button:first-child:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal input {
+                border-color: var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal input::placeholder {
+                color: var(--theme-input-placeholder) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal input:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-input-focus) 14%, transparent) !important;
+            }
+
+            /* Tipografia: texto neutro; tema como acento. */
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="text-[#6b1d14]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="text-[#7d604d]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="text-[#6f4f38]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            /* Bordas e superfícies legadas do partial. */
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="border-[#d6c09f]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="border-[#d8c7ab]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="border-[#c9ae8a]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="border-[#cdbb9f]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="border-[#b9966c]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="border-[#c5a783]"] {
+                border-color: var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#fffdfa]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#fffaf2]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#fffaf6]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#f5efe6]"] {
+                background: var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#f0e2d2]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#f3eadf]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#f8efe3]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#f7eee2]"] {
+                background: var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#8c6239]"],
+            .character-sheet-theme[data-theme] .character-armor-modal [class*="bg-[#6b1d14]"] {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-result {
+                border: 1px solid color-mix(in srgb, var(--theme-accent-strong) 45%, transparent);
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-close {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-close:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-primary {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+                box-shadow: var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-primary:hover {
+                background: var(--theme-button-hover-background) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-secondary {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-secondary:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-ability-choice {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-ability-choice:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-ability-choice.is-active {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-equipment-action {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-equipment-action.is-available {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            /* Menos informação concorrendo pela atenção. */
+            .character-armor-modal-header-summary,
+            .character-armor-modal-base-caption,
+            .character-armor-modal-base-extras,
+            .character-armor-modal-equipment-status,
+            .character-armor-modal-equipment-count,
+            .character-armor-modal-extras-help,
+            .character-armor-modal-footer-note {
+                display: none !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-armor-modal-footer {
+                justify-content: flex-end !important;
+                gap: 8px !important;
+                box-shadow: 0 -8px 22px color-mix(in srgb, var(--theme-accent-deep) 4%, transparent);
+            }
+
+            @media (max-width: 640px) {
+                .character-sheet-theme[data-theme] .character-armor-modal {
+                    max-height: 94dvh !important;
+                    border-radius: 15px !important;
+                }
+
+                .character-sheet-theme[data-theme] .character-armor-modal-header,
+                .character-sheet-theme[data-theme] .character-armor-modal-footer,
+                .character-sheet-theme[data-theme] .character-armor-modal-body {
+                    padding-inline: 15px !important;
+                }
+            }
+        </style>
+    @endpush
+@endonce
 
 <div
     x-data="{
@@ -17,6 +288,11 @@
         armorDrawerOpen: false,
         shieldDrawerOpen: false,
     }"
+    @keydown.escape.window="
+        if (armorOpen) {
+            armorOpen = false
+        }
+    "
     class="relative flex justify-center"
 >
     {{-- ============================================================
@@ -26,7 +302,8 @@
         <button
             type="button"
             @click="openArmor()"
-            class="group relative h-24 w-20 focus:outline-none"
+            class="character-armor-trigger group relative h-24 w-20 focus:outline-none"
+            :class="{ 'is-equipped': !!activeShieldItem }"
             title="Configurar Classe de Armadura"
         >
             <svg
@@ -36,6 +313,7 @@
                 fill="none"
             >
                 <path
+                    class="character-armor-trigger-shape"
                     d="
                         M40 2
                         L73 13
@@ -59,6 +337,7 @@
                 />
 
                 <path
+                    class="character-armor-trigger-detail"
                     d="
                         M40 8
                         L66 17
@@ -99,54 +378,51 @@
         <div
             x-show="armorOpen"
             x-cloak
-            class="fixed inset-0 z-[110] flex items-center justify-center p-4"
+
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                fixed inset-0 z-[180]
+                flex items-center justify-center p-4
+            "
         >
             <div
-                x-show="armorOpen"
-                x-transition.opacity
                 @click="armorOpen = false"
-                class="
-                    absolute
-                    inset-0
-
-                    bg-black/70
-                    backdrop-blur-[2px]
-                "
-
-                style="
-                    background-color:
-                        rgba(12, 8, 7, 0.72);
-                "
+                class="character-theme-modal-backdrop absolute inset-0"
             ></div>
 
             <div
                 x-show="armorOpen"
-                x-transition:enter="transition ease-out duration-180"
-                x-transition:enter-start="opacity-0 translate-y-2 scale-[.985]"
-                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
-                x-transition:leave="transition ease-in duration-120"
-                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
-                x-transition:leave-end="opacity-0 translate-y-2 scale-[.985]"
+
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
                 class="
-                    relative
-                    z-10
-                    flex
-                    max-h-[88vh]
-                    w-full
-                    max-w-[720px]
-                    flex-col
-                    overflow-hidden
-                    rounded-2xl
-                    border
-                    border-[#b9966c]/75
-                    bg-[#fbf8f1]
-                    shadow-[0_30px_90px_rgba(27,18,14,.38)]
+                    character-theme-modal
+                    character-armor-modal
+                    relative z-10 flex
+                    max-h-[92dvh] w-full max-w-[760px]
+                    flex-col overflow-hidden rounded-2xl border
                 "
             >
                 {{-- HEADER --}}
                 <header
                     class="
+                        character-theme-modal-header
+                        character-armor-modal-header
                         flex
                         shrink-0
                         items-center
@@ -178,6 +454,8 @@
                                     text-xl
                                     font-black
 
+                                    character-theme-modal-title
+                                    character-armor-modal-title
                                     text-[#53150f]
                                 "
                             >
@@ -193,6 +471,7 @@
                                     uppercase
                                     tracking-[0.10em]
 
+                                    character-armor-modal-label
                                     text-[#8c6239]/75
                                 "
 
@@ -203,6 +482,8 @@
 
                         <div
                             class="
+                                character-armor-modal-header-summary
+
                                 mt-2
 
                                 flex
@@ -351,7 +632,7 @@
                         <button
                             type="button"
                             @click="armorOpen = false"
-                            class="flex h-9 w-9 items-center justify-center rounded-lg border border-transparent text-[#8c6239] transition hover:border-[#a0774d]/30 hover:bg-[#fffdf8]/55 hover:text-[#53150f]"
+                            class="character-armor-modal-close flex h-9 w-9 items-center justify-center rounded-lg transition"
                             title="Fechar"
                         >
                             ×
@@ -362,6 +643,7 @@
                 {{-- BODY --}}
                 <div
                     class="
+                        character-armor-modal-body
                         min-h-0
                         flex-1
                         space-y-3
@@ -461,6 +743,8 @@
 
                                     <span
                                         class="
+                                            character-armor-modal-base-caption
+
                                             text-[9px]
                                             font-semibold
 
@@ -596,6 +880,8 @@
 
                                     <strong
                                         class="
+                                            character-armor-modal-result
+
                                             inline-flex
                                             h-7
                                             min-w-8
@@ -630,6 +916,7 @@
                                     >
                                         <div
                                             class="
+                                                character-armor-modal-base-extras
                                                 inline-flex
                                                 items-center
                                                 gap-1.5
@@ -743,7 +1030,12 @@
                             "
                             x-cloak
 
-                            x-transition.opacity.duration.140ms
+                            x-transition:enter="transition ease-out duration-160"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-120"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
 
                             class="
                                 border-t
@@ -871,6 +1163,8 @@
                                         "
 
                                         class="
+                                            character-armor-ability-choice
+
                                             flex
                                             min-h-9
                                             items-center
@@ -888,11 +1182,9 @@
                                             transition
                                         "
 
-                                        :class="
-                                            armorMode.includes('{{ $ability }}')
-                                                ? 'border-[#9f7154]/65 bg-[#f0e2d2] text-[#6b1d14] shadow-[inset_0_0_0_1px_rgba(255,255,255,.38)]'
-                                                : 'border-[#d8c7ab]/85 bg-[#fffaf6] text-[#8c6239] hover:border-[#c9ae8a] hover:bg-[#f3eadf]'
-                                        "
+                                        :class="{
+                                            'is-active': armorMode.includes('{{ $ability }}')
+                                        }"
                                     >
 
                                         <span>
@@ -982,7 +1274,7 @@
                                             text-[#53150f]
                                         "
                                     >
-                                        Armaduras
+                                        Armadura
                                     </strong>
 
                                     <span
@@ -990,6 +1282,8 @@
                                         x-cloak
 
                                         class="
+                                            character-armor-modal-equipment-status
+
                                             inline-flex
                                             items-center
                                             gap-1
@@ -1052,6 +1346,8 @@
                             >
                                 <span
                                     class="
+                                        character-armor-modal-equipment-count
+
                                         min-w-6
 
                                         text-center
@@ -1113,7 +1409,12 @@
                         <div
                             x-show="armorDrawerOpen"
                             x-cloak
-                            x-transition.opacity.duration.120ms
+                            x-transition:enter="transition ease-out duration-160"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-120"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
                         >
 
                         <div
@@ -1135,6 +1436,8 @@
                             >
                                 <div
                                     class="
+                                        character-armor-equipment-row
+
                                         flex
                                         items-center
                                         gap-3
@@ -1204,6 +1507,8 @@
                                             @click="toggleArmorItem(item)"
                                             :disabled="armorEquipmentBusyId !== null"
                                             class="
+                                                character-armor-equipment-action
+
                                                 mt-1
                                                 rounded-md
                                                 border
@@ -1218,11 +1523,9 @@
                                                 disabled:cursor-wait
                                                 disabled:opacity-40
                                             "
-                                            :class="
-                                                item.equipped
-                                                    ? 'border-[#cdbb9f] bg-[#fffaf2] text-[#8c6239] hover:bg-[#f3eadf]'
-                                                    : 'border-[#8c6239] bg-[#8c6239] text-white hover:bg-[#755237]'
-                                            "
+                                            :class="{
+                                                'is-available': !item.equipped
+                                            }"
                                             x-text="
                                                 item.equipped
                                                     ? 'Guardar'
@@ -1289,7 +1592,7 @@
                                             text-[#53150f]
                                         "
                                     >
-                                        Escudos
+                                        Escudo
                                     </strong>
 
                                     <span
@@ -1297,6 +1600,8 @@
                                         x-cloak
 
                                         class="
+                                            character-armor-modal-equipment-status
+
                                             inline-flex
                                             items-center
                                             gap-1
@@ -1359,6 +1664,8 @@
                             >
                                 <span
                                     class="
+                                        character-armor-modal-equipment-count
+
                                         min-w-6
 
                                         text-center
@@ -1420,7 +1727,12 @@
                         <div
                             x-show="shieldDrawerOpen"
                             x-cloak
-                            x-transition.opacity.duration.120ms
+                            x-transition:enter="transition ease-out duration-160"
+                            x-transition:enter-start="opacity-0 -translate-y-1"
+                            x-transition:enter-end="opacity-100 translate-y-0"
+                            x-transition:leave="transition ease-in duration-120"
+                            x-transition:leave-start="opacity-100 translate-y-0"
+                            x-transition:leave-end="opacity-0 -translate-y-1"
                         >
 
                         <div
@@ -1442,6 +1754,8 @@
                             >
                                 <div
                                     class="
+                                        character-armor-equipment-row
+
                                         flex
                                         items-center
                                         gap-3
@@ -1511,6 +1825,8 @@
                                             @click="toggleShieldItem(item)"
                                             :disabled="armorEquipmentBusyId !== null"
                                             class="
+                                                character-armor-equipment-action
+
                                                 mt-1
                                                 rounded-md
                                                 border
@@ -1525,11 +1841,9 @@
                                                 disabled:cursor-wait
                                                 disabled:opacity-40
                                             "
-                                            :class="
-                                                item.equipped
-                                                    ? 'border-[#cdbb9f] bg-[#fffaf2] text-[#8c6239] hover:bg-[#f3eadf]'
-                                                    : 'border-[#8c6239] bg-[#8c6239] text-white hover:bg-[#755237]'
-                                            "
+                                            :class="{
+                                                'is-available': !item.equipped
+                                            }"
                                             x-text="
                                                 item.equipped
                                                     ? 'Guardar'
@@ -1560,10 +1874,10 @@
                         <div class="flex items-center justify-between gap-3">
                             <div>
                                 <strong class="font-serif text-[15px] text-[#53150f]">
-                                    Bônus Extras
+                                    Ajustes extras
                                 </strong>
 
-                                <p class="mt-0.5 text-[11px] text-[#8c6239]">
+                                <p class="character-armor-modal-extras-help mt-0.5 text-[11px] text-[#8c6239]">
                                     Efeitos temporários, habilidades ou ajustes que não pertencem ao item.
                                 </p>
                             </div>
@@ -1571,7 +1885,7 @@
                             <button
                                 type="button"
                                 @click="addArmorBonus()"
-                                class="rounded-md border border-[#c5a783] bg-[#fffaf2] px-2.5 py-1.5 text-[10px] font-black text-[#6b1d14] transition hover:bg-[#eadbc8]"
+                                class="character-armor-modal-secondary rounded-md border px-2.5 py-1.5 text-[10px] font-black transition"
                             >
                                 + Adicionar
                             </button>
@@ -1621,6 +1935,8 @@
                 {{-- FOOTER --}}
                 <footer
                     class="
+                        character-theme-modal-header
+                        character-armor-modal-footer
                         flex
                         shrink-0
                         items-center
@@ -1635,6 +1951,8 @@
                 >
                     <span
                         class="
+                            character-armor-modal-footer-note
+
                             text-[10px]
                             font-semibold
 
@@ -1644,6 +1962,29 @@
                         Equipamentos são aplicados na hora. Base e bônus precisam ser salvos.
                     </span>
 
+
+                    <button
+                        type="button"
+                        @click="armorOpen = false"
+                        class="
+                            character-armor-modal-secondary
+                            inline-flex
+                            min-h-10
+                            items-center
+                            justify-center
+                            rounded-xl
+                            border
+                            px-4
+                            text-[10.5px]
+                            font-black
+                            uppercase
+                            tracking-[0.055em]
+                            transition
+                        "
+                    >
+                        Cancelar
+                    </button>
+
                     <button
                         type="button"
 
@@ -1652,6 +1993,8 @@
                         :disabled="savingArmor"
 
                         class="
+                            character-armor-modal-primary
+
                             inline-flex
                             min-w-[132px]
                             items-center

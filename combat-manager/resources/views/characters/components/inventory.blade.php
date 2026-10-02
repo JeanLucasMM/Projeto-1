@@ -195,6 +195,49 @@
             'curse_description' => $curseVisible ? $item->curse_description : null,
         ];
     })->values();
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA ATUAL
+    |--------------------------------------------------------------------------
+    |
+    | O Inventário possui vários painéis teleportados para o body. Reaplicamos
+    | o tema em cada portal para que todos consumam o mesmo contrato visual da
+    | ficha, sem voltar para o bege/vinho fixo.
+    |
+    */
+
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme =
+        strtolower(
+            trim(
+                (string) data_get(
+                    $sheetSettings,
+                    'appearance.theme',
+                    'spellbound'
+                )
+            )
+        );
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
 @endphp
 
 @once
@@ -4837,6 +4880,554 @@
                 color: #8c6239;
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTÁRIO V39 — CARDS MAIORES E MAIS LEGÍVEIS
+            |--------------------------------------------------------------------------
+            |
+            | A V26 tinha compactado demais os cards do inventário.
+            | Aqui voltamos a uma leitura confortável e com mais cara de módulo
+            | da ficha: imagem grande, título forte, subtítulo legível e área
+            | de habilidades menos apertada.
+            |
+            */
+
+
+            /* ==============================================================
+               GRID
+            ============================================================== */
+
+            .inventory-v39
+            .inventory-v39-items-grid {
+                grid-template-columns:
+                    repeat(
+                        auto-fill,
+                        minmax(220px, 1fr)
+                    ) !important;
+
+                gap:
+                    14px !important;
+
+                padding:
+                    12px !important;
+            }
+
+            @media (max-width: 760px) {
+                .inventory-v39
+                .inventory-v39-items-grid {
+                    grid-template-columns:
+                        repeat(
+                            auto-fill,
+                            minmax(200px, 1fr)
+                        ) !important;
+                }
+            }
+
+            @media (max-width: 540px) {
+                .inventory-v39
+                .inventory-v39-items-grid {
+                    grid-template-columns:
+                        1fr !important;
+                }
+            }
+
+
+            /* ==============================================================
+               CARD BASE
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-item-card {
+                display:
+                    flex;
+
+                min-height:
+                    338px;
+
+                flex-direction:
+                    column;
+
+                overflow:
+                    hidden;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    18px;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                box-shadow:
+                    0 4px 12px rgba(0,0,0,.04) !important;
+
+                transition:
+                    transform .16s ease,
+                    border-color .16s ease,
+                    box-shadow .16s ease,
+                    background .16s ease;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-item-card::before {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-border-strong) 85%,
+                        white
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-item-card.magical::before {
+                background:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-item-card:hover,
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-item-card:focus-within {
+                transform:
+                    translateY(-2px) !important;
+
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                box-shadow:
+                    0 10px 24px rgba(0,0,0,.07) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-main {
+                display:
+                    flex !important;
+
+                min-height:
+                    0;
+
+                flex:
+                    1;
+
+                flex-direction:
+                    column;
+
+                gap:
+                    12px;
+
+                padding:
+                    12px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-thumb {
+                width:
+                    100% !important;
+
+                height:
+                    152px !important;
+
+                border:
+                    1px solid
+                    var(--theme-border-soft) !important;
+
+                border-radius:
+                    14px !important;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        var(--theme-surface-inset) 0%,
+                        color-mix(
+                            in srgb,
+                            var(--theme-surface-inset) 88%,
+                            var(--theme-band-background)
+                        ) 100%
+                    ) !important;
+
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.45);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-thumb
+            img {
+                width:
+                    100%;
+
+                height:
+                    100%;
+
+                object-fit:
+                    contain;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-thumb
+            .inventory-v27-equipped-badge {
+                top:
+                    10px !important;
+
+                right:
+                    10px !important;
+
+                min-height:
+                    24px;
+
+                padding:
+                    0 9px;
+
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 16%,
+                        var(--theme-border)
+                    ) !important;
+
+                border-radius:
+                    999px;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-raised) 85%,
+                        white
+                    ) !important;
+
+                font-size:
+                    8px;
+
+                letter-spacing:
+                    .08em;
+
+                text-transform:
+                    uppercase;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-copy {
+                display:
+                    flex;
+
+                flex:
+                    1;
+
+                flex-direction:
+                    column;
+
+                gap:
+                    7px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-copy
+            h4 {
+                overflow:
+                    hidden;
+
+                display:
+                    -webkit-box;
+
+                min-height:
+                    44px;
+
+                -webkit-line-clamp:
+                    2;
+
+                -webkit-box-orient:
+                    vertical;
+
+                font-family:
+                    Georgia,
+                    "Times New Roman",
+                    serif;
+
+                font-size:
+                    17px !important;
+
+                font-weight:
+                    900;
+
+                line-height:
+                    1.18 !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-copy
+            em {
+                overflow:
+                    hidden;
+
+                display:
+                    -webkit-box;
+
+                min-height:
+                    30px;
+
+                -webkit-line-clamp:
+                    2;
+
+                -webkit-box-orient:
+                    vertical;
+
+                margin-top:
+                    0 !important;
+
+                font-size:
+                    12px !important;
+
+                font-weight:
+                    600;
+
+                line-height:
+                    1.25 !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-card-main
+            > .hidden.shrink-0.self-center.text-\[\#8c6239\]\/35 {
+                display:
+                    none !important;
+            }
+
+
+            /* ==============================================================
+               FEATURE STRIP
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-feature-strip {
+                min-height:
+                    106px;
+
+                margin-top:
+                    auto;
+
+                border-top:
+                    1px solid
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+
+                padding:
+                    9px 10px 10px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-head {
+                min-height:
+                    22px;
+
+                margin-bottom:
+                    7px;
+
+                font-size:
+                    8.5px !important;
+
+                letter-spacing:
+                    .12em;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-count {
+                min-width:
+                    20px;
+
+                height:
+                    20px;
+
+                font-size:
+                    8px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-list {
+                gap:
+                    6px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-row {
+                min-height:
+                    29px;
+
+                gap:
+                    8px;
+
+                border:
+                    1px solid
+                    var(--theme-border-soft) !important;
+
+                border-radius:
+                    10px;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                padding:
+                    4px 6px 4px 8px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-name {
+                font-size:
+                    11px !important;
+
+                line-height:
+                    1.15 !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-passive {
+                min-height:
+                    19px;
+
+                padding:
+                    0 7px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                font-size:
+                    7px !important;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-row
+            .inventory-v11-mini-tracker {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-row
+            .inventory-v11-mini-tracker button {
+                width:
+                    20px;
+
+                height:
+                    20px;
+
+                font-size:
+                    11px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-row
+            .inventory-v11-mini-tracker strong {
+                min-width:
+                    34px;
+
+                font-size:
+                    9px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-recovery {
+                max-width:
+                    none;
+
+                font-size:
+                    8px;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-more {
+                min-height:
+                    18px;
+
+                margin-top:
+                    2px;
+
+                font-size:
+                    8px !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v22-card-feature-more
+            span:last-child {
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+
+            /* ==============================================================
+               FALLBACK — SEM HABILIDADES
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v39
+            .inventory-v39-item-card
+            .inventory-v39-feature-strip:empty {
+                display:
+                    none;
+            }
+
             /*
             |--------------------------------------------------------------------------
             | POLAROIDS MAIS COMPACTOS
@@ -6794,6 +7385,4037 @@
                 }
             }
 
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTÁRIO V35 — SISTEMA VISUAL UNIFICADO
+            |--------------------------------------------------------------------------
+            |
+            | Direção:
+            | - papel neutro;
+            | - cor do tema apenas como acento;
+            | - tipografia escura e legível;
+            | - modais com o mesmo contrato global;
+            | - menos caixas decorativas;
+            | - hierarquia editorial;
+            | - estado mecânico continua semântico.
+            |
+            */
+
+
+            /* ==============================================================
+               BASE
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35 {
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            [class*="text-[#6b1d14]"] {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            [class*="text-[#92745c]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            [class*="text-[#9a795b]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            [class*="text-[#6b5548]"] {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+
+            /* ==============================================================
+               TOOLBAR
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v23-main-topbar {
+                align-items:
+                    center;
+
+                min-height:
+                    58px;
+
+                border-bottom:
+                    1px solid
+                    var(--theme-divider) !important;
+
+                padding:
+                    0 0 14px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-primary {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+
+                box-shadow:
+                    0 2px 8px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-deep) 12%,
+                        transparent
+                    );
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-primary:hover {
+                border-color:
+                    var(--theme-accent-deep) !important;
+
+                background:
+                    var(--theme-button-hover-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-action,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-trigger {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-action:hover,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-trigger:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-badge {
+                background:
+                    var(--theme-accent-soft) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               BOLSA
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-pouch {
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-label,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-chevron {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-copy
+            strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-panel {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                box-shadow:
+                    0 18px 50px rgba(0,0,0,.18),
+                    var(
+                        --theme-modal-control-shadow,
+                        0 2px 7px rgba(0,0,0,.06)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-panel-head {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-panel-head
+            strong,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-coin-name
+            b {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-wallet-panel-head
+            span,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-coin-name
+            small {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-coin-row {
+                border-color:
+                    var(--theme-divider) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-coin-row
+            input {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-coin-row
+            input:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 12%,
+                        transparent
+                    ) !important;
+            }
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTÁRIO V38 — TOOLBAR / BOLSA DE MOEDAS
+            |--------------------------------------------------------------------------
+            |
+            | A área superior deixa de parecer uma faixa de botões isolados.
+            | Ela passa a funcionar como uma barra de ações compacta, enquanto
+            | a Bolsa ganha hierarquia própria e um editor de moedas mais claro.
+            |
+            */
+
+
+            /* ==============================================================
+               TOOLBAR
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-toolbar {
+                min-height:
+                    68px;
+
+                align-items:
+                    center;
+
+                gap:
+                    14px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    16px;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        var(--theme-surface-card) 0%,
+                        var(--theme-surface-card-alt) 100%
+                    ) !important;
+
+                padding:
+                    10px 12px !important;
+
+                box-shadow:
+                    0 2px 10px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-actions {
+                align-items:
+                    center;
+
+                gap:
+                    8px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-primary-action {
+                min-height:
+                    42px;
+
+                border-radius:
+                    11px;
+
+                padding:
+                    0 15px;
+
+                font-size:
+                    11px;
+
+                letter-spacing:
+                    .01em;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-primary-action
+            .inventory-v14-plus {
+                font-size:
+                    17px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-secondary-action {
+                min-height:
+                    42px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    11px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                padding:
+                    0 13px;
+
+                font-size:
+                    11px;
+
+                font-weight:
+                    800;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    0 1px 4px rgba(0,0,0,.025);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-secondary-action:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-secondary-action
+            .inventory-v14-badge {
+                min-width:
+                    24px;
+
+                height:
+                    24px;
+
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 12%,
+                        var(--theme-border)
+                    );
+
+                background:
+                    var(--theme-accent-soft) !important;
+
+                font-size:
+                    11px;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-toolbar-right {
+                margin-left:
+                    auto;
+            }
+
+
+            /* ==============================================================
+               WALLET TRIGGER
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-wrap {
+                position:
+                    relative;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-trigger {
+                min-width:
+                    180px;
+
+                min-height:
+                    46px;
+
+                gap:
+                    10px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    12px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                padding:
+                    6px 10px 6px 8px;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    0 2px 7px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-trigger:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                box-shadow:
+                    0 4px 12px rgba(0,0,0,.05);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-trigger
+            .inventory-v14-pouch {
+                width:
+                    34px;
+
+                height:
+                    34px;
+
+                flex-basis:
+                    34px;
+
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 14%,
+                        var(--theme-border)
+                    );
+
+                border-radius:
+                    10px;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-trigger
+            .inventory-v14-wallet-copy {
+                display:
+                    flex;
+
+                min-width:
+                    0;
+
+                flex:
+                    1;
+
+                flex-direction:
+                    column;
+
+                align-items:
+                    flex-start;
+
+                gap:
+                    2px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-trigger
+            .inventory-v14-wallet-label {
+                font-size:
+                    8px;
+
+                line-height:
+                    1;
+
+                letter-spacing:
+                    .10em;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-total-line {
+                display:
+                    flex;
+
+                align-items:
+                    baseline;
+
+                gap:
+                    5px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-total-line
+            strong {
+                font-family:
+                    Georgia,
+                    "Times New Roman",
+                    serif;
+
+                font-size:
+                    15px;
+
+                line-height:
+                    1;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-total-line
+            small {
+                font-size:
+                    9px;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-trigger
+            .inventory-v14-wallet-chevron {
+                width:
+                    16px;
+
+                height:
+                    16px;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+
+            /* ==============================================================
+               WALLET PANEL
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-panel {
+                right:
+                    0;
+
+                width:
+                    min(
+                        390px,
+                        calc(100vw - 28px)
+                    );
+
+                overflow:
+                    hidden;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    16px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                box-shadow:
+                    0 22px 60px rgba(0,0,0,.18),
+                    0 2px 8px rgba(0,0,0,.04) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-panel-head {
+                min-height:
+                    72px;
+
+                align-items:
+                    flex-start;
+
+                border-bottom:
+                    1px solid
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+
+                padding:
+                    14px 15px 12px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-kicker {
+                display:
+                    block;
+
+                margin-bottom:
+                    3px;
+
+                font-size:
+                    8px !important;
+
+                font-weight:
+                    900;
+
+                line-height:
+                    1;
+
+                letter-spacing:
+                    .12em;
+
+                text-transform:
+                    uppercase;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-panel-head
+            strong {
+                display:
+                    block;
+
+                font-family:
+                    Georgia,
+                    "Times New Roman",
+                    serif;
+
+                font-size:
+                    18px;
+
+                line-height:
+                    1.05;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-panel-head
+            > div
+            > span:last-child {
+                display:
+                    block;
+
+                margin-top:
+                    4px;
+
+                font-size:
+                    10px;
+
+                line-height:
+                    1.3;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-saving {
+                min-height:
+                    24px;
+
+                display:
+                    inline-flex;
+
+                align-items:
+                    center;
+
+                border:
+                    1px solid
+                    var(--theme-border);
+
+                border-radius:
+                    999px;
+
+                background:
+                    var(--theme-surface-raised);
+
+                padding:
+                    0 8px;
+
+                font-size:
+                    8px;
+
+                font-weight:
+                    800;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-summary {
+                display:
+                    flex;
+
+                align-items:
+                    center;
+
+                justify-content:
+                    space-between;
+
+                gap:
+                    12px;
+
+                margin:
+                    12px 12px 0;
+
+                border:
+                    1px solid
+                    var(--theme-border);
+
+                border-radius:
+                    12px;
+
+                background:
+                    var(--theme-surface-card-alt);
+
+                padding:
+                    10px 12px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-summary
+            > div {
+                display:
+                    flex;
+
+                min-width:
+                    0;
+
+                flex-direction:
+                    column;
+
+                gap:
+                    2px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-summary
+            span {
+                font-size:
+                    9px;
+
+                font-weight:
+                    800;
+
+                text-transform:
+                    uppercase;
+
+                letter-spacing:
+                    .08em;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-summary
+            strong {
+                font-family:
+                    Georgia,
+                    "Times New Roman",
+                    serif;
+
+                font-size:
+                    22px;
+
+                line-height:
+                    1;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-wallet-summary-note {
+                text-transform:
+                    none !important;
+
+                letter-spacing:
+                    0 !important;
+
+                font-size:
+                    10px !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+
+            /* ==============================================================
+               COIN CARDS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coins {
+                display:
+                    grid;
+
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
+
+                gap:
+                    8px;
+
+                padding:
+                    10px 12px 12px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card {
+                display:
+                    grid;
+
+                grid-template-columns:
+                    32px minmax(0, 1fr) 68px;
+
+                align-items:
+                    center;
+
+                gap:
+                    8px;
+
+                min-height:
+                    58px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    12px;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                padding:
+                    8px;
+
+                transition:
+                    border-color .16s ease,
+                    background .16s ease,
+                    box-shadow .16s ease;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                box-shadow:
+                    0 3px 9px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card--platinum {
+                grid-column:
+                    1 / -1;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card
+            .inventory-v14-coin-icon {
+                width:
+                    32px;
+
+                height:
+                    32px;
+
+                border-radius:
+                    10px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card
+            .inventory-v14-coin-name {
+                display:
+                    flex;
+
+                min-width:
+                    0;
+
+                flex-direction:
+                    column;
+
+                gap:
+                    2px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card
+            .inventory-v14-coin-name
+            b {
+                font-size:
+                    10px;
+
+                line-height:
+                    1;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card
+            .inventory-v14-coin-name
+            small {
+                font-size:
+                    9px;
+
+                line-height:
+                    1;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card
+            input {
+                width:
+                    68px;
+
+                height:
+                    34px;
+
+                justify-self:
+                    end;
+
+                border:
+                    1px solid
+                    var(--theme-input-border) !important;
+
+                border-radius:
+                    9px;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                padding:
+                    0 8px;
+
+                text-align:
+                    right;
+
+                font-family:
+                    Georgia,
+                    "Times New Roman",
+                    serif;
+
+                font-size:
+                    13px;
+
+                font-weight:
+                    800;
+
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v38-coin-card
+            input:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 12%,
+                        transparent
+                    ) !important;
+            }
+
+
+            /* ==============================================================
+               RESPONSIVO
+            ============================================================== */
+
+            @media (max-width: 680px) {
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-toolbar {
+                    align-items:
+                        stretch;
+
+                    flex-direction:
+                        column;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-toolbar-right {
+                    width:
+                        100%;
+
+                    margin-left:
+                        0;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-wallet-wrap,
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-wallet-trigger {
+                    width:
+                        100%;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-wallet-panel {
+                    left:
+                        0;
+
+                    right:
+                        auto;
+
+                    width:
+                        min(
+                            390px,
+                            calc(100vw - 36px)
+                        );
+                }
+            }
+
+            @media (max-width: 460px) {
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-actions {
+                    display:
+                        grid;
+
+                    grid-template-columns:
+                        1fr 1fr;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-primary-action {
+                    grid-column:
+                        1 / -1;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-coins {
+                    grid-template-columns:
+                        1fr;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v38-coin-card--platinum {
+                    grid-column:
+                        auto;
+                }
+            }
+
+            /* ==============================================================
+               SINTONIZAÇÃO
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v23-attunement-panel {
+                margin-top:
+                    14px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    16px;
+
+                background:
+                    var(--theme-module-background) !important;
+
+                padding:
+                    15px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-attunement {
+                border-bottom:
+                    0 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-section-head {
+                margin-bottom:
+                    10px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-diamond {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-title-line
+            h3 {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-section-title
+            p {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-count {
+                background:
+                    var(--theme-accent-soft) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-text-action {
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                box-shadow:
+                    0 2px 8px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot-image {
+                border-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot-copy
+            small,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot-copy
+            > span,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot-empty {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-slot-copy
+            strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTÁRIO V36 — SINTONIZAÇÃO MAIS LIMPA
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-shell {
+                margin-top:
+                    14px;
+
+                overflow:
+                    hidden;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    18px;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        color-mix(
+                            in srgb,
+                            var(--theme-module-background) 94%,
+                            white
+                        ) 0%,
+                        var(--theme-module-background) 100%
+                    ) !important;
+
+                padding:
+                    12px !important;
+
+                box-shadow:
+                    0 2px 10px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-head {
+                min-height:
+                    auto;
+
+                margin:
+                    0 0 12px !important;
+
+                border:
+                    0 !important;
+
+                border-radius:
+                    14px;
+
+                background:
+                    var(--theme-band-background) !important;
+
+                padding:
+                    12px 14px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-title {
+                gap:
+                    12px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-icon {
+                width:
+                    40px;
+
+                height:
+                    40px;
+
+                flex-basis:
+                    40px;
+
+                border-radius:
+                    12px;
+
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 18%,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-accent-strong) !important;
+
+                font-size:
+                    14px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-copy {
+                min-width:
+                    0;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-line {
+                gap:
+                    10px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-line
+            h3 {
+                font-size:
+                    18px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-count {
+                min-height:
+                    26px;
+
+                padding:
+                    0 10px;
+
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 14%,
+                        var(--theme-border)
+                    );
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                font-size:
+                    12px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-copy
+            p {
+                margin-top:
+                    3px;
+
+                font-size:
+                    12px !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-action {
+                display:
+                    inline-flex;
+
+                min-height:
+                    36px;
+
+                align-items:
+                    center;
+
+                justify-content:
+                    center;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    10px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                padding:
+                    0 12px !important;
+
+                font-size:
+                    10px;
+
+                letter-spacing:
+                    .08em;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    0 2px 6px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-action:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slots {
+                gap:
+                    10px;
+
+                padding:
+                    0 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slot {
+                min-height:
+                    108px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    14px;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                padding:
+                    10px !important;
+
+                box-shadow:
+                    0 2px 8px rgba(0,0,0,.03);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slot.is-filled {
+                background:
+                    linear-gradient(
+                        180deg,
+                        var(--theme-surface-card) 0%,
+                        color-mix(
+                            in srgb,
+                            var(--theme-surface-card) 90%,
+                            var(--theme-band-background)
+                        ) 100%
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slot.is-empty {
+                border-style:
+                    dashed;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slot:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                box-shadow:
+                    0 6px 16px rgba(0,0,0,.05);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-content {
+                display:
+                    grid;
+
+                grid-template-columns:
+                    54px minmax(0, 1fr);
+
+                align-items:
+                    center;
+
+                gap:
+                    12px;
+
+                min-height:
+                    100%;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-image {
+                width:
+                    54px !important;
+
+                height:
+                    54px !important;
+
+                flex-basis:
+                    54px;
+
+                border-radius:
+                    11px;
+
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-copy {
+                display:
+                    grid;
+
+                grid-template-rows:
+                    auto
+                    minmax(34px, auto)
+                    auto;
+
+                min-height:
+                    64px;
+
+                align-content:
+                    stretch;
+
+                align-items:
+                    start;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-meta {
+                display:
+                    flex;
+
+                align-items:
+                    center;
+
+                justify-content:
+                    space-between;
+
+                gap:
+                    8px;
+
+                margin-bottom:
+                    5px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-copy
+            small {
+                margin:
+                    0 !important;
+
+                font-size:
+                    9px !important;
+
+                letter-spacing:
+                    .08em;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-rarity {
+                display:
+                    inline-flex;
+
+                align-items:
+                    center;
+
+                min-height:
+                    20px;
+
+                max-width:
+                    120px;
+
+                overflow:
+                    hidden;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    999px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                padding:
+                    0 8px;
+
+                font-size:
+                    9px;
+
+                font-weight:
+                    800;
+
+                color:
+                    var(--theme-text-secondary) !important;
+
+                text-overflow:
+                    ellipsis;
+
+                white-space:
+                    nowrap;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-copy
+            strong {
+                overflow:
+                    hidden;
+
+                display:
+                    -webkit-box;
+
+                min-height:
+                    32px;
+
+                -webkit-line-clamp:
+                    2;
+
+                -webkit-box-orient:
+                    vertical;
+
+                font-size:
+                    14px !important;
+
+                line-height:
+                    1.15;
+
+                white-space:
+                    normal !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-hint {
+                align-self:
+                    end;
+
+                margin-top:
+                    6px;
+
+                font-size:
+                    10px;
+
+                line-height:
+                    1.1;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slot.is-filled
+            .inventory-v36-slot-image {
+                align-self:
+                    center;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-attunement-slot.is-filled
+            .inventory-v36-slot-copy {
+                height:
+                    100%;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-empty {
+                min-height:
+                    70px;
+
+                justify-content:
+                    flex-start;
+
+                gap:
+                    10px;
+
+                padding:
+                    2px 2px 2px 1px;
+
+                text-align:
+                    left;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-empty
+            .inventory-v14-slot-plus {
+                display:
+                    flex;
+
+                width:
+                    36px;
+
+                height:
+                    36px;
+
+                flex:
+                    0 0 36px;
+
+                align-items:
+                    center;
+
+                justify-content:
+                    center;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    11px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                font-size:
+                    18px;
+
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-empty-copy {
+                display:
+                    flex;
+
+                flex-direction:
+                    column;
+
+                gap:
+                    3px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-empty-copy
+            strong {
+                font-size:
+                    13px;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-slot-empty-copy
+            small {
+                font-size:
+                    10px;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-extra-attuned {
+                align-items:
+                    center;
+
+                gap:
+                    7px;
+
+                margin-top:
+                    10px;
+
+                border-top:
+                    1px solid
+                    var(--theme-divider);
+
+                padding:
+                    10px 2px 0 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-extra-attuned
+            > span {
+                margin-right:
+                    2px;
+
+                font-size:
+                    10px;
+
+                letter-spacing:
+                    .08em;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-extra-attuned
+            button {
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    0 1px 4px rgba(0,0,0,.025);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v36-extra-attuned
+            button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            @media (max-width: 760px) {
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v36-attunement-head {
+                    align-items:
+                        flex-start;
+
+                    flex-direction:
+                        column;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v36-attunement-action {
+                    width:
+                        100%;
+                }
+            }
+
+            @media (max-width: 560px) {
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v36-attunement-shell {
+                    padding:
+                        10px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v36-attunement-head {
+                    padding:
+                        11px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v36-slot-rarity {
+                    max-width:
+                        96px;
+                }
+            }
+
+            /* ==============================================================
+               GAVETAS / CATEGORIAS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v23-list {
+                margin-top:
+                    16px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-drawer {
+                overflow:
+                    hidden;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    15px;
+
+                background:
+                    var(--theme-module-background) !important;
+
+                box-shadow:
+                    0 2px 10px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-drawer
+            + .inventory-v24-group-drawer {
+                margin-top:
+                    10px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-trigger {
+                min-height:
+                    58px;
+
+                margin:
+                    0 !important;
+
+                border:
+                    0 !important;
+
+                border-radius:
+                    0 !important;
+
+                padding:
+                    11px 14px !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-trigger:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-copy
+            h3 {
+                font-size:
+                    18px !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-copy
+            p {
+                font-size:
+                    11px !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v14-group-count {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-chevron {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v24-group-content {
+                border-top:
+                    1px solid
+                    var(--theme-divider);
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+
+                padding:
+                    12px;
+            }
+
+
+            /* ==============================================================
+               BUSCA / ORDENAÇÃO
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-search,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-sort
+            select {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-search:focus-within,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-sort
+            select:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 11%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-search-input {
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-search-icon,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-search-clear,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v26-group-sort
+            > span {
+                color:
+                    var(--theme-label) !important;
+            }
+
+
+            /* ==============================================================
+               CARDS DE ITEM
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                box-shadow:
+                    0 2px 8px rgba(0,0,0,.04) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card::before {
+                background:
+                    var(--theme-border-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card.magical::before {
+                background:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card:hover,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card:focus-within {
+                transform:
+                    translateY(-1px) !important;
+
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                box-shadow:
+                    0 7px 20px rgba(0,0,0,.06) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v10-thumb {
+                border-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v27-equipped-badge {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-strong) 25%,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    var(--theme-accent-soft) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card
+            h4 {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card
+            em,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-item-card
+            p {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v22-card-feature-strip {
+                border-top-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v22-card-feature-head,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v22-card-feature-recovery,
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v22-card-feature-passive {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v22-card-feature-name {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-mini-tracker {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-mini-tracker
+            button {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-mini-tracker
+            button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35
+            .inventory-v11-mini-tracker
+            strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               MODAIS — CONTRATO GLOBAL
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal {
+                border-color:
+                    var(
+                        --theme-modal-border,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    var(
+                        --theme-modal-surface,
+                        var(--theme-paper-strong)
+                    ) !important;
+
+                color:
+                    var(
+                        --theme-modal-text,
+                        var(--theme-text-primary)
+                    ) !important;
+
+                box-shadow:
+                    var(
+                        --theme-modal-shadow,
+                        0 28px 80px rgba(0,0,0,.30)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal {
+                width:
+                    min(
+                        860px,
+                        calc(100vw - 28px)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal {
+                width:
+                    min(
+                        960px,
+                        calc(100vw - 28px)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-picker-modal,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-found-modal {
+                width:
+                    min(
+                        560px,
+                        calc(100vw - 28px)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-warning-modal {
+                width:
+                    min(
+                        500px,
+                        calc(100vw - 28px)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            > div:first-child,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            > header:first-child {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(
+                        --theme-modal-header-background,
+                        var(--theme-band-background)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            h3,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            h4,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            h5,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="text-[#6b1d14]"] {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="text-[#6b5548]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="text-[#92745c]"] {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="border-[#cdbb9f]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="border-[#d8c7ab]"] {
+                border-color:
+                    var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="bg-[#efe9dc]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="bg-[#f7f0e6]"] {
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="bg-[#faf8f2]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="bg-[#fffdf8]"],
+            .character-sheet-theme[data-theme]
+            .inventory-v35-modal
+            [class*="bg-white"] {
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+
+            /* ==============================================================
+               DETALHE
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            .inventory-v17-detail-topbar {
+                min-height:
+                    54px;
+
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+
+                padding:
+                    10px 14px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            .inventory-v17-detail-scroll {
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                scrollbar-width:
+                    thin;
+
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-label) 30%,
+                        transparent
+                    )
+                    transparent;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            .inventory-v15-detail-equip,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            .inventory-v18-attunement-toggle {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            .inventory-v15-detail-equip.is-stowed,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            .inventory-v18-attunement-toggle.is-unattuned {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            button[class*="bg-[#6b1d14]"] {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-detail-modal
+            button[class*="bg-[#6b1d14]"]:hover {
+                background:
+                    var(--theme-button-hover-background) !important;
+            }
+
+
+            /* ==============================================================
+               EDITOR
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            > div:first-child {
+                min-height:
+                    66px;
+
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v32-editor-scroll {
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                scrollbar-width:
+                    thin;
+
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-label) 30%,
+                        transparent
+                    )
+                    transparent;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-input,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-select,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-textarea {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-input:focus,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-select:focus,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-textarea:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 12%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-choice,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-chip {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-choice:hover,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-chip:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-choice.active,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-chip.active {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-accent-soft) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v10-module,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v11-ability-card,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v11-detail-mechanics {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v11-ability-header,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v34-defense-head {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v35-editor-footer {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(
+                        --theme-modal-header-background,
+                        var(--theme-band-background)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v35-editor-footer
+            > button:nth-last-child(2) {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v35-editor-footer
+            > button:nth-last-child(2):hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v35-editor-footer
+            > button:last-child {
+                border:
+                    1px solid
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-editor-modal
+            .inventory-v35-editor-footer
+            > button:last-child:hover {
+                background:
+                    var(--theme-button-hover-background) !important;
+            }
+
+
+            /* ==============================================================
+               DELETE CONFIRM
+            ============================================================== */
+
+            .inventory-v35-delete-layer {
+                background:
+                    rgba(8,8,8,.60);
+
+                -webkit-backdrop-filter:
+                    blur(6px);
+
+                backdrop-filter:
+                    blur(6px);
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-delete-modal {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-delete-modal
+            > div:first-child {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+
+            /* ==============================================================
+               PICKER / WARNING / FOUND
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            :is(
+                .inventory-v35-picker-modal,
+                .inventory-v35-warning-modal,
+                .inventory-v35-found-modal
+            )
+            > div:first-child {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-picker-modal
+            > div:nth-child(2) {
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                scrollbar-width:
+                    thin;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-picker-modal
+            button[class*="border-b"] {
+                border-color:
+                    var(--theme-divider) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-picker-modal
+            button[class*="border-b"]:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+
+            /* ==============================================================
+               EQUIPADOS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal {
+                position:
+                    relative;
+
+                z-index:
+                    10;
+
+                width:
+                    min(
+                        620px,
+                        calc(100vw - 28px)
+                    ) !important;
+
+                max-height:
+                    min(
+                        82dvh,
+                        760px
+                    );
+
+                overflow:
+                    hidden;
+
+                border:
+                    1px solid
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                border-radius:
+                    18px;
+
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                box-shadow:
+                    var(
+                        --theme-modal-shadow,
+                        0 28px 80px rgba(0,0,0,.30)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-header {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-kicker,
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-hint {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-title-row
+            h3 {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-count {
+                background:
+                    var(--theme-accent-soft) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-list-wrap {
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                scrollbar-width:
+                    thin;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-row {
+                border-color:
+                    var(--theme-divider) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-equipped-modal
+            .inventory-v29-equipped-row:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+
+            /* ==============================================================
+               TOOLTIP
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-floating-tooltip {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    0 16px 42px rgba(0,0,0,.18) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-floating-tooltip
+            strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               TOAST
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .inventory-v35-toast,
+            .inventory-v35
+            .inventory-v35-toast {
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    0 18px 46px rgba(0,0,0,.20) !important;
+            }
+
+
+            /* ==============================================================
+               RESPONSIVO
+            ============================================================== */
+
+            @media (max-width: 760px) {
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v23-attunement-panel {
+                    padding:
+                        12px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v24-group-content {
+                    padding:
+                        9px;
+                }
+            }
+
+            @media (max-width: 560px) {
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v23-main-topbar {
+                    align-items:
+                        stretch;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v14-toolbar-right {
+                    justify-content:
+                        stretch !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v14-wallet-wrap,
+                .character-sheet-theme[data-theme]
+                .inventory-v35
+                .inventory-v14-wallet-trigger {
+                    width:
+                        100%;
+                }
+
+                .character-sheet-theme[data-theme]
+                .inventory-v35-modal {
+                    width:
+                        calc(100vw - 18px) !important;
+
+                    border-radius:
+                        15px !important;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .inventory-v35
+                *,
+                .inventory-v35-modal-layer
+                * {
+                    scroll-behavior:
+                        auto !important;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTÁRIO V40 — MIDNIGHT REFINADO
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-toolbar {
+                border-color: rgba(151,162,173,.24) !important;
+                background: linear-gradient(180deg,#22282e 0%,#1d2329 100%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.025),0 3px 10px rgba(0,0,0,.18) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-primary-action {
+                border-color: #5c7891 !important;
+                background: #4d6d88 !important;
+                color: #f7fafc !important;
+                box-shadow: 0 3px 10px rgba(0,0,0,.16) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-primary-action:hover {
+                background: #5a7893 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-secondary-action,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-wallet-trigger {
+                border-color: rgba(151,162,173,.25) !important;
+                background: #252c33 !important;
+                color: #e5e8eb !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.025) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-secondary-action:hover,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-wallet-trigger:hover {
+                border-color: rgba(154,170,185,.38) !important;
+                background: #2d353d !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-shell {
+                border-color: rgba(151,162,173,.24) !important;
+                background: linear-gradient(180deg,#20262c 0%,#1b2026 100%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.025),0 3px 10px rgba(0,0,0,.18) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-head {
+                border: 1px solid rgba(151,162,173,.16) !important;
+                background: linear-gradient(180deg,#2b3239 0%,#272e35 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-icon {
+                border-color: rgba(111,140,166,.28) !important;
+                background: #222a31 !important;
+                color: #83a0b8 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-count,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-action {
+                border-color: rgba(151,162,173,.22) !important;
+                background: #252c33 !important;
+                color: #e4e8eb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-action:hover {
+                background: #2d353d !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-slot {
+                border-color: rgba(151,162,173,.24) !important;
+                background: #20262c !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018),0 2px 7px rgba(0,0,0,.15) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-slot.is-filled {
+                background: linear-gradient(180deg,#22292f 0%,#1d2329 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-attunement-slot:hover {
+                border-color: rgba(126,151,173,.45) !important;
+                background: #293138 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-slot-image {
+                border-color: rgba(151,162,173,.20) !important;
+                background: #171c21 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v36-slot-rarity {
+                border-color: rgba(151,162,173,.20) !important;
+                background: #272e35 !important;
+                color: #aab3bb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v24-group-drawer {
+                border-color: rgba(151,162,173,.24) !important;
+                background: #1d2328 !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.02),0 4px 12px rgba(0,0,0,.20) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v24-group-trigger {
+                background: linear-gradient(180deg,#242b32 0%,#20272d 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v24-group-trigger:hover {
+                background: #2a3239 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v24-group-content {
+                border-color: rgba(151,162,173,.15) !important;
+                background: #181e23 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v14-group-count {
+                border-color: rgba(151,162,173,.22) !important;
+                background: #2a3138 !important;
+                color: #bbc2c8 !important;
+            }
+
+            /* Corrige a faixa clara herdada da V28. */
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-tools {
+                border-bottom: 1px solid rgba(151,162,173,.14) !important;
+                background: #252b31 !important;
+                padding: 8px 10px !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-search {
+                border: 0 !important;
+                background: transparent !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-search-input,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-sort select {
+                border: 1px solid #46525d !important;
+                background: #171c21 !important;
+                color: #e9edf0 !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-search-input::placeholder {
+                color: #7f8992 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-search-icon,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-search-clear,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-sort > span {
+                color: #929da6 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-search:focus-within .inventory-v26-group-search-input,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v26-group-sort select:focus {
+                border-color: #718ea8 !important;
+                box-shadow: 0 0 0 3px rgba(111,140,166,.12) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-item-card {
+                border-color: rgba(151,162,173,.24) !important;
+                background: linear-gradient(180deg,#22282e 0%,#1e242a 100%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018),0 4px 12px rgba(0,0,0,.20) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-item-card:hover,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-item-card:focus-within {
+                border-color: rgba(126,151,173,.45) !important;
+                background: linear-gradient(180deg,#293139 0%,#232a31 100%) !important;
+                box-shadow: 0 10px 24px rgba(0,0,0,.28) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-card-thumb {
+                border-color: rgba(151,162,173,.18) !important;
+                background: radial-gradient(circle at 50% 42%,#232a31 0%,#171c21 72%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.022) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-card-copy h4 {
+                color: #f1efeb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-card-copy em {
+                color: #9ba5ae !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v39-feature-strip {
+                border-top-color: rgba(151,162,173,.14) !important;
+                background: #1a2025 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v22-card-feature-row {
+                border-color: rgba(151,162,173,.16) !important;
+                background: #22282e !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v22-card-feature-row:hover {
+                background: #293138 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v27-equipped-badge {
+                border-color: rgba(151,162,173,.28) !important;
+                background: rgba(36,44,51,.94) !important;
+                color: #d9dde1 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v27-equipped-badge::before {
+                background: #b85f5a !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-wallet-panel {
+                border-color: rgba(151,162,173,.26) !important;
+                background: #20262c !important;
+                box-shadow: 0 24px 64px rgba(0,0,0,.34) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-wallet-panel-head {
+                border-color: rgba(151,162,173,.15) !important;
+                background: #2a3138 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-wallet-summary {
+                border-color: rgba(151,162,173,.20) !important;
+                background: #1a2025 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-coin-card {
+                border-color: rgba(151,162,173,.18) !important;
+                background: #252b31 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-coin-card:hover {
+                background: #2c343b !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v40
+            .inventory-v38-coin-card input {
+                border-color: #46525d !important;
+                background: #171c21 !important;
+                color: #eef1f3 !important;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTÁRIO V41 — MIDNIGHT / MODAIS E THUMBNAILS
+            |--------------------------------------------------------------------------
+            |
+            | Corrige os últimos blocos claros que ainda vinham das versões antigas:
+            | detalhe do item, habilidades, trackers, thumbnails de Equipados e slots.
+            | Esta camada atua SOMENTE no tema Midnight.
+            |
+            */
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal {
+                border-color: rgba(151,162,173,.28) !important;
+                background: #20262c !important;
+                color: #d9dde1 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-detail-topbar {
+                border-color: rgba(151,162,173,.16) !important;
+                background: #2a3138 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-detail-scroll {
+                background: #20262c !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v10-thumb {
+                border-color: rgba(151,162,173,.24) !important;
+                background: radial-gradient(circle at 50% 42%, #262d34 0%, #171c21 76%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 6px 18px rgba(0,0,0,.22) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v10-thumb img {
+                background: transparent !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-item-kicker {
+                color: #91a0ad !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-item-title {
+                color: #f1efeb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-classification {
+                color: #9ca6ae !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-status-badge {
+                border-color: rgba(184,95,90,.24) !important;
+                background: rgba(184,95,90,.08) !important;
+                color: #d99994 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-status-dot {
+                background: #c76863 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal p,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="text-[#4f3427]"],
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="text-[#5f3a27]"],
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="text-[#6b5548]"] {
+                color: #c5cbd0 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="text-[#6b1d14]"] {
+                color: #f1efeb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="text-[#8c6239]"] {
+                color: #a7b0b8 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-detail-section-title {
+                color: #aab3bb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-detail-section-title::after {
+                background: linear-gradient(90deg, rgba(157,170,182,.30), transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-ability-card {
+                border-color: rgba(151,162,173,.22) !important;
+                background: #1d2328 !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018), 0 3px 10px rgba(0,0,0,.18) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-ability-header {
+                border-bottom-color: rgba(151,162,173,.14) !important;
+                background: #2a3138 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-ability-header h3 {
+                color: #f1efeb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-ability-body {
+                background: #20262c !important;
+                color: #c8ced3 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v10-tracker,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-mini-tracker {
+                border-color: rgba(151,162,173,.24) !important;
+                background: #171c21 !important;
+                box-shadow: none !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v10-tracker button,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-mini-tracker button {
+                color: #aab3bb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v10-tracker button:hover,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-mini-tracker button:hover {
+                background: #2d353d !important;
+                color: #eef1f3 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v10-tracker strong,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-mini-tracker strong {
+                color: #eef1f3 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-recovery-pill {
+                background: #2a3138 !important;
+                color: #aab3bb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v11-detail-mechanics {
+                border-color: rgba(151,162,173,.20) !important;
+                background: #1a2025 !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal [class*="bg-[#efe9dc]"] {
+                border-color: rgba(151,162,173,.18) !important;
+                background: #242b31 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-attunement {
+                border-color: rgba(151,162,173,.22) !important;
+                background: linear-gradient(180deg, #272e35 0%, #22282e 100%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-attunement-icon {
+                border-color: rgba(151,162,173,.22) !important;
+                background: #171c21 !important;
+                color: #83a0b8 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-attunement-kicker {
+                color: #91a0ad !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-attunement-copy strong {
+                color: #f1efeb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-detail-modal .inventory-v17-attunement-copy p {
+                color: #a4adb5 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal {
+                border-color: rgba(151,162,173,.28) !important;
+                background: #20262c !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-header {
+                border-color: rgba(151,162,173,.16) !important;
+                background: #2a3138 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-list-wrap {
+                background: #20262c !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-row {
+                border-color: rgba(151,162,173,.20) !important;
+                background: #252c33 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-row:hover,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-row:focus-visible {
+                border-color: rgba(126,151,173,.42) !important;
+                background: #2d353d !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-thumb {
+                border-color: rgba(151,162,173,.22) !important;
+                background: radial-gradient(circle at 50% 42%, #262d34 0%, #171c21 78%) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-thumb > span {
+                color: #71808c !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-copy strong {
+                color: #f1efeb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-copy span {
+                color: #9ca6ae !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-chevron {
+                color: #73818d !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v35-equipped-modal .inventory-v29-equipped-row:hover .inventory-v29-equipped-chevron {
+                color: #8faac0 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v41 .inventory-v36-slot-image,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v41 .inventory-v14-slot-image {
+                border-color: rgba(151,162,173,.20) !important;
+                background: radial-gradient(circle at 50% 45%, #252c33 0%, #171c21 78%) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v41 .inventory-v36-slot-rarity {
+                border-color: rgba(151,162,173,.20) !important;
+                background: #293138 !important;
+                color: #aab3bb !important;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | INVENTORY V42 — DARK THEMES CLEANUP
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v36-attunement-shell,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-shell,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v36-attunement-slot,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-slot,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v39-item-card,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v39-item-card,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v29-equipped-row,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v29-equipped-row,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v11-ability-card,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v11-ability-card,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v10-thumb,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v10-thumb,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v29-equipped-thumb,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v29-equipped-thumb,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v36-slot-image,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-slot-image {
+                box-shadow: 0 4px 12px rgba(0,0,0,.18) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v36-attunement-head,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-head,
+            .character-sheet-theme[data-theme="midnight"]
+            .inventory-v42
+            .inventory-v24-group-trigger,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v24-group-trigger {
+                box-shadow: none !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-shell {
+                background: linear-gradient(180deg, #241d1a 0%, #1d1816 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-head {
+                background: linear-gradient(180deg, #2d2522 0%, #261f1c 100%) !important;
+                border: 1px solid rgba(154,122,102,.15) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-slot {
+                border-color: rgba(154,122,102,.22) !important;
+                background: #221c19 !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-attunement-slot.is-filled {
+                background: linear-gradient(180deg, #27201d 0%, #211b18 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v36-slot-image,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v14-slot-image,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v29-equipped-thumb,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v10-thumb {
+                border-color: rgba(154,122,102,.18) !important;
+                background: radial-gradient(circle at 50% 45%, #2a221f 0%, #171311 78%) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v39-item-card,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v29-equipped-row {
+                border-color: rgba(154,122,102,.22) !important;
+                background: linear-gradient(180deg, #27201d 0%, #211b18 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v39-item-card:hover,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v39-item-card:focus-within,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v29-equipped-row:hover,
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v29-equipped-row:focus-visible {
+                background: linear-gradient(180deg, #2d2522 0%, #261f1c 100%) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v11-ability-card {
+                border-color: rgba(154,122,102,.18) !important;
+                background: #211b18 !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v11-ability-header {
+                background: #2d2522 !important;
+                border-bottom-color: rgba(154,122,102,.14) !important;
+            }
+
+            .character-sheet-theme[data-theme="obsidian"]
+            .inventory-v42
+            .inventory-v35-detail-modal
+            .inventory-v11-ability-body {
+                background: #241d1a !important;
+            }
+
+
+
+            /* ============================================================
+               INVENTÁRIO V43 — ITENS DE USO ÚNICO
+            ============================================================ */
+
+            .inventory-v43-item-used {
+                border-color: rgba(112,106,98,.42) !important;
+                background: linear-gradient(135deg, rgba(232,230,225,.94), rgba(217,214,208,.88)) !important;
+                box-shadow: none !important;
+            }
+
+            .inventory-v43-item-used::before {
+                background: rgba(92,88,82,.54) !important;
+            }
+
+            .inventory-v43-item-used .inventory-v39-card-main,
+            .inventory-v43-item-used .inventory-v39-feature-strip {
+                opacity: .76;
+            }
+
+            .inventory-v43-item-used .inventory-v39-card-thumb img {
+                filter: grayscale(1);
+                opacity: .62;
+            }
+
+            .inventory-v43-used-badge {
+                position: absolute;
+                right: 6px;
+                bottom: 6px;
+                z-index: 4;
+                display: inline-flex;
+                min-height: 22px;
+                align-items: center;
+                border: 1px solid rgba(91,86,80,.34);
+                border-radius: 999px;
+                background: rgba(74,71,67,.88);
+                padding: 0 7px;
+                color: #fff;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .075em;
+                text-transform: uppercase;
+                box-shadow: 0 3px 8px rgba(31,29,27,.16);
+            }
+
+            .inventory-v43-used-bar {
+                display: flex;
+                min-height: 48px;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                border-top: 1px solid rgba(112,106,98,.28);
+                background: rgba(112,106,98,.10);
+                padding: 8px 11px 8px 13px;
+            }
+
+            .inventory-v43-used-copy {
+                min-width: 0;
+            }
+
+            .inventory-v43-used-copy strong {
+                display: block;
+                font-family: Georgia, serif;
+                font-size: 13px;
+                font-weight: 900;
+                color: #595550;
+            }
+
+            .inventory-v43-used-copy span {
+                display: block;
+                margin-top: 1px;
+                font-size: 9px;
+                font-weight: 700;
+                color: #7b756d;
+            }
+
+            .inventory-v43-discard-action,
+            .inventory-v43-single-use-action {
+                display: inline-flex;
+                min-height: 30px;
+                flex: 0 0 auto;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(107,29,20,.25);
+                border-radius: 9px;
+                background: rgba(255,253,249,.88);
+                padding: 0 10px;
+                color: #6b1d14;
+                font-size: 9px;
+                font-weight: 900;
+                letter-spacing: .035em;
+                text-transform: uppercase;
+                transition: background .14s ease, border-color .14s ease, color .14s ease;
+            }
+
+            .inventory-v43-discard-action:hover,
+            .inventory-v43-single-use-action:hover {
+                border-color: rgba(107,29,20,.48);
+                background: #6b1d14;
+                color: #faf8f2;
+            }
+
+            .inventory-v43-single-use-action:disabled,
+            .inventory-v43-discard-action:disabled {
+                cursor: wait;
+                opacity: .48;
+            }
+
+            .inventory-v43-detail-used {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 14px;
+                margin-top: 16px;
+                border: 1px solid rgba(112,106,98,.30);
+                border-radius: 12px;
+                background: rgba(112,106,98,.085);
+                padding: 10px 12px;
+            }
+
+            .inventory-v43-detail-used strong {
+                display: block;
+                font-family: Georgia, serif;
+                font-size: 14px;
+                color: #595550;
+            }
+
+            .inventory-v43-detail-used p {
+                margin-top: 2px;
+                font-size: 10px;
+                line-height: 1.45;
+                color: #77716a;
+            }
+
+            .inventory-v43-single-use-note {
+                margin-top: 10px;
+                border-left: 2px solid rgba(107,29,20,.46);
+                padding: 7px 0 7px 10px;
+                color: #6b5548;
+                font-size: 10px;
+                line-height: 1.5;
+            }
+
         </style>
     @endpush
 
@@ -6838,10 +11460,25 @@
                 saveError: null,
                 deleteConfirmOpen: false,
 
+                // Uso único: confirmação de consumo e descarte do item já utilizado.
+                singleUseConfirmOpen: false,
+                pendingSingleUse: null,
+                discardUsedConfirmOpen: false,
+                pendingDiscardItem: null,
+
                 imageFile: null,
                 imagePreview: null,
 
                 foundItemsOpen: false,
+                foundLootItems: [],
+                foundLootCurrencies: [],
+                foundLootLoading: false,
+                foundLootLoaded: false,
+                foundLootError: null,
+                foundLootBusyItemId: null,
+                foundLootBusyCurrencyId: null,
+                foundLootCurrencyDrafts: {},
+
                 equippedDrawerOpen: false,
                 attunementPickerOpen: false,
 
@@ -6898,6 +11535,7 @@
                 },
                 walletOpen: false,
                 walletSaving: false,
+                walletPendingSave: false,
                 walletTimer: null,
 
                 toastOpen: false,
@@ -6919,6 +11557,14 @@
 
                 get totalCount() {
                     return this.items.length;
+                },
+
+                get foundLootCount() {
+                    return this.foundLootItems.length + this.foundLootCurrencies.length;
+                },
+
+                get hasFoundLoot() {
+                    return this.foundLootCount > 0;
                 },
 
                 get walletTotalCoins() {
@@ -7907,6 +12553,10 @@
                     return {
                         title: '',
                         description: '',
+
+                        // Estado apenas da interface do editor. Não é salvo no item.
+                        editor_open: true,
+
                         usage: {
                             enabled: false,
 
@@ -8042,6 +12692,9 @@
                             title: feature?.title ?? '',
                             description: feature?.description ?? '',
                             usage: this.normalizeFeatureUsage(feature?.usage),
+
+                            // Controle visual do accordion. Não vai para o payload final.
+                            editor_open: !!feature?.editor_open,
                         }))
                         : [];
 
@@ -8150,9 +12803,44 @@
                 },
 
                 normalizeFeatureUsage(raw) {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | Booleano do tracker
+                    |--------------------------------------------------------------------------
+                    |
+                    | Dados vindos de FormData / snapshots podem chegar como strings
+                    | ("0", "1", "false", "true"). Em JavaScript, a string
+                    | "0" é truthy; portanto não podemos testar apenas !raw.enabled.
+                    |
+                    | Uma habilidade só deve possuir tracker quando o valor indicar
+                    | explicitamente que ele está habilitado.
+                    |
+                    */
+                    const enabledRaw =
+                        raw?.enabled;
+
+                    let enabled = false;
+
+                    if (typeof enabledRaw === 'boolean') {
+                        enabled = enabledRaw;
+                    } else if (typeof enabledRaw === 'number') {
+                        enabled = enabledRaw !== 0;
+                    } else if (typeof enabledRaw === 'string') {
+                        enabled = [
+                            '1',
+                            'true',
+                            'on',
+                            'yes',
+                        ].includes(
+                            enabledRaw
+                                .trim()
+                                .toLowerCase()
+                        );
+                    }
+
                     if (
                         !raw
-                        || !raw.enabled
+                        || !enabled
                     ) {
                         return {
                             enabled: false,
@@ -8927,7 +13615,26 @@
                 },
 
                 addFeature() {
-                    this.form.properties.features.push(this.blankFeature());
+                    // Mantém somente uma habilidade aberta por vez para o editor
+                    // continuar confortável mesmo em itens com muitas habilidades.
+                    this.form.properties.features.forEach(
+                        feature => feature.editor_open = false
+                    );
+
+                    const feature = this.blankFeature();
+                    feature.editor_open = true;
+
+                    this.form.properties.features.push(feature);
+                },
+
+                toggleFeatureEditor(feature) {
+                    const shouldOpen = !feature.editor_open;
+
+                    this.form.properties.features.forEach(
+                        entry => entry.editor_open = false
+                    );
+
+                    feature.editor_open = shouldOpen;
                 },
 
                 removeFeature(index) {
@@ -9063,6 +13770,197 @@
                             index,
                         }))
                         .filter(entry => entry.feature?.usage?.enabled);
+                },
+
+                singleUseFeatureEntries(item) {
+                    return this.trackedFeatureEntries(item)
+                        .filter(
+                            entry =>
+                                entry.feature?.usage?.recovery
+                                === 'single_use'
+                        );
+                },
+
+                isSingleUseItem(item) {
+                    const tracked =
+                        this.trackedFeatureEntries(item);
+
+                    if (tracked.length === 0) {
+                        return false;
+                    }
+
+                    const singleUse =
+                        tracked.filter(
+                            entry =>
+                                entry.feature?.usage?.recovery
+                                === 'single_use'
+                        );
+
+                    /*
+                    | Um item só é tratado como descartável por inteiro quando
+                    | todos os trackers ativos dele são de Uso Único. Habilidades
+                    | passivas não interferem nessa regra.
+                    */
+                    return (
+                        singleUse.length > 0
+                        && singleUse.length === tracked.length
+                    );
+                },
+
+                singleUseFeatureUsed(feature) {
+                    const usage =
+                        feature?.usage;
+
+                    return (
+                        !!usage?.enabled
+                        && usage.recovery === 'single_use'
+                        && (parseInt(usage.current) || 0) <= 0
+                    );
+                },
+
+                singleUseItemUsed(item) {
+                    if (!this.isSingleUseItem(item)) {
+                        return false;
+                    }
+
+                    const entries =
+                        this.singleUseFeatureEntries(item);
+
+                    return (
+                        entries.length > 0
+                        &&
+                        entries.every(
+                            entry =>
+                                this.singleUseFeatureUsed(
+                                    entry.feature
+                                )
+                        )
+                    );
+                },
+
+                requestSingleUse(item, featureIndex) {
+                    const feature =
+                        item?.properties?.features?.[featureIndex];
+
+                    const usage =
+                        feature?.usage;
+
+                    if (
+                        !usage?.enabled
+                        || usage.recovery !== 'single_use'
+                    ) {
+                        return;
+                    }
+
+                    if (this.singleUseFeatureUsed(feature)) {
+                        this.showToast(
+                            this.isSingleUseItem(item)
+                                ? 'Este item já foi usado.'
+                                : 'Este uso único já foi gasto.',
+                            true
+                        );
+                        return;
+                    }
+
+                    const max =
+                        Math.max(
+                            1,
+                            parseInt(usage.max) || 1
+                        );
+
+                    const current =
+                        Math.max(
+                            0,
+                            Math.min(
+                                max,
+                                parseInt(usage.current) || 0
+                            )
+                        );
+
+                    this.pendingSingleUse = {
+                        itemId: parseInt(item.id),
+                        featureIndex: parseInt(featureIndex),
+                        itemName: item?.name ?? 'Item',
+                        featureName: feature?.title ?? 'Habilidade',
+                        marksWholeItem: this.isSingleUseItem(item),
+                        current,
+                        max,
+                        remainingAfterUse:
+                            Math.max(
+                                0,
+                                current - 1
+                            ),
+                        isLastCharge:
+                            current <= 1,
+                    };
+
+                    this.singleUseConfirmOpen = true;
+                },
+
+                cancelSingleUse() {
+                    if (this.busyFeatureKey !== null) return;
+
+                    this.singleUseConfirmOpen = false;
+                    this.pendingSingleUse = null;
+                },
+
+                requestDiscardUsedItem(item) {
+                    if (!item || !this.singleUseItemUsed(item)) {
+                        return;
+                    }
+
+                    this.pendingDiscardItem = {
+                        id: parseInt(item.id),
+                        name: item?.name ?? 'Item',
+                    };
+
+                    this.discardUsedConfirmOpen = true;
+                },
+
+                cancelDiscardUsedItem() {
+                    if (this.busyItemId !== null) return;
+
+                    this.discardUsedConfirmOpen = false;
+                    this.pendingDiscardItem = null;
+                },
+
+                handleFeatureRecoveryChange(feature) {
+                    if (!feature?.usage) return;
+
+                    if (feature.usage.recovery === 'single_use') {
+                        /*
+                        | Uso Único significa que as cargas gastas não voltam.
+                        | O item pode possuir 1, 3, 5 ou qualquer outro máximo.
+                        | Ele só fica definitivamente "Usado" ao chegar a 0.
+                        */
+                        const wasBuild =
+                            feature.usage.counter_mode
+                            === 'build';
+
+                        feature.usage.counter_mode =
+                            'spend';
+
+                        feature.usage.max =
+                            Math.max(
+                                1,
+                                parseInt(
+                                    feature.usage.max
+                                ) || 1
+                            );
+
+                        if (wasBuild) {
+                            feature.usage.current =
+                                feature.usage.max;
+                        }
+
+                        feature.usage.recovery_custom =
+                            '';
+
+                        this.clampFeatureUsage(feature);
+                        return;
+                    }
+
+                    this.clampFeatureUsage(feature);
                 },
 
                 /*
@@ -9533,12 +14431,15 @@
                     }
                 },
 
-                async changeFeatureUses(item, featureIndex, delta) {
-                    const feature = item?.properties?.features?.[featureIndex];
-                    const usage = feature?.usage;
+                async persistFeatureUses(item, featureIndex, next) {
+                    const feature =
+                        item?.properties?.features?.[featureIndex];
 
-                    if (!usage?.enabled) return;
-                    if (this.busyFeatureKey !== null) return;
+                    const usage =
+                        feature?.usage;
+
+                    if (!usage?.enabled) return null;
+                    if (this.busyFeatureKey !== null) return null;
 
                     const key = `${item.id}:${featureIndex}`;
                     const max = Math.max(1, parseInt(usage.max) || 1);
@@ -9546,12 +14447,18 @@
                         0,
                         Math.min(max, parseInt(usage.current) || 0)
                     );
-                    const next = Math.max(0, Math.min(max, current + delta));
 
-                    if (next === current) return;
+                    const normalizedNext = Math.max(
+                        0,
+                        Math.min(max, parseInt(next) || 0)
+                    );
+
+                    if (normalizedNext === current) {
+                        return item;
+                    }
 
                     this.busyFeatureKey = key;
-                    usage.current = next;
+                    usage.current = normalizedNext;
 
                     try {
                         const response = await fetch(
@@ -9562,7 +14469,7 @@
                                 method: 'PATCH',
                                 headers: this.jsonHeaders(),
                                 body: JSON.stringify({
-                                    current: next,
+                                    current: normalizedNext,
                                 }),
                             }
                         );
@@ -9575,62 +14482,723 @@
                             );
                         }
 
-                        this.upsertItem(data.item);
+                        return this.upsertItem(data.item);
                     } catch (error) {
                         usage.current = current;
                         this.showToast(
                             error.message ?? 'Não foi possível atualizar os usos.',
                             true
                         );
+                        return null;
                     } finally {
                         this.busyFeatureKey = null;
                     }
                 },
 
-                async saveWallet() {
-                    clearTimeout(this.walletTimer);
+                async changeFeatureUses(item, featureIndex, delta) {
+                    const feature =
+                        item?.properties?.features?.[featureIndex];
 
-                    this.walletTimer = setTimeout(async () => {
-                        if (this.walletSaving) return;
+                    const usage =
+                        feature?.usage;
 
-                        this.walletSaving = true;
+                    if (!usage?.enabled) return;
+                    if (this.busyFeatureKey !== null) return;
 
-                        try {
-                            const response = await fetch(this.urls.wallet, {
-                                method: 'PATCH',
-                                headers: this.jsonHeaders(),
-                                body: JSON.stringify({
-                                    copper: Math.max(0, parseInt(this.wallet.copper) || 0),
-                                    silver: Math.max(0, parseInt(this.wallet.silver) || 0),
-                                    electrum: Math.max(0, parseInt(this.wallet.electrum) || 0),
-                                    gold: Math.max(0, parseInt(this.wallet.gold) || 0),
-                                    platinum: Math.max(0, parseInt(this.wallet.platinum) || 0),
-                                }),
-                            });
+                    const max = Math.max(1, parseInt(usage.max) || 1);
+                    const current = Math.max(
+                        0,
+                        Math.min(max, parseInt(usage.current) || 0)
+                    );
 
-                            const data = await response.json().catch(() => ({}));
-
-                            if (!response.ok) {
-                                throw new Error(
-                                    data?.message ?? 'Não foi possível salvar as moedas.'
+                    /*
+                    | Uso Único não possui botão de "desfazer".
+                    | O gasto passa pela confirmação própria e, depois de usado,
+                    | o item fica aguardando descarte.
+                    */
+                    if (usage.recovery === 'single_use') {
+                        if (delta < 0) {
+                            if (current <= 0) {
+                                this.showToast(
+                                    'Este item já foi usado.',
+                                    true
                                 );
+                                return;
                             }
 
-                            if (data.wallet) {
-                                this.wallet = {
-                                    ...this.wallet,
-                                    ...data.wallet,
-                                };
-                            }
-                        } catch (error) {
+                            this.requestSingleUse(
+                                item,
+                                featureIndex
+                            );
+                            return;
+                        }
+
+                        if (current <= 0 && delta > 0) {
                             this.showToast(
-                                error.message ?? 'Não foi possível salvar as moedas.',
+                                'Itens de uso único não podem ser restaurados pelo contador.',
                                 true
                             );
-                        } finally {
-                            this.walletSaving = false;
+                            return;
                         }
+                    }
+
+                    const next = Math.max(
+                        0,
+                        Math.min(max, current + delta)
+                    );
+
+                    if (next === current) return;
+
+                    await this.persistFeatureUses(
+                        item,
+                        featureIndex,
+                        next
+                    );
+                },
+
+                async confirmSingleUse() {
+                    const pending =
+                        this.pendingSingleUse;
+
+                    if (!pending || this.busyFeatureKey !== null) {
+                        return;
+                    }
+
+                    const item =
+                        this.items.find(
+                            current =>
+                                parseInt(current.id)
+                                === parseInt(pending.itemId)
+                        )
+                        ?? (
+                            parseInt(this.detailItem?.id)
+                            === parseInt(pending.itemId)
+                                ? this.detailItem
+                                : null
+                        );
+
+                    if (!item) {
+                        this.cancelSingleUse();
+                        return;
+                    }
+
+                    const featureIndex =
+                        parseInt(pending.featureIndex);
+
+                    this.singleUseConfirmOpen = false;
+                    this.pendingSingleUse = null;
+
+                    const feature =
+                        item?.properties
+                            ?.features
+                            ?.[featureIndex];
+
+                    const usage =
+                        feature?.usage;
+
+                    const max =
+                        Math.max(
+                            1,
+                            parseInt(usage?.max) || 1
+                        );
+
+                    const current =
+                        Math.max(
+                            0,
+                            Math.min(
+                                max,
+                                parseInt(
+                                    usage?.current
+                                ) || 0
+                            )
+                        );
+
+                    if (current <= 0) {
+                        this.showToast(
+                            'Este item já está sem cargas.',
+                            true
+                        );
+                        return;
+                    }
+
+                    const updated =
+                        await this.persistFeatureUses(
+                            item,
+                            featureIndex,
+                            current - 1
+                        );
+
+                    if (!updated) return;
+
+                    const updatedFeature =
+                        updated?.properties
+                            ?.features
+                            ?.[featureIndex];
+
+                    const remaining =
+                        Math.max(
+                            0,
+                            parseInt(
+                                updatedFeature
+                                    ?.usage
+                                    ?.current
+                            ) || 0
+                        );
+
+                    this.showToast(
+                        this.singleUseItemUsed(updated)
+                            ? 'Última carga gasta. O item agora está Usado e pode ser descartado.'
+                            : (
+                                remaining > 0
+                                    ? (
+                                        'Uso registrado. Restam '
+                                        + remaining
+                                        + ' carga'
+                                        + (
+                                            remaining === 1
+                                                ? ''
+                                                : 's'
+                                        )
+                                        + '.'
+                                    )
+                                    : 'Uso registrado.'
+                            )
+                    );
+                },
+
+                async confirmDiscardUsedItem() {
+                    const pending =
+                        this.pendingDiscardItem;
+
+                    if (!pending || this.busyItemId !== null) {
+                        return;
+                    }
+
+                    const item =
+                        this.items.find(
+                            current =>
+                                parseInt(current.id)
+                                === parseInt(pending.id)
+                        );
+
+                    if (!item || !this.singleUseItemUsed(item)) {
+                        this.cancelDiscardUsedItem();
+                        return;
+                    }
+
+                    this.busyItemId = item.id;
+
+                    try {
+                        const response = await fetch(
+                            this.urls.destroy.replace('__ITEM__', item.id),
+                            {
+                                method: 'DELETE',
+                                headers: this.baseHeaders(),
+                            }
+                        );
+
+                        const data = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            throw new Error(
+                                data?.message ?? 'Não foi possível jogar o item fora.'
+                            );
+                        }
+
+                        const id = parseInt(item.id);
+
+                        this.items = this.items.filter(
+                            current => parseInt(current.id) !== id
+                        );
+
+                        if (
+                            this.detailItem
+                            && parseInt(this.detailItem.id) === id
+                        ) {
+                            this.closeDetail();
+                        }
+
+                        window.dispatchEvent(
+                            new CustomEvent(
+                                'character-equipment-updated',
+                                {
+                                    detail: {
+                                        item: {
+                                            id,
+                                            deleted: true,
+                                        },
+                                    },
+                                }
+                            )
+                        );
+
+                        this.discardUsedConfirmOpen = false;
+                        this.pendingDiscardItem = null;
+                        this.showToast('Item descartado do inventário.');
+                    } catch (error) {
+                        this.showToast(
+                            error.message ?? 'Não foi possível jogar o item fora.',
+                            true
+                        );
+                    } finally {
+                        this.busyItemId = null;
+                    }
+                },
+
+                openFoundItems() {
+                    this.foundItemsOpen = true;
+                    this.loadFoundLoot();
+                },
+
+                normalizeFoundLootItem(raw) {
+                    return {
+                        id: parseInt(raw?.id) || 0,
+                        loot_drop_id: parseInt(raw?.loot_drop_id) || 0,
+                        drop_name: raw?.drop_name ?? '',
+                        campaign_name: raw?.campaign_name ?? '',
+                        name: raw?.name ?? '',
+                        type: raw?.type ?? 'mundane',
+                        description: raw?.description ?? '',
+                        image_url: raw?.image_url ?? null,
+                        quantity_remaining: Math.max(0, parseInt(raw?.quantity_remaining) || 0),
+                        weight: raw?.weight === null || raw?.weight === undefined || raw?.weight === ''
+                            ? null
+                            : Number(raw.weight),
+                        is_magical: !!raw?.is_magical,
+                        rarity: raw?.rarity ?? null,
+                        rarity_label: raw?.rarity_label ?? (raw?.rarity ? (this.rarityLabels?.[raw.rarity] ?? raw.rarity) : null),
+                        requires_attunement: !!raw?.requires_attunement,
+                        armor_class: raw?.armor_class ?? null,
+                        damage: raw?.damage ?? null,
+                        attack_bonus: raw?.attack_bonus ?? null,
+                        damage_bonus: raw?.damage_bonus ?? null,
+                        ability_bonuses: raw?.ability_bonuses ?? {},
+                        properties: raw?.properties ?? {},
+                        modifiers: raw?.modifiers ?? {},
+                        notes: raw?.notes ?? '',
+                    };
+                },
+
+                normalizeFoundLootCurrency(raw) {
+                    const coins = raw?.coins ?? {};
+
+                    return {
+                        id: parseInt(raw?.id) || 0,
+                        loot_drop_id: parseInt(raw?.loot_drop_id) || 0,
+                        drop_name: raw?.drop_name ?? '',
+                        campaign_name: raw?.campaign_name ?? '',
+                        label: raw?.label ?? 'Moedas',
+                        distribution_mode: raw?.distribution_mode ?? 'first_claim',
+                        coins: {
+                            copper: this.normalizeMoney(coins?.copper),
+                            silver: this.normalizeMoney(coins?.silver),
+                            electrum: this.normalizeMoney(coins?.electrum),
+                            gold: this.normalizeMoney(coins?.gold),
+                            platinum: this.normalizeMoney(coins?.platinum),
+                        },
+                    };
+                },
+
+                foundLootNatureLabel(item) {
+                    const nature = item?.type ?? (item?.is_magical ? 'wonderful' : 'mundane');
+                    return this.natureLabels?.[nature] ?? String(nature ?? 'Item');
+                },
+
+                foundLootCoinLines(entry) {
+                    const labels = {
+                        copper: 'PC',
+                        silver: 'PP',
+                        electrum: 'PE',
+                        gold: 'PO',
+                        platinum: 'PL',
+                    };
+
+                    return Object.entries(labels)
+                        .map(([coin, label]) => ({
+                            coin,
+                            label,
+                            amount: this.normalizeMoney(entry?.coins?.[coin]),
+                        }))
+                        .filter(line => line.amount > 0);
+                },
+
+                foundLootCurrencyModeLabel(entry) {
+                    if (entry?.distribution_mode === 'split') {
+                        return 'Sua parte já está separada';
+                    }
+
+                    if (entry?.distribution_mode === 'open') {
+                        return 'Caixa comum da Party';
+                    }
+
+                    return 'Reservado para você';
+                },
+
+                ensureFoundLootCurrencyDraft(entry) {
+                    const id = parseInt(entry?.id) || 0;
+
+                    if (!id) return;
+
+                    if (!this.foundLootCurrencyDrafts[id]) {
+                        this.foundLootCurrencyDrafts[id] = {
+                            copper: 0,
+                            silver: 0,
+                            electrum: 0,
+                            gold: 0,
+                            platinum: 0,
+                        };
+                    }
+                },
+
+                foundLootCurrencyDraftAmount(entry, coin) {
+                    this.ensureFoundLootCurrencyDraft(entry);
+
+                    return this.normalizeMoney(
+                        this.foundLootCurrencyDrafts?.[entry?.id]?.[coin]
+                    );
+                },
+
+                async loadFoundLoot(silent = false) {
+                    if (this.foundLootLoading) return;
+
+                    this.foundLootLoading = true;
+                    if (!silent) this.foundLootError = null;
+
+                    try {
+                        const response = await fetch(this.urls.foundLootIndex, {
+                            method: 'GET',
+                            headers: this.baseHeaders(),
+                        });
+
+                        const data = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            const errors = data?.errors
+                                ? Object.values(data.errors).flat().filter(Boolean)
+                                : [];
+
+                            throw new Error(
+                                errors.length
+                                    ? errors.join(' ')
+                                    : (data?.message ?? 'Não foi possível carregar os itens encontrados.')
+                            );
+                        }
+
+                        this.foundLootItems = Array.isArray(data?.items)
+                            ? data.items
+                                .map(item => this.normalizeFoundLootItem(item))
+                                .filter(item => item.id > 0)
+                            : [];
+
+                        this.foundLootCurrencies = Array.isArray(data?.currencies)
+                            ? data.currencies
+                                .map(entry => this.normalizeFoundLootCurrency(entry))
+                                .filter(entry => entry.id > 0)
+                            : [];
+
+                        for (const entry of this.foundLootCurrencies) {
+                            this.ensureFoundLootCurrencyDraft(entry);
+                        }
+
+                        this.foundLootLoaded = true;
+                        this.foundLootError = null;
+                    } catch (error) {
+                        this.foundLootError = error?.message
+                            ?? 'Não foi possível carregar os itens encontrados.';
+
+                        if (!silent) {
+                            this.showToast(this.foundLootError, true);
+                        }
+                    } finally {
+                        this.foundLootLoading = false;
+                    }
+                },
+
+                async claimFoundLootItem(item) {
+                    const itemId = parseInt(item?.id) || 0;
+
+                    if (
+                        !itemId
+                        || this.foundLootBusyItemId !== null
+                        || this.foundLootBusyCurrencyId !== null
+                    ) {
+                        return;
+                    }
+
+                    this.foundLootBusyItemId = itemId;
+
+                    try {
+                        const response = await fetch(
+                            this.urls.foundLootClaimItem.replace('__LOOT_ITEM__', itemId),
+                            {
+                                method: 'POST',
+                                headers: this.jsonHeaders(),
+                                body: JSON.stringify({ quantity: 1 }),
+                            }
+                        );
+
+                        const data = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            const errors = data?.errors
+                                ? Object.values(data.errors).flat().filter(Boolean)
+                                : [];
+
+                            throw new Error(
+                                errors.length
+                                    ? errors.join(' ')
+                                    : (data?.message ?? 'Não foi possível adicionar o item ao inventário.')
+                            );
+                        }
+
+                        if (data?.item) {
+                            this.upsertItem(data.item);
+                        }
+
+                        const remaining = Math.max(0, parseInt(data?.quantity_remaining) || 0);
+
+                        if (remaining > 0) {
+                            const found = this.foundLootItems.find(
+                                current => parseInt(current.id) === itemId
+                            );
+
+                            if (found) found.quantity_remaining = remaining;
+                        } else {
+                            this.foundLootItems = this.foundLootItems.filter(
+                                current => parseInt(current.id) !== itemId
+                            );
+                        }
+
+                        this.showToast(data?.message ?? 'Item adicionado ao inventário.');
+                    } catch (error) {
+                        this.showToast(
+                            error?.message ?? 'Não foi possível adicionar o item ao inventário.',
+                            true
+                        );
+
+                        await this.loadFoundLoot(true);
+                    } finally {
+                        this.foundLootBusyItemId = null;
+                    }
+                },
+
+                async claimFoundLootCurrency(entry) {
+                    const currencyId = parseInt(entry?.id) || 0;
+
+                    if (
+                        !currencyId
+                        || this.foundLootBusyCurrencyId !== null
+                        || this.foundLootBusyItemId !== null
+                    ) {
+                        return;
+                    }
+
+                    this.ensureFoundLootCurrencyDraft(entry);
+
+                    const payload = {};
+
+                    if (entry?.distribution_mode === 'open') {
+                        for (const coin of [
+                            'copper',
+                            'silver',
+                            'electrum',
+                            'gold',
+                            'platinum',
+                        ]) {
+                            payload[coin] =
+                                this.foundLootCurrencyDraftAmount(
+                                    entry,
+                                    coin
+                                );
+                        }
+
+                        const hasAmount =
+                            Object.values(payload)
+                                .some(value => value > 0);
+
+                        if (!hasAmount) {
+                            this.showToast(
+                                'Informe quanto você quer retirar da caixa da Party.',
+                                true
+                            );
+                            return;
+                        }
+                    }
+
+                    this.foundLootBusyCurrencyId = currencyId;
+
+                    try {
+                        const response = await fetch(
+                            this.urls.foundLootClaimCurrency.replace('__CURRENCY__', currencyId),
+                            {
+                                method: 'POST',
+                                headers: this.jsonHeaders(),
+                                body: JSON.stringify(payload),
+                            }
+                        );
+
+                        const data = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            const errors = data?.errors
+                                ? Object.values(data.errors).flat().filter(Boolean)
+                                : [];
+
+                            throw new Error(
+                                errors.length
+                                    ? errors.join(' ')
+                                    : (data?.message ?? 'Não foi possível adicionar as moedas à bolsa.')
+                            );
+                        }
+
+                        if (data?.wallet) {
+                            this.wallet = {
+                                copper: this.normalizeMoney(data.wallet.copper),
+                                silver: this.normalizeMoney(data.wallet.silver),
+                                electrum: this.normalizeMoney(data.wallet.electrum),
+                                gold: this.normalizeMoney(data.wallet.gold),
+                                platinum: this.normalizeMoney(data.wallet.platinum),
+                            };
+                        }
+
+                        this.foundLootCurrencyDrafts[currencyId] = {
+                            copper: 0,
+                            silver: 0,
+                            electrum: 0,
+                            gold: 0,
+                            platinum: 0,
+                        };
+
+                        await this.loadFoundLoot(true);
+
+                        this.showToast(
+                            data?.message
+                            ?? 'Moedas adicionadas à bolsa.'
+                        );
+                    } catch (error) {
+                        this.showToast(
+                            error?.message ?? 'Não foi possível adicionar as moedas à bolsa.',
+                            true
+                        );
+
+                        await this.loadFoundLoot(true);
+                    } finally {
+                        this.foundLootBusyCurrencyId = null;
+                    }
+                },
+
+                normalizeMoney(value) {
+                    const digits = String(value ?? '')
+                        .replace(/\D/g, '');
+
+                    return Math.max(
+                        0,
+                        parseInt(digits, 10) || 0
+                    );
+                },
+
+                formatMoney(value) {
+                    return String(
+                        this.normalizeMoney(value)
+                    ).replace(
+                        /\B(?=(\d{3})+(?!\d))/g,
+                        ','
+                    );
+                },
+
+                handleMoneyInput(currency, event) {
+                    const value = this.normalizeMoney(
+                        event?.target?.value
+                    );
+
+                    this.wallet[currency] = value;
+
+                    if (event?.target) {
+                        event.target.value = this.formatMoney(value);
+                    }
+
+                    this.saveWallet();
+                },
+
+                saveWallet() {
+                    clearTimeout(this.walletTimer);
+
+                    this.walletTimer = setTimeout(() => {
+                        this.walletTimer = null;
+                        this.persistWallet();
                     }, 300);
+                },
+
+                async persistWallet() {
+                    if (this.walletSaving) {
+                        this.walletPendingSave = true;
+                        return;
+                    }
+
+                    const payload = {
+                        copper: this.normalizeMoney(this.wallet.copper),
+                        silver: this.normalizeMoney(this.wallet.silver),
+                        electrum: this.normalizeMoney(this.wallet.electrum),
+                        gold: this.normalizeMoney(this.wallet.gold),
+                        platinum: this.normalizeMoney(this.wallet.platinum),
+                    };
+
+                    this.walletSaving = true;
+                    this.walletPendingSave = false;
+
+                    try {
+                        const response = await fetch(this.urls.wallet, {
+                            method: 'PATCH',
+                            headers: this.jsonHeaders(),
+                            body: JSON.stringify(payload),
+                        });
+
+                        const data = await response.json().catch(() => ({}));
+
+                        if (!response.ok) {
+                            const errors = data?.errors
+                                ? Object.values(data.errors).flat().filter(Boolean)
+                                : [];
+
+                            throw new Error(
+                                errors.length
+                                    ? errors.join(' ')
+                                    : (
+                                        data?.message
+                                        ?? 'Não foi possível salvar as moedas.'
+                                    )
+                            );
+                        }
+                    } catch (error) {
+                        this.showToast(
+                            error?.message
+                            ?? 'Não foi possível salvar as moedas.',
+                            true
+                        );
+                    } finally {
+                        this.walletSaving = false;
+
+                        const current = {
+                            copper: this.normalizeMoney(this.wallet.copper),
+                            silver: this.normalizeMoney(this.wallet.silver),
+                            electrum: this.normalizeMoney(this.wallet.electrum),
+                            gold: this.normalizeMoney(this.wallet.gold),
+                            platinum: this.normalizeMoney(this.wallet.platinum),
+                        };
+
+                        const changedDuringRequest =
+                            Object.keys(payload).some(
+                                key => current[key] !== payload[key]
+                            );
+
+                        if (
+                            this.walletPendingSave
+                            || changedDuringRequest
+                        ) {
+                            this.walletPendingSave = false;
+                            this.saveWallet();
+                        }
+                    }
                 },
 
                 showToast(message, error = false) {
@@ -9667,8 +15235,26 @@
             attunement: @js(route('characters.items.attunement.update', ['character' => $character, 'item' => '__ITEM__'])),
             featureUses: @js(route('characters.items.features.uses.update', ['character' => $character, 'item' => '__ITEM__', 'feature' => '__FEATURE__'])),
             wallet: @js(route('characters.wallet.update', ['character' => $character])),
+            foundLootIndex: @js(route('characters.found-loot.index', ['character' => $character])),
+            foundLootClaimItem: @js(route('characters.found-loot.items.claim', ['character' => $character, 'lootItem' => '__LOOT_ITEM__'])),
+            foundLootClaimCurrency: @js(route('characters.found-loot.currency.claim', ['character' => $character, 'currency' => '__CURRENCY__'])),
         }
     )"
+    @shop-purchase-completed.window="
+        if ($event.detail?.item) {
+            upsertItem($event.detail.item);
+        }
+
+        if ($event.detail?.wallet) {
+            wallet = {
+                copper: normalizeMoney($event.detail.wallet.copper),
+                silver: normalizeMoney($event.detail.wallet.silver),
+                electrum: normalizeMoney($event.detail.wallet.electrum),
+                gold: normalizeMoney($event.detail.wallet.gold),
+                platinum: normalizeMoney($event.detail.wallet.platinum),
+            };
+        }
+    "
     @character-equipment-updated.window="
         if ($event.detail?.item?.id) {
             const syncedItem =
@@ -9692,6 +15278,10 @@
             pendingAttunementItem = null;
         } else if (attunementPickerOpen) {
             attunementPickerOpen = false;
+        } else if (singleUseConfirmOpen) {
+            cancelSingleUse();
+        } else if (discardUsedConfirmOpen) {
+            cancelDiscardUsedItem();
         } else if (deleteConfirmOpen) {
             deleteConfirmOpen = false;
         } else if (editorOpen) {
@@ -9704,17 +15294,28 @@
             foundItemsOpen = false;
         }
     "
-    class="inventory-v10 inventory-v14 inventory-v15 inventory-v16 inventory-v17 inventory-v18 inventory-v19 inventory-v20 inventory-v21 inventory-v22 inventory-v23 inventory-v24 inventory-v25 inventory-v26 inventory-v27 inventory-v28 inventory-v29 inventory-v30 inventory-v31 inventory-v32 inventory-v33 inventory-v34"
+    class="inventory-v10 inventory-v14 inventory-v15 inventory-v16 inventory-v17 inventory-v18 inventory-v19 inventory-v20 inventory-v21 inventory-v22 inventory-v23 inventory-v24 inventory-v25 inventory-v26 inventory-v27 inventory-v28 inventory-v29 inventory-v30 inventory-v31 inventory-v32 inventory-v33 inventory-v34 inventory-v35 inventory-v39 inventory-v40 inventory-v41 inventory-v42"
 >
     {{-- ============================================================
          TOPO — V14 SIMPLIFICADO
     ============================================================= --}}
-    <div class="inventory-v14-toolbar inventory-v23-main-topbar">
-        <div class="inventory-v14-actions">
+    <div
+        class="
+            inventory-v14-toolbar
+            inventory-v23-main-topbar
+            inventory-v38-toolbar
+        "
+    >
+        <div
+            class="
+                inventory-v14-actions
+                inventory-v38-actions
+            "
+        >
             <button
                 type="button"
                 @click="openCreate()"
-                class="inventory-v14-primary"
+                class="inventory-v14-primary inventory-v38-primary-action"
             >
                 <span class="inventory-v14-plus">+</span>
                 <span>Novo Item</span>
@@ -9723,7 +15324,7 @@
             <button
                 type="button"
                 @click="equippedDrawerOpen = true"
-                class="inventory-v14-action"
+                class="inventory-v14-action inventory-v38-secondary-action"
             >
                 <span>Equipados</span>
                 <span class="inventory-v14-badge" x-text="equippedItems.length"></span>
@@ -9731,23 +15332,30 @@
 
             <button
                 type="button"
-                @click="foundItemsOpen = true"
-                class="inventory-v14-action inventory-v14-action-muted"
+                @click="openFoundItems()"
+                class="inventory-v14-action inventory-v14-action-muted inventory-v38-secondary-action"
             >
-                Encontrados
+                <span>Encontrados</span>
+
+                <span
+                    x-show="foundLootLoaded && foundLootCount > 0"
+                    x-cloak
+                    class="inventory-v14-badge"
+                    x-text="foundLootCount"
+                ></span>
             </button>
         </div>
 
-        <div class="inventory-v14-toolbar-right">
+        <div class="inventory-v14-toolbar-right inventory-v38-toolbar-right">
             {{-- Bolsa compacta --}}
             <div
-                class="inventory-v14-wallet-wrap"
+                class="inventory-v14-wallet-wrap inventory-v38-wallet-wrap"
                 @click.outside="walletOpen = false"
             >
                 <button
                     type="button"
                     @click="walletOpen = !walletOpen"
-                    class="inventory-v14-wallet-trigger"
+                    class="inventory-v14-wallet-trigger inventory-v38-wallet-trigger"
                     :aria-expanded="walletOpen"
                     aria-label="Abrir bolsa de moedas"
                 >
@@ -9762,8 +15370,12 @@
                     </span>
 
                     <span class="inventory-v14-wallet-copy">
-                        <span class="inventory-v14-wallet-label">Bolsa</span>
-                        <strong x-text="walletTotalCoins"></strong>
+                        <span class="inventory-v14-wallet-label">Bolsa de moedas</span>
+
+                        <span class="inventory-v38-wallet-total-line">
+                            <strong x-text="formatMoney(walletTotalCoins)"></strong>
+                            <small>moedas</small>
+                        </span>
                     </span>
 
                     <svg
@@ -9781,25 +15393,58 @@
                     x-show="walletOpen"
                     x-cloak
                     x-transition.opacity.duration.120ms
-                    class="inventory-v14-wallet-panel"
+                    class="inventory-v14-wallet-panel inventory-v38-wallet-panel"
                 >
-                    <div class="inventory-v14-wallet-panel-head">
+                    <div
+                        class="
+                            inventory-v14-wallet-panel-head
+                            inventory-v38-wallet-panel-head
+                        "
+                    >
                         <div>
-                            <strong>Moedas</strong>
-                            <span>Edite os valores diretamente.</span>
+
+
+                            <strong>Bolsa de moedas</strong>
+
                         </div>
 
                         <span
                             x-show="walletSaving"
                             x-cloak
-                            class="inventory-v14-saving"
+                            class="
+                                inventory-v14-saving
+                                inventory-v38-wallet-saving
+                            "
                         >
                             Salvando…
                         </span>
                     </div>
 
-                    <div class="inventory-v14-coins">
-                        <label class="inventory-v14-coin-row">
+                    <div class="inventory-v38-wallet-summary">
+                        <div>
+                            <span>Total na bolsa</span>
+
+                            <strong
+                                x-text="
+                                    formatMoney(
+                                        walletTotalCoins
+                                    )
+                                "
+                            ></strong>
+                        </div>
+
+                        <span class="inventory-v38-wallet-summary-note">
+                            moedas
+                        </span>
+                    </div>
+
+                    <div
+                        class="
+                            inventory-v14-coins
+                            inventory-v38-coins
+                        "
+                    >
+                        <label class="inventory-v14-coin-row inventory-v38-coin-card">
                             <span class="inventory-v14-coin-icon coin-copper" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="8.25"/>
@@ -9808,15 +15453,17 @@
                             </span>
                             <span class="inventory-v14-coin-name"><b>PC</b><small>Cobre</small></span>
                             <input
-                                type="number"
-                                min="0"
-                                x-model.number="wallet.copper"
-                                @change="saveWallet()"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                :value="formatMoney(wallet.copper)"
+                                @input="handleMoneyInput('copper', $event)"
+                                @blur="$event.target.value = formatMoney(wallet.copper)"
                                 aria-label="Peças de Cobre"
                             >
                         </label>
 
-                        <label class="inventory-v14-coin-row">
+                        <label class="inventory-v14-coin-row inventory-v38-coin-card">
                             <span class="inventory-v14-coin-icon coin-silver" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="8.25"/>
@@ -9825,15 +15472,17 @@
                             </span>
                             <span class="inventory-v14-coin-name"><b>PP</b><small>Prata</small></span>
                             <input
-                                type="number"
-                                min="0"
-                                x-model.number="wallet.silver"
-                                @change="saveWallet()"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                :value="formatMoney(wallet.silver)"
+                                @input="handleMoneyInput('silver', $event)"
+                                @blur="$event.target.value = formatMoney(wallet.silver)"
                                 aria-label="Peças de Prata"
                             >
                         </label>
 
-                        <label class="inventory-v14-coin-row">
+                        <label class="inventory-v14-coin-row inventory-v38-coin-card">
                             <span class="inventory-v14-coin-icon coin-electrum" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="8.25"/>
@@ -9842,15 +15491,17 @@
                             </span>
                             <span class="inventory-v14-coin-name"><b>PE</b><small>Electro</small></span>
                             <input
-                                type="number"
-                                min="0"
-                                x-model.number="wallet.electrum"
-                                @change="saveWallet()"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                :value="formatMoney(wallet.electrum)"
+                                @input="handleMoneyInput('electrum', $event)"
+                                @blur="$event.target.value = formatMoney(wallet.electrum)"
                                 aria-label="Peças de Electro"
                             >
                         </label>
 
-                        <label class="inventory-v14-coin-row">
+                        <label class="inventory-v14-coin-row inventory-v38-coin-card">
                             <span class="inventory-v14-coin-icon coin-gold" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="8.25"/>
@@ -9859,15 +15510,17 @@
                             </span>
                             <span class="inventory-v14-coin-name"><b>PO</b><small>Ouro</small></span>
                             <input
-                                type="number"
-                                min="0"
-                                x-model.number="wallet.gold"
-                                @change="saveWallet()"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                :value="formatMoney(wallet.gold)"
+                                @input="handleMoneyInput('gold', $event)"
+                                @blur="$event.target.value = formatMoney(wallet.gold)"
                                 aria-label="Peças de Ouro"
                             >
                         </label>
 
-                        <label class="inventory-v14-coin-row">
+                        <label class="inventory-v14-coin-row inventory-v38-coin-card inventory-v38-coin-card--platinum">
                             <span class="inventory-v14-coin-icon coin-platinum" aria-hidden="true">
                                 <svg viewBox="0 0 24 24" fill="none">
                                     <circle cx="12" cy="12" r="8.25"/>
@@ -9876,10 +15529,12 @@
                             </span>
                             <span class="inventory-v14-coin-name"><b>PL</b><small>Platina</small></span>
                             <input
-                                type="number"
-                                min="0"
-                                x-model.number="wallet.platinum"
-                                @change="saveWallet()"
+                                type="text"
+                                inputmode="numeric"
+                                autocomplete="off"
+                                :value="formatMoney(wallet.platinum)"
+                                @input="handleMoneyInput('platinum', $event)"
+                                @blur="$event.target.value = formatMoney(wallet.platinum)"
                                 aria-label="Peças de Platina"
                             >
                         </label>
@@ -9893,16 +15548,52 @@
     {{-- ============================================================
          SINTONIZAÇÃO — V14
     ============================================================= --}}
-    <section class="inventory-v14-attunement inventory-v23-attunement-panel">
-        <div class="inventory-v14-section-head">
-            <div class="inventory-v14-section-title">
-                <span class="inventory-v14-diamond">◆</span>
+    <section
+        class="
+            inventory-v14-attunement
+            inventory-v23-attunement-panel
+            inventory-v36-attunement-shell
+        "
+    >
+        <div
+            class="
+                inventory-v14-section-head
+                inventory-v36-attunement-head
+            "
+        >
+            <div
+                class="
+                    inventory-v14-section-title
+                    inventory-v36-attunement-title
+                "
+            >
+                <span
+                    class="
+                        inventory-v14-diamond
+                        inventory-v36-attunement-icon
+                    "
+                >
+                    ✦
+                </span>
 
-                <div>
-                    <div class="inventory-v14-title-line">
+                <div class="inventory-v36-attunement-copy">
+                    <div
+                        class="
+                            inventory-v14-title-line
+                            inventory-v36-attunement-line
+                        "
+                    >
                         <h3>Sintonização</h3>
-                        <span class="inventory-v14-count" x-text="attunedItems.length + '/3'"></span>
+
+                        <span
+                            class="
+                                inventory-v14-count
+                                inventory-v36-attunement-count
+                            "
+                            x-text="attunedItems.length + '/3'"
+                        ></span>
                     </div>
+
                     <p>Itens vinculados ao personagem.</p>
                 </div>
             </div>
@@ -9910,23 +15601,52 @@
             <button
                 type="button"
                 @click="attunementPickerOpen = true"
-                class="inventory-v14-text-action"
+                class="
+                    inventory-v14-text-action
+                    inventory-v36-attunement-action
+                "
             >
                 Escolher item
             </button>
         </div>
 
-        <div class="inventory-v14-slots">
-            <template x-for="(slot, index) in primaryAttunementSlots" :key="'slot-' + index">
+        <div
+            class="
+                inventory-v14-slots
+                inventory-v36-attunement-slots
+            "
+        >
+            <template
+                x-for="(slot, index) in primaryAttunementSlots"
+                :key="'slot-' + index"
+            >
                 <button
                     type="button"
-                    @click="slot ? openDetail(slot) : attunementPickerOpen = true"
-                    class="inventory-v14-slot"
-                    :class="{ 'is-filled': !!slot }"
+                    @click="
+                        slot
+                            ? openDetail(slot)
+                            : attunementPickerOpen = true
+                    "
+                    class="
+                        inventory-v14-slot
+                        inventory-v36-attunement-slot
+                    "
+                    :class="{ 'is-filled': !!slot, 'is-empty': !slot }"
                 >
                     <template x-if="slot">
-                        <div class="inventory-v14-slot-content">
-                            <div class="inventory-v10-thumb inventory-v14-slot-image">
+                        <div
+                            class="
+                                inventory-v14-slot-content
+                                inventory-v36-slot-content
+                            "
+                        >
+                            <div
+                                class="
+                                    inventory-v10-thumb
+                                    inventory-v14-slot-image
+                                    inventory-v36-slot-image
+                                "
+                            >
                                 <template x-if="slot.image_url">
                                     <img :src="slot.image_url" :alt="slot.name">
                                 </template>
@@ -9936,20 +15656,46 @@
                                 </template>
                             </div>
 
-                            <div class="inventory-v14-slot-copy">
-                                <small>
-                                    Espaço <span x-text="index + 1"></span>
-                                </small>
+                            <div
+                                class="
+                                    inventory-v14-slot-copy
+                                    inventory-v36-slot-copy
+                                "
+                            >
+                                <div class="inventory-v36-slot-meta">
+                                    <small>
+                                        Espaço
+                                        <span x-text="index + 1"></span>
+                                    </small>
+
+                                    <span
+                                        class="inventory-v36-slot-rarity"
+                                        x-text="rarityLabel(slot)"
+                                    ></span>
+                                </div>
+
                                 <strong x-text="slot.name"></strong>
-                                <span x-text="rarityLabel(slot)"></span>
+
+                                <span class="inventory-v36-slot-hint">
+                                    Clique para ver detalhes
+                                </span>
                             </div>
                         </div>
                     </template>
 
                     <template x-if="!slot">
-                        <div class="inventory-v14-slot-empty">
+                        <div
+                            class="
+                                inventory-v14-slot-empty
+                                inventory-v36-slot-empty
+                            "
+                        >
                             <span class="inventory-v14-slot-plus">+</span>
-                            <span>Espaço livre</span>
+
+                            <div class="inventory-v36-slot-empty-copy">
+                                <strong>Espaço livre</strong>
+                                <small>Escolher item para sintonizar</small>
+                            </div>
                         </div>
                     </template>
                 </button>
@@ -9959,7 +15705,10 @@
         <div
             x-show="extraAttunedItems.length > 0"
             x-cloak
-            class="inventory-v14-extra-attuned"
+            class="
+                inventory-v14-extra-attuned
+                inventory-v36-extra-attuned
+            "
         >
             <span>Extras</span>
 
@@ -10197,6 +15946,7 @@
                         class="
                             inventory-v16-items-grid
                             inventory-v26-items-grid
+                            inventory-v39-items-grid
                         "
                     >
                     <template x-for="item in group.items" :key="group.key + '-' + item.id">
@@ -10205,12 +15955,15 @@
                             tabindex="0"
                             @click="openDetail(item)"
                             @keydown.enter.prevent="openDetail(item)"
-                            class="inventory-v11-item-card inventory-v16-polaroid cursor-pointer"
-                            :class="{ 'magical': item.is_magical }"
+                            class="inventory-v11-item-card inventory-v16-polaroid inventory-v39-item-card cursor-pointer"
+                            :class="{
+                                'magical': item.is_magical,
+                                'inventory-v43-item-used': singleUseItemUsed(item)
+                            }"
                         >
-                            <div class="flex gap-3.5 p-3.5">
+                            <div class="flex gap-3.5 p-3.5 inventory-v39-card-main">
                                 <div
-                                    class="inventory-v10-thumb inventory-v27-thumb flex h-[78px] w-[78px] shrink-0 items-center justify-center rounded-xl border border-[#d8c7ab]/60"
+                                    class="inventory-v10-thumb inventory-v27-thumb inventory-v39-card-thumb flex h-[78px] w-[78px] shrink-0 items-center justify-center rounded-xl border border-[#d8c7ab]/60"
                                 >
                                     <span
                                         x-show="item.equipped"
@@ -10218,6 +15971,14 @@
                                         class="inventory-v27-equipped-badge"
                                     >
                                         Equipado
+                                    </span>
+
+                                    <span
+                                        x-show="singleUseItemUsed(item)"
+                                        x-cloak
+                                        class="inventory-v43-used-badge"
+                                    >
+                                        Usado
                                     </span>
 
                                     <template x-if="item.image_url">
@@ -10229,7 +15990,7 @@
                                     </template>
                                 </div>
 
-                                <div class="min-w-0 flex-1">
+                                <div class="min-w-0 flex-1 inventory-v39-card-copy">
                                     <div class="flex flex-wrap items-start gap-x-2.5 gap-y-1">
                                         <div class="min-w-0 flex-1">
                                             <div class="flex flex-wrap items-center gap-2">
@@ -10262,9 +16023,15 @@
                             </div>
 
                             <div
+                                x-show="
+                                    cardFeatureEntries(item).length > 0
+                                    && !singleUseItemUsed(item)
+                                "
+                                x-cloak
                                 class="
                                     inventory-v11-feature-strip
                                     inventory-v22-card-feature-strip
+                                    inventory-v39-feature-strip
                                 "
                                 @click.stop
                             >
@@ -10305,7 +16072,42 @@
 
                                             <template x-if="entry.feature?.usage?.enabled">
                                                 <div class="inventory-v22-card-feature-tracker">
-                                                    <div class="inventory-v11-mini-tracker">
+                                                    <button
+                                                        x-show="
+                                                            entry.feature.usage.recovery === 'single_use'
+                                                            && !singleUseFeatureUsed(entry.feature)
+                                                        "
+                                                        x-cloak
+                                                        type="button"
+                                                        class="inventory-v43-single-use-action"
+                                                        @click.stop="requestSingleUse(item, entry.index)"
+                                                        :disabled="busyFeatureKey !== null"
+                                                    >
+                                                        <span>Usar</span>
+                                                        <span
+                                                            class="ml-1 opacity-75"
+                                                            x-text="
+                                                                '· '
+                                                                + entry.feature.usage.current
+                                                                + '/'
+                                                                + entry.feature.usage.max
+                                                            "
+                                                        ></span>
+                                                    </button>
+
+                                                    <span
+                                                        x-show="singleUseFeatureUsed(entry.feature)"
+                                                        x-cloak
+                                                        class="inventory-v43-used-badge !static"
+                                                    >
+                                                        Usado
+                                                    </span>
+
+                                                    <div
+                                                        x-show="entry.feature.usage.recovery !== 'single_use'"
+                                                        x-cloak
+                                                        class="inventory-v11-mini-tracker"
+                                                    >
                                                         <button
                                                             type="button"
                                                             @click.stop="
@@ -10357,7 +16159,11 @@
                                                         x-show="recoveryLabel(entry.feature.usage)"
                                                         x-cloak
                                                         class="inventory-v22-card-feature-recovery"
-                                                        x-text="'/ ' + recoveryLabel(entry.feature.usage)"
+                                                        x-text="
+                                                            entry.feature.usage.recovery === 'single_use'
+                                                                ? 'Uso Único'
+                                                                : '/ ' + recoveryLabel(entry.feature.usage)
+                                                        "
                                                     ></span>
                                                 </div>
                                             </template>
@@ -10398,6 +16204,27 @@
                                     </div>
                                 </div>
                             </div>
+
+                            <div
+                                x-show="singleUseItemUsed(item)"
+                                x-cloak
+                                class="inventory-v43-used-bar"
+                                @click.stop
+                            >
+                                <div class="inventory-v43-used-copy">
+                                    <strong>Item usado</strong>
+                                    <span>O efeito de uso único já foi consumido.</span>
+                                </div>
+
+                                <button
+                                    type="button"
+                                    class="inventory-v43-discard-action"
+                                    @click.stop="requestDiscardUsedItem(item)"
+                                    :disabled="busyItemId !== null"
+                                >
+                                    Jogar fora?
+                                </button>
+                            </div>
                         </article>
                     </template>
                 </div>
@@ -10421,15 +16248,75 @@
         <div
             x-show="detailOpen"
             x-cloak
-            class="fixed inset-0 z-[230] flex items-center justify-center p-4"
+
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+            role="dialog"
+            aria-modal="true"
+            aria-label="Detalhes do item"
+
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                inventory-v35-modal-layer
+
+                fixed
+                inset-0
+                z-[230]
+
+                flex
+                items-center
+                justify-center
+
+                p-4
+            "
         >
             <div
-                class="absolute inset-0 bg-[#2b1d17]/60 backdrop-blur-sm"
+                class="
+                    character-theme-modal-backdrop
+                    absolute
+                    inset-0
+                "
                 @click="closeDetail()"
             ></div>
 
             <div
-                class="inventory-v10-detail-paper inventory-v17-detail-modal relative z-10 flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#cdbb9f] shadow-2xl"
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
+                class="
+                    character-theme-modal
+                    inventory-v35-modal
+                    inventory-v35-detail-modal
+                    inventory-v10-detail-paper
+                    inventory-v17-detail-modal
+
+                    relative
+                    z-10
+
+                    flex
+                    max-h-[92dvh]
+                    w-full
+                    max-w-[860px]
+                    flex-col
+                    overflow-hidden
+
+                    rounded-2xl
+                    border
+
+                    shadow-2xl
+                "
             >
                 <div class="inventory-v17-detail-topbar flex shrink-0 items-center gap-2 border-b border-[#d8c7ab]/55 bg-[#efe9dc]/28 px-4 py-2.5">
                     <span class="mr-auto text-[9px] font-black uppercase tracking-[0.11em] text-[#8c6239]/75">
@@ -10566,6 +16453,26 @@
                                         class="inventory-v17-classification"
                                         x-text="classificationLine(detailItem)"
                                     ></em>
+
+                                    <div
+                                        x-show="singleUseItemUsed(detailItem)"
+                                        x-cloak
+                                        class="inventory-v43-detail-used"
+                                    >
+                                        <div>
+                                            <strong>Este item já foi usado</strong>
+                                            <p>O efeito de uso único foi consumido. Você pode manter o item como registro ou descartá-lo.</p>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            class="inventory-v43-discard-action"
+                                            @click="requestDiscardUsedItem(detailItem)"
+                                            :disabled="busyItemId !== null"
+                                        >
+                                            Jogar fora
+                                        </button>
+                                    </div>
 
                                     <div
                                         x-show="
@@ -10842,13 +16749,51 @@
                                                     x-cloak
                                                     class="flex shrink-0 flex-wrap items-center justify-end gap-2"
                                                 >
-                                                    <div class="inventory-v10-tracker">
+                                                    <button
+                                                        x-show="
+                                                            feature.usage.recovery === 'single_use'
+                                                            && !singleUseFeatureUsed(feature)
+                                                        "
+                                                        x-cloak
+                                                        type="button"
+                                                        class="inventory-v43-single-use-action"
+                                                        @click="requestSingleUse(detailItem, featureIndex)"
+                                                        :disabled="busyFeatureKey !== null"
+                                                    >
+                                                        <span>Usar item</span>
+                                                        <span
+                                                            class="ml-1 opacity-75"
+                                                            x-text="
+                                                                '· '
+                                                                + feature.usage.current
+                                                                + '/'
+                                                                + feature.usage.max
+                                                            "
+                                                        ></span>
+                                                    </button>
+
+                                                    <span
+                                                        x-show="
+                                                            feature.usage.recovery === 'single_use'
+                                                            && singleUseFeatureUsed(feature)
+                                                        "
+                                                        x-cloak
+                                                        class="inventory-v43-used-badge !static"
+                                                    >
+                                                        Usado
+                                                    </span>
+
+                                                    <div
+                                                        x-show="feature.usage.recovery !== 'single_use'"
+                                                        x-cloak
+                                                        class="inventory-v10-tracker"
+                                                    >
                                                         <button
                                                             type="button"
                                                             @click="changeFeatureUses(detailItem, featureIndex, -1)"
                                                             :disabled="busyFeatureKey !== null"
                                                             :title="
-                                                                entry.feature.usage.counter_mode === 'build'
+                                                                feature.usage.counter_mode === 'build'
                                                                     ? 'Reduzir carga acumulada'
                                                                     : 'Gastar carga'
                                                             "
@@ -10865,7 +16810,7 @@
                                                             @click="changeFeatureUses(detailItem, featureIndex, 1)"
                                                             :disabled="busyFeatureKey !== null"
                                                             :title="
-                                                                entry.feature.usage.counter_mode === 'build'
+                                                                feature.usage.counter_mode === 'build'
                                                                     ? 'Acumular carga'
                                                                     : 'Recuperar carga'
                                                             "
@@ -10876,7 +16821,11 @@
 
                                                     <span
                                                         class="inventory-v11-recovery-pill"
-                                                        x-text="'/ ' + recoveryLabel(feature.usage)"
+                                                        x-text="
+                                                            feature.usage.recovery === 'single_use'
+                                                                ? 'Uso Único'
+                                                                : '/ ' + recoveryLabel(feature.usage)
+                                                        "
                                                     ></span>
                                                 </div>
                                             </div>
@@ -10914,12 +16863,252 @@
         </div>
     </template>
 
+    {{-- =========================================================
+         CONFIRMAÇÃO — USO ÚNICO
+    ========================================================== --}}
+    <template x-teleport="body">
+        <div
+            x-show="singleUseConfirmOpen"
+            x-cloak
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-theme-modal-layer fixed inset-0 z-[270] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Confirmar uso do item"
+        >
+            <div
+                class="character-theme-modal-backdrop absolute inset-0"
+                @click="cancelSingleUse()"
+            ></div>
+
+            <div
+                class="character-theme-modal relative z-10 w-full max-w-[430px] overflow-hidden rounded-2xl border shadow-2xl"
+            >
+                <div class="border-b border-[#d8c7ab]/55 bg-[#efe9dc]/38 px-5 py-4">
+                    <span class="text-[9px] font-black uppercase tracking-[0.11em] text-[#8c6239]">
+                        Uso permanente
+                    </span>
+                    <h4 class="mt-1 font-serif text-[20px] font-black text-[#53150f]">
+                        Gastar 1 carga?
+                    </h4>
+                </div>
+
+                <div class="px-5 py-5">
+                    <p class="text-[13px] leading-[1.7] text-[#5f4638]">
+                        Você está prestes a gastar 1 carga de
+                        <strong x-text="pendingSingleUse?.itemName ?? 'este item'"></strong>.
+                    </p>
+
+                    <div
+                        class="mt-3 rounded-xl border border-[#d8c7ab]/55 bg-[#efe9dc]/30 px-4 py-3"
+                    >
+                        <span class="text-[9px] font-black uppercase tracking-[0.08em] text-[#8c6239]">
+                            Cargas
+                        </span>
+
+                        <strong
+                            class="mt-1 block font-serif text-[18px] font-black text-[#53150f]"
+                            x-text="
+                                (pendingSingleUse?.current ?? 0)
+                                + '/'
+                                + (pendingSingleUse?.max ?? 1)
+                                + ' → '
+                                + (pendingSingleUse?.remainingAfterUse ?? 0)
+                                + '/'
+                                + (pendingSingleUse?.max ?? 1)
+                            "
+                        ></strong>
+                    </div>
+
+                    <p
+                        x-show="!pendingSingleUse?.isLastCharge"
+                        x-cloak
+                        class="mt-3 text-[12px] leading-[1.65] text-[#7c6657]"
+                    >
+                        Essa carga é consumida permanentemente e não poderá ser recuperada pelo contador.
+                    </p>
+
+                    <p
+                        x-show="
+                            pendingSingleUse?.isLastCharge
+                            && pendingSingleUse?.marksWholeItem
+                        "
+                        x-cloak
+                        class="mt-3 text-[12px] leading-[1.65] text-[#7c6657]"
+                    >
+                        Esta é a última carga. Depois da confirmação, o item será marcado como <strong>Usado</strong> e poderá ser descartado.
+                    </p>
+
+                    <p
+                        x-show="
+                            pendingSingleUse?.isLastCharge
+                            && !pendingSingleUse?.marksWholeItem
+                        "
+                        x-cloak
+                        class="mt-3 text-[12px] leading-[1.65] text-[#7c6657]"
+                    >
+                        Esta é a última carga desta habilidade. Depois da confirmação, ela ficará esgotada permanentemente.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2 border-t border-[#d8c7ab]/55 bg-[#efe9dc]/20 px-5 py-3.5">
+                    <button
+                        type="button"
+                        @click="cancelSingleUse()"
+                        :disabled="busyFeatureKey !== null"
+                        class="rounded-lg px-3.5 py-2.5 text-[10px] font-black uppercase tracking-[0.04em] text-[#8c6239] disabled:opacity-50"
+                    >
+                        Cancelar
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="confirmSingleUse()"
+                        :disabled="busyFeatureKey !== null"
+                        class="rounded-lg bg-[#6b1d14] px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.04em] text-[#faf8f2] hover:bg-[#53150f] disabled:opacity-50"
+                    >
+                        <span x-text="busyFeatureKey !== null ? 'Gastando...' : 'Gastar 1 carga'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+
+    {{-- =========================================================
+         CONFIRMAÇÃO — DESCARTAR ITEM USADO
+    ========================================================== --}}
+    <template x-teleport="body">
+        <div
+            x-show="discardUsedConfirmOpen"
+            x-cloak
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-theme-modal-layer fixed inset-0 z-[271] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Descartar item usado"
+        >
+            <div
+                class="character-theme-modal-backdrop absolute inset-0"
+                @click="cancelDiscardUsedItem()"
+            ></div>
+
+            <div
+                class="character-theme-modal relative z-10 w-full max-w-[410px] overflow-hidden rounded-2xl border shadow-2xl"
+            >
+                <div class="border-b border-[#d8c7ab]/55 bg-[#efe9dc]/38 px-5 py-4">
+                    <span class="text-[9px] font-black uppercase tracking-[0.11em] text-[#8c6239]">
+                        Item usado
+                    </span>
+                    <h4 class="mt-1 font-serif text-[20px] font-black text-[#53150f]">
+                        Jogar fora?
+                    </h4>
+                </div>
+
+                <div class="px-5 py-5">
+                    <p class="text-[13px] leading-[1.7] text-[#5f4638]">
+                        <strong x-text="pendingDiscardItem?.name ?? 'Este item'"></strong>
+                        já foi consumido. Ao jogar fora, ele será removido permanentemente do inventário.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2 border-t border-[#d8c7ab]/55 bg-[#efe9dc]/20 px-5 py-3.5">
+                    <button
+                        type="button"
+                        @click="cancelDiscardUsedItem()"
+                        :disabled="busyItemId !== null"
+                        class="rounded-lg px-3.5 py-2.5 text-[10px] font-black uppercase tracking-[0.04em] text-[#8c6239] disabled:opacity-50"
+                    >
+                        Manter
+                    </button>
+
+                    <button
+                        type="button"
+                        @click="confirmDiscardUsedItem()"
+                        :disabled="busyItemId !== null"
+                        class="rounded-lg bg-red-700 px-4 py-2.5 text-[10px] font-black uppercase tracking-[0.04em] text-white hover:bg-red-800 disabled:opacity-50"
+                    >
+                        <span x-text="busyItemId !== null ? 'Descartando...' : 'Jogar fora'"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+
     {{-- EDITOR --}}
     <template x-teleport="body">
-        <div x-show="editorOpen" x-cloak class="fixed inset-0 z-[240] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-[#2b1d17]/62 backdrop-blur-sm" @click="closeEditor()"></div>
+        <div
+            x-show="editorOpen"
+            x-cloak
 
-            <div class="relative z-10 flex max-h-[94vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl">
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+            role="dialog"
+            aria-modal="true"
+            aria-label="Editor de item"
+
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                inventory-v35-modal-layer
+
+                fixed
+                inset-0
+                z-[240]
+
+                flex
+                items-center
+                justify-center
+
+                p-4
+            "
+        >
+            <div
+                class="
+                    character-theme-modal-backdrop
+                    absolute
+                    inset-0
+                "
+                @click="closeEditor()"
+            ></div>
+
+            <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
+                class="
+                    character-theme-modal
+                    inventory-v35-modal
+                    inventory-v35-editor-modal
+
+                    relative
+                    z-10
+
+                    flex
+                    max-h-[94dvh]
+                    w-full
+                    max-w-[960px]
+                    flex-col
+                    overflow-hidden
+
+                    rounded-2xl
+                    border
+
+                    shadow-2xl
+                "
+            >
                 <div class="flex shrink-0 items-center justify-between border-b border-[#d8c7ab]/60 bg-[#efe9dc]/58 px-5 py-3.5">
                     <div>
                         <p class="text-[9px] font-black uppercase tracking-[0.14em] text-[#8c6239]">Item</p>
@@ -12047,13 +18236,64 @@
                         <div class="mt-3 space-y-3">
                             <template x-for="(feature, index) in form.properties.features" :key="'feature-editor-' + index">
                                 <article class="inventory-v10-feature-card overflow-hidden">
-                                    <div class="flex items-center gap-3 border-b border-[#d8c7ab]/50 bg-[#efe9dc]/32 px-4 py-2.5">
-                                        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#cdbb9f]/70 bg-[#faf8f2] font-serif text-[12px] font-black text-[#8c6239]" x-text="String(index + 1).padStart(2, '0')"></span>
-                                        <strong class="font-serif text-[15px] text-[#53150f]">Habilidade</strong>
-                                        <button type="button" @click="removeFeature(index)" class="ml-auto rounded-md px-2 py-1 text-[9px] font-black uppercase text-red-700 hover:bg-red-50">Remover</button>
+                                    <div class="flex items-center gap-2 border-b border-[#d8c7ab]/50 bg-[#efe9dc]/32 px-3 py-2">
+                                        <button
+                                            type="button"
+                                            @click="toggleFeatureEditor(feature)"
+                                            class="group flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 text-left transition hover:bg-[#eadbc8]/35"
+                                            :aria-expanded="feature.editor_open"
+                                        >
+                                            <span
+                                                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#cdbb9f]/70 bg-[#faf8f2] font-serif text-[12px] font-black text-[#8c6239]"
+                                                x-text="String(index + 1).padStart(2, '0')"
+                                            ></span>
+
+                                            <span class="min-w-0 flex-1">
+                                                <strong
+                                                    class="block truncate font-serif text-[15px] font-black text-[#53150f]"
+                                                    x-text="String(feature.title ?? '').trim() || 'Habilidade'"
+                                                ></strong>
+
+                                                <span
+                                                    x-show="!feature.editor_open && String(feature.description ?? '').trim()"
+                                                    x-cloak
+                                                    class="mt-0.5 block truncate text-[9px] text-[#8c6239]/70"
+                                                    x-text="feature.description"
+                                                ></span>
+                                            </span>
+
+                                            <svg
+                                                class="h-4 w-4 shrink-0 text-[#8c6239] transition-transform duration-200"
+                                                :class="{ 'rotate-180': feature.editor_open }"
+                                                viewBox="0 0 20 20"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                aria-hidden="true"
+                                            >
+                                                <path
+                                                    d="M5 7.5 10 12.5 15 7.5"
+                                                    stroke-width="1.8"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                />
+                                            </svg>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            @click.stop="removeFeature(index)"
+                                            class="shrink-0 rounded-md px-2 py-1 text-[9px] font-black uppercase text-red-700 hover:bg-red-50"
+                                        >
+                                            Remover
+                                        </button>
                                     </div>
 
-                                    <div class="space-y-4 p-4">
+                                    <div
+                                        x-show="feature.editor_open"
+                                        x-cloak
+                                        x-transition.opacity.duration.120ms
+                                        class="space-y-4 p-4"
+                                    >
                                         <label class="block">
                                             <span class="text-[11px] font-black text-[#53150f]">Nome da Habilidade</span>
                                             <input type="text" maxlength="150" x-model="feature.title" placeholder="Ex.: Luz da Ressurreição" class="inventory-v10-input mt-1.5">
@@ -12170,7 +18410,8 @@
                                                                     'spend'
                                                                 )
                                                             "
-                                                            class="inventory-v31-counter-choice"
+                                                            :disabled="feature.usage.recovery === 'single_use'"
+                                                            class="inventory-v31-counter-choice disabled:cursor-not-allowed disabled:opacity-45"
                                                             :class="{
                                                                 'active':
                                                                     feature.usage.counter_mode === 'spend'
@@ -12188,7 +18429,8 @@
                                                                     'build'
                                                                 )
                                                             "
-                                                            class="inventory-v31-counter-choice"
+                                                            :disabled="feature.usage.recovery === 'single_use'"
+                                                            class="inventory-v31-counter-choice disabled:cursor-not-allowed disabled:opacity-45"
                                                             :class="{
                                                                 'active':
                                                                     feature.usage.counter_mode === 'build'
@@ -12246,6 +18488,7 @@
 
                                                         <select
                                                             x-model="feature.usage.recovery"
+                                                            @change="handleFeatureRecoveryChange(feature)"
                                                             class="inventory-v10-select mt-1"
                                                         >
                                                             <template
@@ -12260,6 +18503,14 @@
                                                         </select>
                                                     </label>
                                                 </div>
+
+                                                <p
+                                                    x-show="feature.usage.recovery === 'single_use'"
+                                                    x-cloak
+                                                    class="inventory-v43-single-use-note"
+                                                >
+                                                    Uso Único não recupera cargas. Defina o <strong>Máximo</strong> e o <strong>Atual</strong> normalmente; cada confirmação gasta 1 carga permanentemente. O item só fica <strong>Usado</strong> quando chegar a 0.
+                                                </p>
 
                                                 <input
                                                     x-show="feature.usage.recovery === 'custom'"
@@ -12296,7 +18547,21 @@
                     <div x-show="saveError" x-cloak class="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-[11px] font-bold text-red-700" x-text="saveError"></div>
                 </div>
 
-                <div class="flex shrink-0 items-center gap-2 border-t border-[#d8c7ab]/60 bg-[#efe9dc]/45 px-5 py-3.5">
+                <div
+                    class="
+                        inventory-v35-editor-footer
+
+                        flex
+                        shrink-0
+                        items-center
+                        gap-2
+
+                        border-t
+
+                        px-5
+                        py-3.5
+                    "
+                >
                     <button
                         x-show="editingId"
                         x-cloak
@@ -12321,8 +18586,36 @@
                     </button>
                 </div>
 
-                <div x-show="deleteConfirmOpen" x-cloak class="absolute inset-0 z-50 flex items-center justify-center bg-[#2b1d17]/48 p-4 backdrop-blur-[2px]">
-                    <div class="w-full max-w-sm overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl">
+                <div
+                    x-show="deleteConfirmOpen"
+                    x-cloak
+                    class="
+                        inventory-v35-delete-layer
+                        absolute
+                        inset-0
+                        z-50
+
+                        flex
+                        items-center
+                        justify-center
+
+                        p-4
+                    "
+                >
+                    <div
+                        class="
+                            inventory-v35-delete-modal
+
+                            w-full
+                            max-w-sm
+                            overflow-hidden
+
+                            rounded-2xl
+                            border
+
+                            shadow-2xl
+                        "
+                    >
                         <div class="border-b border-[#d8c7ab]/60 bg-[#efe9dc]/55 px-4 py-3">
                             <h4 class="font-serif text-[18px] font-black text-[#53150f]">Excluir item?</h4>
                         </div>
@@ -12343,7 +18636,12 @@
         <div
             x-show="editorTooltip.open"
             x-cloak
-            class="inventory-v32-floating-tooltip"
+            data-theme="{{ $characterTheme }}"
+            class="
+                character-sheet-theme
+                inventory-v32-floating-tooltip
+                inventory-v35-floating-tooltip
+            "
             :style="`
                 left: ${editorTooltip.left}px;
                 top: ${editorTooltip.top}px;
@@ -12365,10 +18663,74 @@
          SELETOR DE SINTONIZAÇÃO
     ========================================================== --}}
     <template x-teleport="body">
-        <div x-show="attunementPickerOpen" x-cloak class="fixed inset-0 z-[245] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-[#2b1d17]/58 backdrop-blur-sm" @click="attunementPickerOpen = false"></div>
+        <div
+            x-show="attunementPickerOpen"
+            x-cloak
 
-            <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl">
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+            role="dialog"
+            aria-modal="true"
+            aria-label="Escolher item para sintonização"
+
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                inventory-v35-modal-layer
+
+                fixed
+                inset-0
+                z-[245]
+
+                flex
+                items-center
+                justify-center
+
+                p-4
+            "
+        >
+            <div
+                class="
+                    character-theme-modal-backdrop
+                    absolute
+                    inset-0
+                "
+                @click="attunementPickerOpen = false"
+            ></div>
+
+            <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
+                class="
+                    character-theme-modal
+                    inventory-v35-modal
+                    inventory-v35-picker-modal
+
+                    relative
+                    z-10
+
+                    w-full
+                    max-w-[560px]
+                    overflow-hidden
+
+                    rounded-2xl
+                    border
+
+                    shadow-2xl
+                "
+            >
                 <div class="flex items-center justify-between border-b border-[#d8c7ab]/60 bg-[#efe9dc]/58 px-4 py-3">
                     <div>
                         <p class="text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">Sintonização</p>
@@ -12407,10 +18769,77 @@
 
     {{-- LIMITE DE 3 --}}
     <template x-teleport="body">
-        <div x-show="attunementWarningOpen" x-cloak class="fixed inset-0 z-[250] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-[#2b1d17]/62 backdrop-blur-sm" @click="attunementWarningOpen = false; pendingAttunementItem = null"></div>
+        <div
+            x-show="attunementWarningOpen"
+            x-cloak
 
-            <div class="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl">
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+            role="dialog"
+            aria-modal="true"
+            aria-label="Limite de sintonização"
+
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                inventory-v35-modal-layer
+
+                fixed
+                inset-0
+                z-[250]
+
+                flex
+                items-center
+                justify-center
+
+                p-4
+            "
+        >
+            <div
+                class="
+                    character-theme-modal-backdrop
+                    absolute
+                    inset-0
+                "
+                @click="
+                    attunementWarningOpen = false;
+                    pendingAttunementItem = null
+                "
+            ></div>
+
+            <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
+                class="
+                    character-theme-modal
+                    inventory-v35-modal
+                    inventory-v35-warning-modal
+
+                    relative
+                    z-10
+
+                    w-full
+                    max-w-[500px]
+                    overflow-hidden
+
+                    rounded-2xl
+                    border
+
+                    shadow-2xl
+                "
+            >
                 <div class="border-b border-[#d8c7ab]/60 bg-[#efe9dc]/58 px-4 py-3">
                     <p class="text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">Limite Padrão</p>
                     <h3 class="mt-0.5 font-serif text-[19px] font-black text-[#53150f]">Sintonizar além de 3 itens?</h3>
@@ -12435,14 +18864,60 @@
         <div
             x-show="equippedDrawerOpen"
             x-cloak
-            class="fixed inset-0 z-[238] flex items-center justify-center p-4"
+
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+
+            role="dialog"
+            aria-modal="true"
+            aria-label="Itens equipados"
+
+            class="
+                character-sheet-theme
+                character-theme-modal-layer
+                inventory-v35-modal-layer
+
+                fixed
+                inset-0
+                z-[238]
+
+                flex
+                items-center
+                justify-center
+
+                p-4
+            "
         >
             <div
-                class="absolute inset-0 bg-[#2b1d17]/56 backdrop-blur-sm"
+                class="
+                    character-theme-modal-backdrop
+                    absolute
+                    inset-0
+                "
                 @click="equippedDrawerOpen = false"
             ></div>
 
-            <section class="inventory-v29-equipped-modal">
+            <section
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
+                class="
+                    character-theme-modal
+                    inventory-v35-modal
+                    inventory-v35-equipped-modal
+                    inventory-v29-equipped-modal
+                "
+            >
                 <header class="inventory-v29-equipped-header">
                     <div>
                         <span class="inventory-v29-equipped-kicker">
@@ -12539,32 +19014,348 @@
 
     {{-- ITENS ENCONTRADOS --}}
     <template x-teleport="body">
-        <div x-show="foundItemsOpen" x-cloak class="fixed inset-0 z-[235] flex items-center justify-center p-4">
-            <div class="absolute inset-0 bg-[#2b1d17]/58 backdrop-blur-sm" @click="foundItemsOpen = false"></div>
+        <div
+            x-show="foundItemsOpen"
+            x-cloak
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+            data-theme="{{ $characterTheme }}"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Itens encontrados"
+            class="character-sheet-theme character-theme-modal-layer inventory-v35-modal-layer fixed inset-0 z-[235] flex items-center justify-center p-4"
+        >
+            <div
+                class="character-theme-modal-backdrop absolute inset-0"
+                @click="foundItemsOpen = false"
+            ></div>
 
-            <div class="relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl">
-                <div class="flex items-center justify-between border-b border-[#d8c7ab]/60 bg-[#efe9dc]/58 px-4 py-3">
-                    <div>
-                        <p class="text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">Descobertas</p>
-                        <h3 class="font-serif text-[19px] font-black text-[#53150f]">Itens Encontrados</h3>
+            <div
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+                class="character-theme-modal inventory-v35-modal inventory-v35-found-modal relative z-10 w-full max-w-[680px] overflow-hidden rounded-2xl border shadow-2xl"
+            >
+                <div class="flex items-center justify-between gap-3 border-b border-[#d8c7ab]/60 bg-[#efe9dc]/58 px-4 py-3">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <p class="text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">Itens encontrados</p>
+                            <span
+                                x-show="foundLootLoaded"
+                                x-cloak
+                                class="inline-flex h-[22px] min-w-[22px] items-center justify-center rounded-full bg-[#6b1d14]/[.08] px-1.5 font-serif text-[11px] font-black text-[#6b1d14]"
+                                x-text="foundLootCount"
+                            ></span>
+                        </div>
+                        <h3 class="font-serif text-[19px] font-black text-[#53150f]">Itens encontrados</h3>
+                        <p class="mt-0.5 text-[10px] text-[#8c6239]">Itens e moedas liberados pelo Mestre aparecem aqui.</p>
                     </div>
-                    <button type="button" @click="foundItemsOpen = false" class="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-[#8c6239] hover:bg-[#e8dfd1]">×</button>
+
+                    <div class="flex shrink-0 items-center gap-2">
+                        <button
+                            type="button"
+                            @click="loadFoundLoot()"
+                            :disabled="foundLootLoading"
+                            class="inline-flex h-8 items-center justify-center rounded-lg border border-[#cdbb9f]/70 bg-[#faf8f2] px-3 text-[9px] font-black uppercase tracking-[0.06em] text-[#8c6239] hover:bg-[#e8dfd1] disabled:cursor-wait disabled:opacity-60"
+                        >
+                            <span x-text="foundLootLoading ? 'Atualizando...' : 'Atualizar'"></span>
+                        </button>
+                        <button
+                            type="button"
+                            @click="foundItemsOpen = false"
+                            class="flex h-8 w-8 items-center justify-center rounded-lg text-xl text-[#8c6239] hover:bg-[#e8dfd1]"
+                        >×</button>
+                    </div>
                 </div>
 
-                <div class="px-5 py-10 text-center">
-                    <p class="font-serif text-[17px] font-black text-[#53150f]">Nenhum item disponível</p>
-                    <p class="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-[#8c6239]">Os itens liberados pelo Mestre aparecerão aqui para serem adicionados ao inventário.</p>
+                <div class="max-h-[72vh] overflow-y-auto px-4 py-4">
+                    <div
+                        x-show="foundLootLoading && !foundLootLoaded"
+                        x-cloak
+                        class="px-5 py-12 text-center"
+                    >
+                        <div class="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-[#cdbb9f] border-t-[#6b1d14]"></div>
+                        <p class="mt-3 text-[11px] font-bold text-[#8c6239]">Procurando espólios disponíveis...</p>
+                    </div>
+
+                    <div
+                        x-show="foundLootError"
+                        x-cloak
+                        class="rounded-xl border border-red-200 bg-red-50 px-4 py-4 text-center"
+                    >
+                        <p class="text-[11px] font-bold text-red-700" x-text="foundLootError"></p>
+                        <button
+                            type="button"
+                            class="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-[9px] font-black uppercase tracking-[0.05em] text-red-700"
+                            @click="loadFoundLoot()"
+                        >Tentar novamente</button>
+                    </div>
+
+                    <div
+                        x-show="foundLootLoaded && !foundLootLoading && !foundLootError && !hasFoundLoot"
+                        x-cloak
+                        class="px-5 py-12 text-center"
+                    >
+                        <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full border border-[#cdbb9f]/65 bg-[#efe9dc]/55 font-serif text-[17px] text-[#8c6239]">?</div>
+                        <p class="mt-3 font-serif text-[17px] font-black text-[#53150f]">Nenhum item disponível</p>
+                        <p class="mx-auto mt-1.5 max-w-sm text-[11px] leading-relaxed text-[#8c6239]">
+                            Quando o Mestre liberar um Espólio para este personagem, os itens e moedas aparecerão aqui.
+                        </p>
+                    </div>
+
+                    <div
+                        x-show="foundLootLoaded && !foundLootError && foundLootItems.length > 0"
+                        x-cloak
+                    >
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">Itens</p>
+                                <p class="mt-0.5 text-[10px] text-[#9a795b]">Cada clique move uma unidade para o inventário.</p>
+                            </div>
+                            <span class="rounded-full bg-[#efe9dc] px-2 py-1 font-serif text-[11px] font-black text-[#8c6239]" x-text="foundLootItems.length"></span>
+                        </div>
+
+                        <div class="grid gap-2.5">
+                            <template x-for="item in foundLootItems" :key="'found-loot-item-' + item.id">
+                                <article class="rounded-xl border border-[#cdbb9f]/65 bg-[#faf8f2] p-3">
+                                    <div class="flex items-start gap-3">
+                                        <div class="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-[#d8c7ab]/70 bg-[#fffdf9]">
+                                            <template x-if="item.image_url">
+                                                <img :src="item.image_url" :alt="item.name" class="h-full w-full object-cover">
+                                            </template>
+                                            <template x-if="!item.image_url">
+                                                <span class="font-serif text-xl text-[#b79b7f]">◆</span>
+                                            </template>
+                                        </div>
+
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex flex-wrap items-start justify-between gap-2">
+                                                <div class="min-w-0">
+                                                    <h4 class="font-serif text-[16px] font-black leading-tight text-[#53150f]" x-text="item.name"></h4>
+                                                    <p class="mt-0.5 text-[9px] font-black uppercase tracking-[0.055em] text-[#8c6239]">
+                                                        <span x-text="foundLootNatureLabel(item)"></span>
+                                                        <template x-if="item.rarity_label">
+                                                            <span> · <span x-text="item.rarity_label"></span></span>
+                                                        </template>
+                                                    </p>
+                                                </div>
+                                                <span class="shrink-0 rounded-full bg-[#6b1d14]/[.07] px-2 py-1 text-[9px] font-black text-[#6b1d14]">
+                                                    Disponível: <span x-text="item.quantity_remaining"></span>
+                                                </span>
+                                            </div>
+
+                                            <p
+                                                x-show="item.campaign_name || item.drop_name"
+                                                x-cloak
+                                                class="mt-1.5 text-[9px] text-[#9a795b]"
+                                            >
+                                                <span x-show="item.campaign_name" x-text="item.campaign_name"></span>
+                                                <span x-show="item.campaign_name && item.drop_name"> · </span>
+                                                <span x-show="item.drop_name" x-text="item.drop_name"></span>
+                                            </p>
+
+                                            <p
+                                                x-show="item.description"
+                                                x-cloak
+                                                class="mt-2 max-h-[58px] overflow-hidden text-[10px] leading-[1.45] text-[#6b5548]"
+                                                x-text="item.description"
+                                            ></p>
+
+                                            <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+                                                <span
+                                                    x-show="item.requires_attunement"
+                                                    x-cloak
+                                                    class="text-[9px] font-bold text-[#6b1d14]"
+                                                >Requer sintonia</span>
+                                                <span
+                                                    x-show="item.weight !== null && item.weight > 0"
+                                                    x-cloak
+                                                    class="text-[9px] text-[#8c6239]"
+                                                >Peso: <span x-text="item.weight"></span></span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-3 flex items-center justify-end">
+                                        <button
+                                            type="button"
+                                            @click="claimFoundLootItem(item)"
+                                            :disabled="foundLootBusyItemId !== null || foundLootBusyCurrencyId !== null"
+                                            class="inline-flex min-h-[36px] items-center justify-center rounded-lg border border-[#6b1d14] bg-[#6b1d14] px-3.5 text-[9px] font-black uppercase tracking-[0.05em] text-[#faf8f2] hover:bg-[#53150f] disabled:cursor-wait disabled:opacity-60"
+                                        >
+                                            <span x-text="parseInt(foundLootBusyItemId) === parseInt(item.id) ? 'Adicionando...' : 'Adicionar ao inventário'"></span>
+                                        </button>
+                                    </div>
+                                </article>
+                            </template>
+                        </div>
+                    </div>
+
+                    <div
+                        x-show="foundLootLoaded && !foundLootError && foundLootCurrencies.length > 0"
+                        x-cloak
+                        :class="{ 'mt-5': foundLootItems.length > 0 }"
+                    >
+                        <div class="mb-2 flex items-center justify-between gap-3">
+                            <div>
+                                <p class="text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">Moedas</p>
+                                <p class="mt-0.5 text-[10px] text-[#9a795b]">As moedas resgatadas entram diretamente na bolsa.</p>
+                            </div>
+                            <span class="rounded-full bg-[#efe9dc] px-2 py-1 font-serif text-[11px] font-black text-[#8c6239]" x-text="foundLootCurrencies.length"></span>
+                        </div>
+
+                        <div class="grid gap-2.5">
+                            <template x-for="entry in foundLootCurrencies" :key="'found-loot-currency-' + entry.id">
+                                <article class="rounded-2xl border border-[#cdbb9f]/65 bg-[#faf8f2] p-4">
+                                    <div class="flex flex-col gap-4">
+                                        <div class="flex flex-wrap items-start justify-between gap-3">
+                                            <div class="min-w-0 flex-1">
+                                                <div class="flex flex-wrap items-center gap-2">
+                                                    <h4 class="font-serif text-[16px] font-black text-[#53150f]" x-text="entry.label || 'Moedas'"></h4>
+                                                    <span
+                                                        class="rounded-full border border-[#cdbb9f] bg-white px-2.5 py-1 text-[9px] font-black text-[#76553f]"
+                                                        x-text="foundLootCurrencyModeLabel(entry)"
+                                                    ></span>
+                                                </div>
+
+                                                <p
+                                                    x-show="entry.campaign_name || entry.drop_name"
+                                                    x-cloak
+                                                    class="mt-1 text-[10px] text-[#9a795b]"
+                                                >
+                                                    <span x-show="entry.campaign_name" x-text="entry.campaign_name"></span>
+                                                    <span x-show="entry.campaign_name && entry.drop_name"> · </span>
+                                                    <span x-show="entry.drop_name" x-text="entry.drop_name"></span>
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <p class="mb-2 text-[9px] font-black uppercase tracking-[0.12em] text-[#8c6239]">
+                                                <span x-text="entry.distribution_mode === 'open' ? 'Disponível na caixa' : 'Valor disponível para você'"></span>
+                                            </p>
+                                            <div class="flex flex-wrap gap-2">
+                                                <template x-for="line in foundLootCoinLines(entry)" :key="entry.id + '-' + line.coin">
+                                                    <span class="rounded-xl border border-[#d8c7ab]/70 bg-[#fffdf9] px-3 py-2 text-[10px] font-black text-[#6b5548]">
+                                                        <span x-text="line.label"></span>
+                                                        <span class="ml-1" x-text="formatMoney(line.amount)"></span>
+                                                    </span>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <div
+                                            x-show="entry.distribution_mode === 'open'"
+                                            x-cloak
+                                            class="rounded-xl border border-[#d8c7ab]/70 bg-white p-3"
+                                        >
+                                            <p class="text-[10px] font-bold leading-5 text-[#76553f]">
+                                                Combine a divisão com a Party e informe apenas o que você vai retirar agora.
+                                            </p>
+
+                                            <div class="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                                                <template x-for="line in foundLootCoinLines(entry)" :key="'claim-' + entry.id + '-' + line.coin">
+                                                    <label>
+                                                        <span class="mb-1 block text-[8px] font-black uppercase tracking-wider text-[#8c6239]" x-text="line.label"></span>
+                                                        <input
+                                                            type="number"
+                                                            min="0"
+                                                            :max="line.amount"
+                                                            x-model.number="foundLootCurrencyDrafts[entry.id][line.coin]"
+                                                            class="h-10 w-full rounded-lg border border-[#cdbb9f] bg-[#fffdf9] px-2 text-[11px] font-black text-[#53150f] focus:border-[#6b1d14] focus:ring-[#6b1d14]/10"
+                                                        >
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-end">
+                                            <button
+                                                type="button"
+                                                @click="claimFoundLootCurrency(entry)"
+                                                :disabled="foundLootBusyCurrencyId !== null || foundLootBusyItemId !== null"
+                                                class="inline-flex min-h-[40px] items-center justify-center rounded-xl bg-[#6b1d14] px-4 text-[9px] font-black uppercase tracking-[0.05em] text-white transition hover:bg-[#53150f] disabled:cursor-wait disabled:opacity-60"
+                                            >
+                                                <span
+                                                    x-text="parseInt(foundLootBusyCurrencyId) === parseInt(entry.id)
+                                                        ? 'Adicionando...'
+                                                        : (entry.distribution_mode === 'open' ? 'Retirar da caixa' : 'Adicionar à bolsa')"
+                                                ></span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </article>
+                            </template>
+                        </div>
+                    </div>
+
                 </div>
             </div>
         </div>
     </template>
 
-
     {{-- TOAST --}}
     <div
         x-show="toastOpen"
         x-cloak
-        class="fixed bottom-5 left-1/2 z-[270] w-[min(92vw,380px)] -translate-x-1/2 rounded-xl border bg-[#faf8f2] px-4 py-3 shadow-xl"
+
+        x-transition:enter="
+            transition
+            ease-out
+            duration-180
+        "
+        x-transition:enter-start="
+            opacity-0
+            translate-y-2
+            scale-[.985]
+        "
+        x-transition:enter-end="
+            opacity-100
+            translate-y-0
+            scale-100
+        "
+        x-transition:leave="
+            transition
+            ease-in
+            duration-120
+        "
+        x-transition:leave-start="
+            opacity-100
+            translate-y-0
+            scale-100
+        "
+        x-transition:leave-end="
+            opacity-0
+            translate-y-1
+            scale-[.99]
+        "
+
+        class="
+            inventory-v35-toast
+
+            fixed
+            bottom-5
+            left-1/2
+            z-[270]
+
+            w-[min(92vw,380px)]
+            -translate-x-1/2
+
+            rounded-xl
+            border
+
+            px-4
+            py-3
+
+            shadow-xl
+        "
         :class="toastError ? 'border-red-300' : 'border-[#cdbb9f]'"
     >
         <div class="flex items-center gap-3">

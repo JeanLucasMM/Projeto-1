@@ -317,6 +317,37 @@
         static fn (array $a, array $b): int =>
             $a['sort_order'] <=> $b['sort_order']
     );
+
+    /*
+     * O editor e os painéis de Ataques usam x-teleport="body".
+     * Por isso reaplicamos o tema diretamente nos portais para que
+     * continuem consumindo os mesmos tokens visuais da ficha.
+     */
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme = strtolower(trim((string) data_get(
+        $sheetSettings,
+        'appearance.theme',
+        'spellbound'
+    )));
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
 @endphp
 
 
@@ -896,6 +927,1102 @@
                 background:
                     #eadbc8 !important;
             }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V13 — ATAQUES FLUIDOS + 4 LINHAS + THEME CORE
+            |--------------------------------------------------------------------------
+            |
+            | A seção passa a seguir a mesma disciplina visual de Habilidades:
+            | - ocupa 100% da largura disponível;
+            | - cresce naturalmente até quatro linhas visíveis;
+            | - não reserva espaços vazios;
+            | - a quinta linha em diante entra em scroll interno;
+            | - scrollbar invisível com indicação discreta de continuidade;
+            | - todos os painéis e modais consomem os tokens --theme-*.
+            |
+            */
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-sheet {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+                margin-inline: 0 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-header,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table-frame,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table-wrap,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-title h2 {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-header {
+                border-bottom-color: var(--theme-divider-strong, var(--theme-border)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-settings-button {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-label) !important;
+                box-shadow: var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-settings-button:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            /*
+             * A área cresce conforme os ataques existentes.
+             * Não reservamos linhas vazias: 1 ataque = 1 linha, 2 = 2 linhas etc.
+             * A partir do 5º, a altura para em quatro linhas e o restante rola.
+             */
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table-wrap {
+                --attack-head-height: 28px;
+                --attack-row-height: 58px;
+
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: calc(
+                    var(--attack-head-height)
+                    + (var(--attack-row-height) * 4)
+                ) !important;
+
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+                box-shadow: var(--theme-module-shadow) !important;
+
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table-wrap::-webkit-scrollbar {
+                width: 0 !important;
+                height: 0 !important;
+                display: none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table {
+                table-layout: fixed !important;
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table thead {
+                position: sticky;
+                top: 0;
+                z-index: 6;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table thead tr {
+                height: var(--attack-head-height) !important;
+                border-bottom-color: var(--theme-border) !important;
+                background: var(--theme-band-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table th {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-row {
+                height: var(--attack-row-height) !important;
+                border-bottom-color: var(--theme-border-soft) !important;
+                background: var(--theme-card-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-row:nth-child(even) {
+                background: var(--theme-card-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-row:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table td {
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-name,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-hit,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-damage-expression,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-observation-title {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-range,
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-observation-text {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-damage-type {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-mastery-chip {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-mastery-chip:hover {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-roll:hover,
+            .character-sheet-theme[data-theme]
+            .character-attack-note-button:hover,
+            .character-sheet-theme[data-theme]
+            .character-attack-damage-all:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            /* Indicador sutil de que existem ataques abaixo. */
+            .character-attacks-scroll-hint {
+                display: flex;
+                width: 20px;
+                height: 14px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 999px;
+                background: color-mix(in srgb, var(--theme-paper-strong) 78%, transparent);
+                color: color-mix(in srgb, var(--theme-label) 58%, transparent);
+                font-size: 13px;
+                font-weight: 900;
+                line-height: 1;
+                box-shadow: 0 1px 5px rgba(0,0,0,.08);
+                backdrop-filter: blur(3px);
+            }
+
+            /* ---------------- PORTAIS / PAINÉIS FLUTUANTES ---------------- */
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel,
+            .character-sheet-theme[data-theme]
+            .character-attack-note-drawer,
+            .character-sheet-theme[data-theme]
+            .character-attack-toast {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow: var(--theme-modal-shadow, 0 24px 70px rgba(0,0,0,.28)) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel
+            > div:first-child,
+            .character-sheet-theme[data-theme]
+            .character-attack-note-drawer > div:first-child {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            /* ---------------- MODAL PRINCIPAL ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attack-backdrop {
+                background:
+                    var(--theme-modal-backdrop, rgba(0, 0, 0, .82)) !important;
+
+                -webkit-backdrop-filter:
+                    blur(8px) !important;
+
+                backdrop-filter:
+                    blur(8px) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow: var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.32)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-header,
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-footer {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor .character-attack-modal-card {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-card-background) !important;
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor input:not([type="checkbox"]),
+            .character-sheet-theme[data-theme]
+            .character-attack-editor select,
+            .character-sheet-theme[data-theme]
+            .character-attack-editor textarea {
+                border-color: var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+                box-shadow: none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor input:not([type="checkbox"]):focus,
+            .character-sheet-theme[data-theme]
+            .character-attack-editor select:focus,
+            .character-sheet-theme[data-theme]
+            .character-attack-editor textarea:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-input-focus) 16%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor input::placeholder,
+            .character-sheet-theme[data-theme]
+            .character-attack-editor textarea::placeholder {
+                color: var(--theme-input-placeholder) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor input[type="checkbox"] {
+                accent-color: var(--theme-accent) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-modal-tab {
+                color: var(--theme-text-secondary) !important;
+                border-bottom-color: transparent !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-modal-tab:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-modal-tab.active {
+                border-bottom-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-primary-action {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+                box-shadow: var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.10)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-primary-action:hover {
+                background: var(--theme-button-hover-background) !important;
+                box-shadow: 0 4px 12px color-mix(in srgb, var(--theme-accent) 18%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-secondary-action {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-secondary-action:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-delete-dialog {
+                border-color: color-mix(in srgb, var(--theme-state-damage) 30%, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-text-primary) !important;
+                box-shadow: var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.34)) !important;
+            }
+
+            @media (max-width: 760px) {
+                .character-sheet-theme[data-theme]
+                .character-attacks-v11-table-wrap {
+                    overflow-x: auto !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .character-attacks-v11-table {
+                    min-width: 650px !important;
+                }
+            }
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V14 — POPUP DE ATAQUES OCULTOS / LEGIBILIDADE
+            |--------------------------------------------------------------------------
+            | O painel continua compacto, mas deixa de usar tipografia microscópica.
+            | A superfície segue o tema; o ícone de acesso passa a ser um olho.
+            */
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel {
+                font-size: 12px;
+                line-height: 1.4;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel
+            > div:first-child {
+                min-height: 62px;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel
+            > div:nth-child(2) {
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel
+            > div:nth-child(2)::-webkit-scrollbar {
+                width: 0;
+                height: 0;
+                display: none;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel
+            button:focus-visible {
+                outline: 2px solid var(--theme-input-focus);
+                outline-offset: 2px;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V15 — GRADE DA TABELA + EDITOR DE ATAQUE REFINADO
+            |--------------------------------------------------------------------------
+            |
+            | A tabela ganha divisores verticais discretos para separar Nome,
+            | Acerto, Dano e Observação. O editor usa contraste tipográfico mais
+            | forte e deixa a cor do tema como acento, não como cor de todo o texto.
+            |
+            */
+
+            /* ---------------- TABELA / GRADE ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table th + th {
+                border-left:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-border-strong) 72%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table td + td {
+                border-left:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 68%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table th {
+                padding-inline:
+                    11px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table td {
+                padding-inline:
+                    11px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table thead tr {
+                box-shadow:
+                    inset 0 -1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-border-strong) 34%,
+                        transparent
+                    );
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attacks-v11-table .character-attack-row:last-child td {
+                border-bottom-color:
+                    transparent !important;
+            }
+
+            /* ---------------- BACKDROP ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attack-backdrop {
+                background:
+                    var(--theme-modal-backdrop, rgba(0, 0, 0, .82)) !important;
+
+                -webkit-backdrop-filter:
+                    blur(8px) !important;
+
+                backdrop-filter:
+                    blur(8px) !important;
+            }
+
+            /* ---------------- ESTRUTURA DO EDITOR ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor {
+                --attack-modal-ink:
+                    color-mix(
+                        in srgb,
+                        var(--theme-text-strong) 88%,
+                        #000 12%
+                    );
+
+                --attack-modal-copy:
+                    color-mix(
+                        in srgb,
+                        var(--theme-text-primary) 92%,
+                        #000 8%
+                    );
+
+                --attack-modal-muted:
+                    color-mix(
+                        in srgb,
+                        var(--theme-text-secondary) 90%,
+                        #000 10%
+                    );
+
+                max-width:
+                    820px !important;
+
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-border-strong) 82%,
+                        transparent
+                    ) !important;
+
+                border-radius:
+                    18px !important;
+
+                box-shadow:
+                    0 34px 100px rgba(0,0,0,.48),
+                    0 10px 30px rgba(0,0,0,.24) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-header {
+                background:
+                    var(
+                        --theme-modal-header-background,
+                        var(--theme-band-background)
+                    ) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 58%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-header
+            > div:first-child {
+                min-height:
+                    72px;
+
+                padding:
+                    15px 18px 13px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-kicker {
+                margin-bottom:
+                    3px;
+
+                font-size:
+                    10px !important;
+
+                letter-spacing:
+                    .14em !important;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-title {
+                font-size:
+                    24px !important;
+
+                line-height:
+                    1.05 !important;
+
+                color:
+                    var(--attack-modal-ink) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-close {
+                width:
+                    38px !important;
+
+                height:
+                    38px !important;
+
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 74%,
+                        transparent
+                    );
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-raised) 88%,
+                        transparent
+                    ) !important;
+
+                color:
+                    var(--attack-modal-ink) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-close:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-body {
+                padding:
+                    18px !important;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        color-mix(
+                            in srgb,
+                            var(--theme-modal-surface, var(--theme-paper-strong)) 97%,
+                            var(--theme-paper-alt) 3%
+                        ) 0%,
+                        color-mix(
+                            in srgb,
+                            var(--theme-modal-surface, var(--theme-paper-strong)) 91%,
+                            var(--theme-paper-alt) 9%
+                        ) 100%
+                    ) !important;
+
+                scrollbar-width:
+                    none;
+
+                -ms-overflow-style:
+                    none;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-body::-webkit-scrollbar {
+                width: 0;
+                height: 0;
+                display: none;
+            }
+
+            /* ---------------- ABAS ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attack-modal-tab {
+                min-height:
+                    44px;
+
+                padding:
+                    11px 14px !important;
+
+                font-size:
+                    11px !important;
+
+                letter-spacing:
+                    .085em !important;
+
+                color:
+                    var(--attack-modal-muted) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-modal-tab.active {
+                color:
+                    var(--attack-modal-ink) !important;
+
+                box-shadow:
+                    inset 0 -2px 0
+                    var(--theme-accent) !important;
+            }
+
+            /* ---------------- CARDS / TIPOGRAFIA ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-border) 86%,
+                        transparent
+                    ) !important;
+
+                border-radius:
+                    14px !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 68%,
+                        transparent
+                    ),
+                    0 2px 8px rgba(0,0,0,.025) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            [class*="text-[#5f3a27]"],
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            [class*="text-[#6b5548]"] {
+                color:
+                    var(--attack-modal-ink) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            [class*="text-[#8c6239]"] {
+                color:
+                    var(--attack-modal-muted) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            p:not([class*="uppercase"]) {
+                font-size:
+                    11.5px !important;
+
+                line-height:
+                    1.5 !important;
+
+                color:
+                    var(--attack-modal-muted) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            p[class*="uppercase"],
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card
+            label > span[class*="uppercase"] {
+                font-size:
+                    10.5px !important;
+
+                line-height:
+                    1.2 !important;
+
+                letter-spacing:
+                    .095em !important;
+
+                color:
+                    var(--attack-modal-ink) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor
+            .character-attack-modal-card strong {
+                color:
+                    var(--attack-modal-ink) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor input:not([type="checkbox"]),
+            .character-sheet-theme[data-theme]
+            .character-attack-editor select,
+            .character-sheet-theme[data-theme]
+            .character-attack-editor textarea {
+                min-height:
+                    41px;
+
+                border-radius:
+                    10px !important;
+
+                font-size:
+                    13.5px !important;
+
+                color:
+                    var(--attack-modal-copy) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor textarea {
+                line-height:
+                    1.55 !important;
+            }
+
+            /* ---------------- RODAPÉ ---------------- */
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-footer {
+                min-height:
+                    62px;
+
+                padding:
+                    11px 16px !important;
+
+                border-top-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-border-strong) 70%,
+                        transparent
+                    ) !important;
+
+                background:
+                    var(
+                        --theme-modal-footer-background,
+                        var(--theme-modal-header-background, var(--theme-band-background))
+                    ) !important;
+
+                box-shadow:
+                    0 -8px 20px rgba(0,0,0,.035);
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-editor-footer button {
+                min-height:
+                    38px;
+
+                padding-inline:
+                    14px !important;
+
+                font-size:
+                    10.5px !important;
+            }
+
+            /* ---------------- DARK THEMES ---------------- */
+
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            )
+            .character-attack-editor {
+                --attack-modal-ink:
+                    var(--theme-text-strong);
+
+                --attack-modal-copy:
+                    var(--theme-text-primary);
+
+                --attack-modal-muted:
+                    var(--theme-text-secondary);
+            }
+
+            @media (max-width: 760px) {
+                .character-sheet-theme[data-theme]
+                .character-attacks-v11-table th,
+                .character-sheet-theme[data-theme]
+                .character-attacks-v11-table td {
+                    padding-inline:
+                        9px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .character-attack-editor {
+                    border-radius:
+                        14px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .character-attack-editor-body {
+                    padding:
+                        13px !important;
+                }
+            }
+
+            /*
+            |--------------------------------------------------------------------------
+            | V16 — PADRÃO GLOBAL DE MODAIS / PAINÉIS FLUTUANTES
+            |--------------------------------------------------------------------------
+            |
+            | Consolida o Attack no contrato atual da ficha:
+            | - texto principal neutro e forte;
+            | - cor do tema apenas como acento;
+            | - superfícies e bordas por tokens --theme-*;
+            | - backdrop global;
+            | - movimento global dos modais;
+            | - popover, gavetas e toast com a mesma hierarquia visual.
+            |
+            */
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 14px !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow:
+                    0 18px 52px rgba(0,0,0,.20),
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+                transform-origin: top right;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel > div:first-child,
+            .character-sheet-theme[data-theme].character-attack-settings-panel > div:last-child {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel > div:nth-child(2) {
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme].character-attack-settings-panel [class*="text-[#6b5548]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel [class*="text-[#8c6239]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel [class*="bg-[#faf8f2]"] {
+                background: var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel button[title="Mostrar novamente na ficha"] {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel button[title="Mostrar novamente na ficha"]:hover {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel button[title="Fechar"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel button[title="Fechar"]:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-settings-panel > div:nth-child(2) > div:hover {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow: var(--theme-modal-shadow, 0 24px 70px rgba(0,0,0,.28)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer > div:first-child {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer [class*="text-[#53150f]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer [class*="text-[#4f3427]"] {
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer [class*="text-[#8c6239]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer button {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer button:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer section {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-note-drawer > div:nth-child(2) {
+                scrollbar-width: thin;
+                scrollbar-color: color-mix(in srgb, var(--theme-label) 28%, transparent) transparent;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-text-primary) !important;
+                box-shadow:
+                    0 18px 52px rgba(0,0,0,.18),
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast > div > div:first-child {
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast [class*="text-[#53150f]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast [class*="text-[#5f3a27]"] {
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast [class*="text-[#8c6239]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast [class*="bg-[#efe9dc]"] {
+                background: var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast [class*="border-[#d8c7ab]"] {
+                border-color: var(--theme-divider) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-toast button:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-editor {
+                max-height: min(92dvh, 900px) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme] .character-attack-editor {
+                    max-height: min(92vh, 900px) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-editor-header,
+            .character-sheet-theme[data-theme] .character-attack-editor-footer {
+                flex: 0 0 auto;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-editor-body {
+                min-height: 0 !important;
+                flex: 1 1 auto !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-state-damage, #b91c1c) 30%,
+                        var(--theme-border)
+                    ) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog > div:first-child,
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog > div:last-child {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog h4 {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog > div:nth-child(2) {
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog > div:last-child button:first-child {
+                border: 1px solid var(--theme-border);
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-attack-delete-dialog > div:last-child button:first-child:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme:is([data-theme="midnight"],[data-theme="obsidian"]) .character-attack-settings-panel,
+            .character-sheet-theme:is([data-theme="midnight"],[data-theme="obsidian"]) .character-attack-note-drawer,
+            .character-sheet-theme:is([data-theme="midnight"],[data-theme="obsidian"]) .character-attack-toast {
+                box-shadow: 0 24px 70px rgba(0,0,0,.42) !important;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .character-attack-note-drawer,
+                .character-attack-toast {
+                    transition-duration: 1ms !important;
+                }
+            }
+
         </style>
     @endpush
 
@@ -949,8 +2076,8 @@
                     visibilitySavingId: null,
 
                     settingsPosition: {
-                        top: 0,
-                        right: 12,
+                        top: 72,
+                        right: 16,
                     },
 
                     noteDrawerOpen: false,
@@ -990,6 +2117,10 @@
                             return;
                         }
 
+                        const panel =
+                            this.$refs
+                                .settingsPanel;
+
                         const rect =
                             button
                                 .getBoundingClientRect();
@@ -1000,17 +2131,34 @@
                         const viewportHeight =
                             window.innerHeight;
 
-                        const panelWidth =
-                            310;
+                        const margin =
+                            16;
 
-                        const estimatedHeight =
+                        const gap =
+                            18;
+
+                        const panelWidth =
+                            panel?.offsetWidth
+                            || 340;
+
+                        const fallbackHeight =
                             Math.min(
-                                360,
-                                viewportHeight - 24
+                                430,
+                                126
+                                +
+                                (
+                                    Math.min(
+                                        this.hiddenRows.length,
+                                        4
+                                    )
+                                    *
+                                    62
+                                )
                             );
 
-                        const margin =
-                            12;
+                        const panelHeight =
+                            panel?.offsetHeight
+                            || fallbackHeight;
 
                         const right =
                             Math.max(
@@ -1023,27 +2171,28 @@
                         let top =
                             rect.bottom
                             +
-                            8;
+                            gap;
 
-                        if (
-                            top
-                            +
-                            estimatedHeight
-                            >
-                            viewportHeight
-                            -
-                            margin
-                        ) {
-                            top =
-                                Math.max(
-                                    margin,
-                                    rect.top
-                                    -
-                                    estimatedHeight
-                                    -
-                                    8
-                                );
-                        }
+                        const maxTop =
+                            Math.max(
+                                margin,
+                                viewportHeight
+                                -
+                                panelHeight
+                                -
+                                margin
+                            );
+
+                        /*
+                         * Mantemos o painel preferencialmente abaixo do botão.
+                         * Só o trazemos para cima o mínimo necessário para ele
+                         * continuar inteiro dentro da viewport.
+                         */
+                        top =
+                            Math.min(
+                                top,
+                                maxTop
+                            );
 
                         this.settingsPosition = {
                             top,
@@ -1072,10 +2221,12 @@
                             return;
                         }
 
-                        this.positionSettings();
-
                         this.settingsOpen =
                             true;
+
+                        this.$nextTick(() => {
+                            this.positionSettings();
+                        });
                     },
 
                     closeSettings() {
@@ -3390,7 +4541,8 @@
         }
     "
 
-    class="character-attacks-sheet relative"
+    data-theme="{{ $characterTheme }}"
+    class="character-attacks-sheet character-sheet-theme relative"
 >
 
     {{-- =========================================================
@@ -3407,10 +4559,6 @@
         >
             <h2>Ataques</h2>
 
-            <span
-                class="character-attacks-v11-count"
-                x-text="visibleRows.length"
-            ></span>
 
 
         </button>
@@ -3455,35 +4603,29 @@
                         settingsOpen
                 }"
 
-                title="Configurar ataques"
+                title="Ver ataques ocultos"
             >
-<svg
-    class="h-3 w-3"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
->
-    <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.8"
-        d="M5 7h14"
-    />
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6z"
+                    />
 
-    <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.8"
-        d="M5 12h14"
-    />
-
-    <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="1.8"
-        d="M5 17h14"
-    />
-</svg>
+                    <circle
+                        cx="12"
+                        cy="12"
+                        r="2.5"
+                        stroke-width="1.7"
+                    />
+                </svg>
             </button>
         </div>
 
@@ -3497,7 +4639,16 @@
             <div
                 x-show="settingsOpen"
 
+                x-ref="settingsPanel"
+
                 x-cloak
+
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
 
                 @click.outside="
                     closeSettings()
@@ -3507,12 +4658,16 @@
                     settingsStyle
                 "
 
+                data-theme="{{ $characterTheme }}"
+
                 class="
+                    character-sheet-theme
+                    character-attack-settings-panel
                     fixed
                     z-[250]
 
-                    w-[310px]
-                    max-w-[calc(100vw-24px)]
+                    w-[340px]
+                    max-w-[calc(100vw-32px)]
 
                     overflow-hidden
 
@@ -3533,8 +4688,8 @@
 
                         bg-[#efe9dc]/55
 
-                        px-3
-                        py-2.5
+                        px-4
+                        py-3.5
                     "
                 >
                     <div
@@ -3548,10 +4703,10 @@
                         <div>
                             <p
                                 class="
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
-                                    tracking-[0.14em]
+                                    tracking-[0.13em]
                                     text-[#8c6239]
                                 "
                             >
@@ -3563,7 +4718,7 @@
                                     mt-0.5
 
                                     font-serif
-                                    text-[14px]
+                                    text-[18px]
                                     font-black
                                     text-[#53150f]
                                 "
@@ -3588,10 +4743,10 @@
 
                                     bg-[#faf8f2]
 
-                                    px-2
-                                    py-1
+                                    px-2.5
+                                    py-1.5
 
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     text-[#8c6239]
                                 "
@@ -3640,7 +4795,7 @@
                         max-h-[min(18rem,calc(100vh-160px))]
                         overflow-y-auto
 
-                        p-2
+                        p-3
                     "
                 >
                     <template
@@ -3661,7 +4816,7 @@
                         >
                             <p
                                 class="
-                                    text-[10px]
+                                    text-[12px]
                                     font-bold
                                     text-[#6b5548]
                                 "
@@ -3673,7 +4828,7 @@
                                 class="
                                     mt-1
 
-                                    text-[8px]
+                                    text-[10px]
                                     leading-relaxed
                                     text-[#8c6239]/70
                                 "
@@ -3706,8 +4861,8 @@
                                 border
                                 border-transparent
 
-                                px-2
-                                py-2
+                                px-2.5
+                                py-2.5
 
                                 transition
 
@@ -3737,7 +4892,7 @@
                                         truncate
 
                                         font-serif
-                                        text-[12px]
+                                        text-[14px]
                                         font-black
                                         text-[#53150f]
                                     "
@@ -3753,8 +4908,9 @@
                                         block
                                         truncate
 
-                                        text-[8px]
+                                        text-[10px]
                                         font-medium
+                                        leading-snug
                                         text-[#8c6239]/75
                                     "
 
@@ -3786,7 +4942,7 @@
 
                                 class="
                                     flex
-                                    h-8
+                                    h-9
                                     shrink-0
                                     items-center
                                     gap-1.5
@@ -3798,9 +4954,9 @@
 
                                     bg-[#faf8f2]
 
-                                    px-2.5
+                                    px-3
 
-                                    text-[8px]
+                                    text-[10px]
                                     font-black
                                     uppercase
                                     tracking-[0.08em]
@@ -3865,13 +5021,13 @@
 
                         bg-[#efe9dc]/35
 
-                        px-3
-                        py-2
+                        px-4
+                        py-2.5
                     "
                 >
                     <p
                         class="
-                            text-[7px]
+                            text-[9px]
                             leading-relaxed
                             text-[#8c6239]/65
                         "
@@ -3890,7 +5046,39 @@
          Tabela compacta — V5
     ========================================================== --}}
 
-    <div class="character-attacks-v11-table-wrap relative z-10">
+    <div
+        class="character-attacks-v11-table-frame relative z-10"
+        x-data="{
+            attackCanScrollDown: false,
+
+            updateAttackScrollState() {
+                const el = this.$refs.attackScroll;
+
+                if (!el) {
+                    this.attackCanScrollDown = false;
+                    return;
+                }
+
+                this.attackCanScrollDown =
+                    el.scrollHeight > el.clientHeight + 2
+                    && (
+                        el.scrollTop + el.clientHeight
+                        < el.scrollHeight - 2
+                    );
+            },
+        }"
+        x-init="$nextTick(() => updateAttackScrollState())"
+        x-effect="
+            visibleRows.length;
+            $nextTick(() => updateAttackScrollState());
+        "
+        @resize.window="updateAttackScrollState()"
+    >
+        <div
+            x-ref="attackScroll"
+            @scroll="updateAttackScrollState()"
+            class="character-attacks-v11-table-wrap"
+        >
         <table class="character-attacks-v11-table">
             <thead>
                 <tr class="border-b border-[#cdbb9f]/70 bg-[#efe9dc]/42">
@@ -4156,6 +5344,16 @@
                 </tr>
             </tbody>
         </table>
+        </div>
+
+        <div
+            x-show="attackCanScrollDown"
+            x-cloak
+            class="character-attacks-scroll-hint pointer-events-none absolute bottom-1.5 right-2 z-20"
+            aria-hidden="true"
+        >
+            ⌄
+        </div>
     </div>
 
 
@@ -4167,7 +5365,8 @@
         <div
             x-show="noteDrawerOpen"
             x-cloak
-            class="pointer-events-none fixed inset-0 z-[185]"
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme pointer-events-none fixed inset-0 z-[185]"
         >
             <aside
                 x-show="noteDrawerOpen"
@@ -4178,11 +5377,11 @@
                 x-transition:leave-start="translate-x-0 opacity-100"
                 x-transition:leave-end="translate-x-[105%] opacity-0"
                 @click.outside="closeNote()"
-                class="character-attack-note-drawer pointer-events-auto absolute right-4 top-24 w-[min(92vw,400px)] overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2]"
+                class="character-theme-modal character-attack-note-drawer pointer-events-auto absolute right-4 top-24 w-[min(92vw,400px)] overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2]"
             >
-                <div class="flex items-start justify-between gap-3 border-b border-[#d8c7ab]/60 bg-[#efe9dc]/72 px-4 py-3.5">
+                <div class="character-theme-modal-header flex items-start justify-between gap-3 border-b border-[#d8c7ab]/60 bg-[#efe9dc]/72 px-4 py-3.5">
                     <h3
-                        class="min-w-0 flex-1 font-serif text-[20px] font-black leading-tight text-[#53150f]"
+                        class="character-theme-modal-title min-w-0 flex-1 font-serif text-[20px] font-black leading-tight text-[#53150f]"
                         x-text="noteRow?.effect || 'Observação'"
                     ></h3>
 
@@ -4197,7 +5396,7 @@
 
                 <div class="max-h-[58vh] overflow-y-auto px-4 py-4">
                     <p
-                        class="whitespace-pre-line text-[13px] font-medium leading-[1.7] text-[#4f3427]"
+                        class="character-theme-modal-copy whitespace-pre-line text-[13px] font-medium leading-[1.7] text-[#4f3427]"
                         x-text="
                             noteRow?.description
                             || (
@@ -4221,7 +5420,8 @@
         <div
             x-show="masteryDrawerOpen"
             x-cloak
-            class="pointer-events-none fixed inset-0 z-[186]"
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme pointer-events-none fixed inset-0 z-[186]"
         >
             <aside
                 x-show="masteryDrawerOpen"
@@ -4232,16 +5432,16 @@
                 x-transition:leave-start="translate-x-0 opacity-100"
                 x-transition:leave-end="translate-x-[105%] opacity-0"
                 @click.outside="closeMastery()"
-                class="character-attack-note-drawer pointer-events-auto absolute right-4 top-24 w-[min(92vw,430px)] overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2]"
+                class="character-theme-modal character-attack-note-drawer pointer-events-auto absolute right-4 top-24 w-[min(92vw,430px)] overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2]"
             >
-                <div class="flex items-start justify-between gap-3 border-b border-[#d8c7ab]/60 bg-[#efe9dc]/72 px-4 py-3">
+                <div class="character-theme-modal-header flex items-start justify-between gap-3 border-b border-[#d8c7ab]/60 bg-[#efe9dc]/72 px-4 py-3">
                     <div class="min-w-0">
                         <p class="text-[8px] font-black uppercase tracking-[0.14em] text-[#8c6239]">
                             Maestria de Arma
                         </p>
 
                         <h3
-                            class="mt-0.5 truncate font-serif text-[20px] font-black text-[#53150f]"
+                            class="character-theme-modal-title mt-0.5 truncate font-serif text-[20px] font-black text-[#53150f]"
                             x-text="masteryInfo?.name ?? ''"
                         ></h3>
                     </div>
@@ -4258,7 +5458,7 @@
                 <div class="max-h-[62vh] overflow-y-auto px-4 py-4">
                     <p
                         x-show="!masteryInfo?.items"
-                        class="whitespace-pre-line text-[13px] font-medium leading-[1.7] text-[#4f3427]"
+                        class="character-theme-modal-copy whitespace-pre-line text-[13px] font-medium leading-[1.7] text-[#4f3427]"
                         x-text="masteryInfo?.description ?? ''"
                     ></p>
 
@@ -4297,6 +5497,12 @@
     <div
         x-show="rollToastOpen"
         x-cloak
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="translate-y-3 opacity-0 scale-[.985]"
+        x-transition:enter-end="translate-y-0 opacity-100 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="translate-y-0 opacity-100 scale-100"
+        x-transition:leave-end="translate-y-2 opacity-0 scale-[.99]"
         class="character-attack-toast fixed bottom-5 left-1/2 z-[195] w-[min(94vw,470px)] -translate-x-1/2 overflow-hidden rounded-xl border border-[#cdbb9f] bg-[#faf8f2]"
     >
         <div class="flex items-start gap-3 px-3.5 py-3">
@@ -4417,20 +5623,25 @@
         <div
             x-show="modalOpen"
             x-cloak
-            class="fixed inset-0 z-[180] flex items-center justify-center p-4"
+
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-theme-modal-layer fixed inset-0 z-[180] flex items-center justify-center p-4"
         >
             <div
                 class="
+                    character-theme-modal-backdrop
+                    character-attack-backdrop
                     absolute
                     inset-0
 
-                    bg-black/90
-                    backdrop-blur-[2px]
-                "
-
-                style="
-                    background-color:
-                        rgba(8, 6, 5, 0.88);
+                    backdrop-blur-[8px]
                 "
 
                 @click="closeModal()"
@@ -4438,17 +5649,25 @@
 
             <div
                 x-show="modalOpen"
+
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
-                class="character-attack-editor relative z-10 flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl"
+                class="character-theme-modal character-attack-editor relative z-10 flex max-h-[92dvh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl"
             >
-                <div class="shrink-0 border-b border-[#a0774d]/30 bg-[#eadbc8] shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
+                <div class="character-theme-modal-header character-attack-editor-header shrink-0 border-b border-[#a0774d]/30 bg-[#eadbc8] shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
                     <div class="flex items-center justify-between gap-4 px-4 pb-3 pt-4">
                         <div>
-                            <p class="text-[10px] font-black uppercase tracking-[0.18em] text-[#8c6239]">
+                            <p class="character-attack-editor-kicker text-[10px] font-black uppercase tracking-[0.18em] text-[#8c6239]">
                                 Ataques
                             </p>
 
-                            <h3 class="mt-0.5 font-serif text-xl font-black text-[#53150f]">
+                            <h3 class="character-attack-editor-title mt-0.5 font-serif text-xl font-black text-[#53150f]">
                                 <span
                                     x-text="
                                         editingId
@@ -4462,7 +5681,7 @@
                         <button
                             type="button"
                             @click="closeModal()"
-                            class="flex h-9 w-9 items-center justify-center rounded-lg text-lg text-[#8c6239] hover:bg-[#e8dfd1]"
+                            class="character-attack-editor-close flex h-9 w-9 items-center justify-center rounded-lg text-lg text-[#8c6239] hover:bg-[#e8dfd1]"
                         >
                             ×
                         </button>
@@ -4498,7 +5717,7 @@
 
                 <div
                     x-show="form"
-                    class="min-h-0 flex-1 overflow-y-auto p-4"
+                    class="character-attack-editor-body min-h-0 flex-1 overflow-y-auto p-4"
                 >
 
                     {{-- =================================================
@@ -5078,7 +6297,7 @@
 
                 {{-- Footer --}}
 
-                <div class="flex shrink-0 items-center justify-between gap-3 border-t border-[#d8c7ab]/60 bg-[#efe9dc]/45 px-4 py-3">
+                <div class="character-attack-editor-footer flex shrink-0 items-center justify-between gap-3 border-t border-[#d8c7ab]/60 bg-[#efe9dc]/45 px-4 py-3">
                     <button
                         x-show="editingId"
                         x-cloak
@@ -5098,7 +6317,7 @@
                             type="button"
                             @click="closeModal()"
                             :disabled="saving"
-                            class="rounded-lg px-3 py-2 text-[11px] font-black uppercase tracking-widest text-[#8c6239] hover:bg-[#e8dfd1] disabled:opacity-50"
+                            class="character-attack-secondary-action rounded-lg border px-3 py-2 text-[11px] font-black uppercase tracking-widest text-[#8c6239] hover:bg-[#e8dfd1] disabled:opacity-50"
                         >
                             Cancelar
                         </button>
@@ -5107,7 +6326,7 @@
                             type="button"
                             @click="saveAttack()"
                             :disabled="saving"
-                            class="rounded-lg bg-[#6b1d14] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#f4f1e8] hover:bg-[#53150f] disabled:opacity-50"
+                            class="character-attack-primary-action rounded-lg border bg-[#6b1d14] px-4 py-2 text-[11px] font-black uppercase tracking-widest text-[#f4f1e8] hover:bg-[#53150f] disabled:opacity-50"
                         >
                             <span x-show="!saving">
                                 Salvar
@@ -5127,7 +6346,17 @@
                     x-show="deleteConfirmOpen"
                     x-cloak
 
+                    x-transition:enter="character-theme-modal-layer-enter"
+                    x-transition:enter-start="character-theme-modal-layer-enter-start"
+                    x-transition:enter-end="character-theme-modal-layer-enter-end"
+                    x-transition:leave="character-theme-modal-layer-leave"
+                    x-transition:leave-start="character-theme-modal-layer-leave-start"
+                    x-transition:leave-end="character-theme-modal-layer-leave-end"
+
                     class="
+                        character-theme-modal-layer
+                        character-theme-modal-backdrop
+                        character-attack-backdrop
                         absolute
                         inset-0
                         z-30
@@ -5136,31 +6365,34 @@
                         items-center
                         justify-center
 
-                        bg-black/90
                         p-4
-                        backdrop-blur-[2px]
-                    "
-
-                    style="
-                        background-color:
-                            rgba(8, 6, 5, 0.90);
+                        backdrop-blur-[8px]
                     "
                 >
                     <div
+                        x-show="deleteConfirmOpen"
+
+                        x-transition:enter="character-theme-modal-panel-enter"
+                        x-transition:enter-start="character-theme-modal-panel-enter-start"
+                        x-transition:enter-end="character-theme-modal-panel-enter-end"
+                        x-transition:leave="character-theme-modal-panel-leave"
+                        x-transition:leave-start="character-theme-modal-panel-leave-start"
+                        x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                         @click.stop
-                        class="w-full max-w-sm overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl"
+                        class="character-theme-modal character-attack-delete-dialog w-full max-w-sm overflow-hidden rounded-2xl border border-[#cdbb9f] bg-[#faf8f2] shadow-2xl"
                     >
-                        <div class="border-b border-[#a0774d]/30 bg-[#eadbc8] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
+                        <div class="character-theme-modal-header border-b border-[#a0774d]/30 bg-[#eadbc8] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.72)]">
                             <p class="text-[10px] font-black uppercase tracking-[0.18em] text-red-700">
                                 Excluir ataque
                             </p>
 
-                            <h4 class="mt-0.5 font-serif text-lg font-black text-[#53150f]">
+                            <h4 class="character-theme-modal-title mt-0.5 font-serif text-lg font-black text-[#53150f]">
                                 Confirmar exclusão?
                             </h4>
                         </div>
 
-                        <div class="p-4 text-[13px] leading-relaxed text-[#5f3a27]">
+                        <div class="character-theme-modal-copy p-4 text-[13px] leading-relaxed text-[#5f3a27]">
                             O ataque
                             <strong
                                 x-text="

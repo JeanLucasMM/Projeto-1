@@ -13,11 +13,94 @@
         ->filter(fn ($die) => $die['maximum'] > 0)
         ->values();
 
-    $constitutionScore = (int) ($character->abilities?->constitution ?? 10);
+    /*
+    |--------------------------------------------------------------------------
+    | CONSTITUIÇÃO EFETIVA
+    |--------------------------------------------------------------------------
+    |
+    | Dados de Vida usam o modificador atual de CON. Respeitamos overrides
+    | e bônus temporários, como no restante da ficha.
+    |
+    */
 
-    $constitutionModifier = (int) floor(
-        ($constitutionScore - 10) / 2
-    );
+    $abilities = $character->abilities;
+
+    $constitutionBase =
+        (int) ($abilities?->constitution ?? 10);
+
+    $temporaryBonuses =
+        is_array($abilities?->temporary_bonuses ?? null)
+            ? $abilities->temporary_bonuses
+            : [];
+
+    $abilityOverrides =
+        is_array($abilities?->overrides ?? null)
+            ? $abilities->overrides
+            : [];
+
+    $constitutionTemporary =
+        (int) (
+            $temporaryBonuses['constitution']
+            ?? $temporaryBonuses['con']
+            ?? 0
+        );
+
+    $constitutionOverride =
+        $abilityOverrides['constitution']
+        ?? $abilityOverrides['con']
+        ?? null;
+
+    $constitutionScore =
+        $constitutionOverride !== null
+        && $constitutionOverride !== ''
+            ? max(1, (int) $constitutionOverride)
+            : max(
+                1,
+                $constitutionBase + $constitutionTemporary
+            );
+
+    $constitutionModifier =
+        (int) floor(
+            ($constitutionScore - 10) / 2
+        );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA ATUAL
+    |--------------------------------------------------------------------------
+    */
+
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme =
+        strtolower(
+            trim(
+                (string) data_get(
+                    $sheetSettings,
+                    'appearance.theme',
+                    'spellbound'
+                )
+            )
+        );
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
 @endphp
 
 @once
@@ -90,6 +173,679 @@
             input[type="number"] {
                 -moz-appearance: textfield;
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HIT DICE V2 — PADRÃO VISUAL UNIFICADO
+            |--------------------------------------------------------------------------
+            */
+
+            .hero-hit-dice-v2 .hit-dice-good,
+            .hero-hit-dice-v2 .hit-dice-danger,
+            .hero-hit-dice-v2 .hit-dice-active {
+                animation: none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-compact {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                box-shadow:
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.07)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-label span:last-child {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-label:hover,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll:hover:not(:disabled),
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-spend:hover:not(:disabled) {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-spend {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll-result {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-primary) !important;
+                box-shadow:
+                    0 12px 32px rgba(0,0,0,.14),
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.06)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll-result
+            [class*="text-[#53150f]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll-result
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll-result
+            [class*="text-[#8c7f70]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-roll-result
+            [class*="text-[#b5a898]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-v2
+            .hero-hit-dice-heal-total {
+                color: #047857 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal {
+                width: min(560px, calc(100vw - 28px)) !important;
+                max-height: min(92dvh, 820px) !important;
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 18px !important;
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow:
+                    var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.30)) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme]
+                .hero-hit-dice-modal {
+                    max-height: min(92vh, 820px) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-header,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-footer {
+                flex: 0 0 auto;
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-title {
+                color:
+                    var(--theme-modal-title, var(--theme-text-strong)) !important;
+                font-size: 22px !important;
+                line-height: 1.1 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-close {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-close:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-tabs {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-tab {
+                min-height: 38px;
+                color: var(--theme-text-secondary) !important;
+                font-size: 10px !important;
+                letter-spacing: .09em !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-tab:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-tab.is-active {
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-tab.is-active::after {
+                content: "";
+                position: absolute;
+                inset-inline: 14px;
+                bottom: 0;
+                height: 2px;
+                border-radius: 999px;
+                background: var(--theme-accent-strong);
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-body {
+                min-height: 0;
+                flex: 1 1 auto;
+                overflow-y: auto;
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                scrollbar-width: thin;
+                scrollbar-color:
+                    color-mix(in srgb, var(--theme-label) 30%, transparent)
+                    transparent;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#4a1813]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#3c120a]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#8c7f70]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#a09383]"],
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal
+            [class*="text-[#b5a898]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-history-card {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config-row,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-panel,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal input {
+                border-color: var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal input:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(in srgb, var(--theme-input-focus) 15%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-button {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-button:hover {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-secondary {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-secondary:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-primary {
+                border: 1px solid var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-primary:hover {
+                background: var(--theme-button-hover-background) !important;
+            }
+
+            @media (max-width: 520px) {
+                .character-sheet-theme[data-theme]
+                .hero-hit-dice-modal {
+                    width: calc(100vw - 20px) !important;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .hit-dice-result {
+                    animation: none !important;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HIT DICE V3 — CONFIGURAÇÃO CLEAN / COMPLETA
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal {
+                width:
+                    min(
+                        620px,
+                        calc(100vw - 28px)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-header {
+                padding:
+                    16px 18px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-kicker {
+                color:
+                    var(--theme-modal-label, var(--theme-label)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-subtitle {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config {
+                padding:
+                    18px 20px 20px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config-heading {
+                border-bottom:
+                    1px solid
+                    var(--theme-divider);
+
+                padding-bottom:
+                    13px;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-con-badge {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-con-badge
+            span {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config-row {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config-row:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-type-badge {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-type-badge
+            span {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-field
+            > span {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-field
+            input {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-remove {
+                border-color:
+                    transparent !important;
+
+                background:
+                    transparent !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-remove:hover {
+                border-color:
+                    rgba(185,28,28,.18) !important;
+
+                background:
+                    #fff1f2 !important;
+
+                color:
+                    #b91c1c !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config-empty {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-config-empty
+            p:first-child {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-panel {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+
+                padding:
+                    13px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-panel
+            > div:first-child {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-panel
+            > p {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-button {
+                min-height:
+                    36px;
+
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-add-button:hover {
+                border-color:
+                    var(--theme-accent) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary
+            p:first-child,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary-card
+            span {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary
+            p:nth-child(2) {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary-ratio {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary-card {
+                border-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-summary-card
+            strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-modal-footer {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(
+                        --theme-modal-header-background,
+                        var(--theme-band-background)
+                    ) !important;
+            }
+
+            @media (max-width: 560px) {
+                .character-sheet-theme[data-theme]
+                .hero-hit-dice-config-row {
+                    grid-template-columns:
+                        52px minmax(0,1fr) 32px;
+
+                    gap:
+                        8px;
+
+                    padding:
+                        10px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .hero-hit-dice-type-badge {
+                    width:
+                        52px;
+
+                    height:
+                        48px;
+                }
+
+                .character-sheet-theme[data-theme]
+                .hero-hit-dice-config-heading {
+                    align-items:
+                        flex-start;
+
+                    flex-direction:
+                        column;
+                }
+
+                .character-sheet-theme[data-theme]
+                .hero-hit-dice-con-badge {
+                    align-self:
+                        flex-start;
+                }
+            }
+
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            )
+            .hero-hit-dice-remove:hover {
+                background:
+                    rgba(127,29,29,.18) !important;
+            }
+
+
+            /* HERO HIT DICE V4 — ESTADO VAZIO TEMATIZADO */
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-empty-history {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card-alt) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-empty-history > div {
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-empty-history > p:first-of-type,
+            .character-sheet-theme[data-theme]
+            .hero-hit-dice-empty-history > p:last-of-type {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .hero-hit-dice-empty-history {
+                border-color: rgba(151,162,173,.24) !important;
+                background: linear-gradient(180deg,#20262c 0%,#1a2025 100%) !important;
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .hero-hit-dice-empty-history > div {
+                color: #71808c !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .hero-hit-dice-empty-history > p:first-of-type {
+                color: #aab3bb !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .hero-hit-dice-empty-history > p:last-of-type {
+                color: #87939d !important;
+            }
+
         </style>
     @endpush
 
@@ -740,6 +1496,9 @@
     "
 
     class="
+                hero-hit-dice-roll-result
+        hero-hit-dice
+        hero-hit-dice-v2
         relative
         w-fit
         max-w-full
@@ -753,30 +1512,22 @@
     <div class="relative">
 
         {{-- ========================================================
-             CAIXA PRINCIPAL DOS DADOS
+             CONTROLE COMPACTO DOS DADOS DE VIDA
         ========================================================= --}}
 
         <div
             class="
-                hit-dice-active
+                hero-hit-dice-compact
                 relative
                 z-20
                 flex
-                left-[-3px]
-                top-[-0.5px]
                 items-center
-                overflow-visible
-                rounded-t-md
+                overflow-hidden
+                rounded-full
                 border
-                border-b-0
-                border-[#cdbb9f]/70
-                bg-[#faf8f2]
-                shadow-sm
             "
         >
-
             {{-- NOME / ABRIR MODAL --}}
-
             <button
                 type="button"
 
@@ -784,11 +1535,10 @@
                     openModal('history')
                 "
 
-                title="
-                    Abrir Dados de Vida
-                "
+                title="Abrir Dados de Vida"
 
                 class="
+                    hero-hit-dice-label
                     group
                     relative
                     z-10
@@ -796,22 +1546,32 @@
                     h-full
                     shrink-0
                     items-center
-                    gap-1
-                    border-r
-                    border-[#cdbb9f]/40
-                    px-1.5
+                    gap-1.5
+                    px-2
                     py-1
                     transition
-                    hover:bg-[#efe9dc]/70
                 "
             >
+                <span
+                    class="
+                        hero-hit-dice-status-dot
+                        h-1.5
+                        w-1.5
+                        shrink-0
+                        rounded-full
+                    "
+                    :class="
+                        remainingClass
+                    "
+                    aria-hidden="true"
+                ></span>
 
                 <span
                     class="
-                        text-[7.5px]
+                        text-[7px]
                         font-black
                         uppercase
-                        tracking-wider
+                        tracking-[0.13em]
                         text-[#8c6239]
                         transition
                         group-hover:text-[#53150f]
@@ -819,42 +1579,22 @@
                 >
                     Dados de Vida
                 </span>
-
-
-
             </button>
 
 
-            {{-- PREENCHIMENTO DE ESTADO --}}
-
-            <div
-                class="
-                    pointer-events-none
-                    absolute
-                    inset-0
-                    opacity-[.12]
-                    transition-all
-                    duration-500
-                "
-                :class="
-                    remainingClass
-                "
-            ></div>
-
-
             {{-- DADOS --}}
-
             <div
                 class="
+                    hero-hit-dice-values
                     relative
                     z-10
                     flex
                     items-center
-                    px-1
+                    gap-0.5
+                    px-1.5
                     py-0.5
                 "
             >
-
                 <template
                     x-for="
                         (die, index) in dice
@@ -863,16 +1603,14 @@
                         `${die.die}-${index}`
                     "
                 >
-
                     <span
                         class="
+                            hero-hit-dice-token
                             inline-flex
                             items-center
                         "
                     >
-
                         {{-- GASTAR --}}
-
                         <button
                             type="button"
 
@@ -885,31 +1623,29 @@
                                 parseInt(die.current) <= 0
                             "
 
-                            title="
-                                Gastar 1 Dado de Vida
-                            "
+                            title="Gastar 1 Dado de Vida"
 
                             class="
+                                hero-hit-dice-spend
                                 flex
                                 h-5
+                                w-4
                                 items-center
-                                px-0.5
+                                justify-center
                                 text-[10px]
-                                font-bold
-                                text-[#8c7f70]
+                                font-black
                                 transition
-                                hover:text-[#8c1d18]
                                 active:scale-90
                                 disabled:cursor-not-allowed
                                 disabled:opacity-20
                             "
+                            aria-label="Gastar um Dado de Vida"
                         >
-                            ‹
+                            −
                         </button>
 
 
                         {{-- ROLAR --}}
-
                         <button
                             type="button"
 
@@ -922,20 +1658,17 @@
                                 parseInt(die.current) <= 0
                             "
 
-                            title="
-                                Rolar Dado de Vida
-                            "
+                            title="Rolar Dado de Vida"
 
                             class="
+                                hero-hit-dice-roll
                                 px-0.5
+                                py-0.5
                                 font-serif
                                 text-[10px]
                                 font-black
                                 tracking-wide
-                                text-[#53150f]
                                 transition
-                                hover:scale-105
-                                hover:text-[#8c1d18]
                                 active:scale-95
                                 disabled:cursor-not-allowed
                                 disabled:opacity-25
@@ -954,16 +1687,14 @@
                             "
 
                             class="
+                                hero-hit-dice-separator
                                 mx-0.5
-                                text-[10px]
-                                text-[#b5a898]
+                                text-[9px]
                             "
                         >
                             /
                         </span>
-
                     </span>
-
                 </template>
 
 
@@ -974,46 +1705,15 @@
 
                     class="
                         px-1
-                        text-[10px]
+                        text-[9px]
                         font-bold
                         text-[#a09383]
                     "
                 >
                     0d0
                 </span>
-
             </div>
-
-
         </div>
-
-
-        {{-- ========================================================
-             PONTE INFERIOR
-        ========================================================= --}}
-
-        <div
-            class="
-                pointer-events-none
-                absolute
-                left-1/2
-                top-full
-                z-[16]
-
-                -translate-x-1/2
-                -translate-y-[11px]
-
-                rounded-b-2xl
-
-                border-x
-                border-b
-                border-[#cdbb9f]/70
-
-                bg-[#faf8f2]/70
-
-                shadow-[0_8px_9px_rgba(83,21,15,.05)]
-            "
-        ></div>
 
 
         {{-- ========================================================
@@ -1231,6 +1931,7 @@
 
                 <div
                     class="
+                        hero-hit-dice-heal-total
                         mt-0.5
                         font-serif
                         text-[15px]
@@ -1270,35 +1971,22 @@
 
             x-cloak
 
-            x-transition:enter="
-                transition-opacity
-                ease-out
-                duration-150
-            "
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
 
-            x-transition:enter-start="
-                opacity-0
-            "
-
-            x-transition:enter-end="
-                opacity-100
-            "
-
-            x-transition:leave="
-                transition-opacity
-                ease-in
-                duration-100
-            "
-
-            x-transition:leave-start="
-                opacity-100
-            "
-
-            x-transition:leave-end="
-                opacity-0
-            "
+            data-theme="{{ $characterTheme }}"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Dados de Vida"
 
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+
                 fixed
                 inset-0
                 z-[120]
@@ -1307,11 +1995,7 @@
                 items-center
                 justify-center
 
-                bg-[#2b1d17]/55
-
                 p-4
-
-                backdrop-blur-sm
             "
         >
 
@@ -1319,6 +2003,7 @@
 
             <div
                 class="
+                    character-theme-modal-backdrop
                     absolute
                     inset-0
                 "
@@ -1332,16 +2017,30 @@
             {{-- PAINEL --}}
 
             <div
+                x-show="
+                    modalOpen
+                "
+
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
 
                 class="
+                    character-theme-modal
+                    hero-hit-dice-modal
+
                     relative
                     z-10
 
                     flex
-                    max-h-[80vh]
+                    max-h-[92dvh]
                     w-full
-                    max-w-sm
+                    max-w-[620px]
                     flex-col
 
                     overflow-hidden
@@ -1363,6 +2062,8 @@
 
                 <div
                     class="
+                        character-theme-modal-header
+                        hero-hit-dice-modal-header
                         flex
                         items-center
                         justify-between
@@ -1377,20 +2078,25 @@
                     "
                 >
 
-                    <div>
+                    <div class="min-w-0">
 
                         <p
                             class="
-                                text-[8px]
+                                hero-hit-dice-modal-kicker
+                                text-[9px]
                                 font-black
                                 uppercase
-                                tracking-[0.2em]
+                                tracking-[0.14em]
                                 text-[#8c7f70]
                             "
-                        ></p>
+                        >
+                            Recurso de descanso
+                        </p>
 
                         <h3
                             class="
+                                character-theme-modal-title
+                                hero-hit-dice-modal-title
                                 mt-0.5
                                 font-serif
                                 text-base
@@ -1400,6 +2106,18 @@
                         >
                             Dados de Vida
                         </h3>
+
+                        <p
+                            class="
+                                hero-hit-dice-modal-subtitle
+                                mt-1
+                                text-[11px]
+                                leading-snug
+                                text-[#8c7f70]
+                            "
+                        >
+                            Gerencie os dados disponíveis para recuperação durante descansos.
+                        </p>
 
                     </div>
 
@@ -1412,6 +2130,7 @@
                         "
 
                         class="
+                            hero-hit-dice-modal-close
                             flex
                             h-7
                             w-7
@@ -1440,6 +2159,7 @@
 
                 <div
                     class="
+                        hero-hit-dice-tabs
                         flex
 
                         border-b
@@ -1459,6 +2179,7 @@
                         "
 
                         class="
+                            hero-hit-dice-tab
                             relative
                             flex-1
                             py-2
@@ -1471,28 +2192,12 @@
                             transition
                         "
 
-                        :class="
-                            modalTab === 'history'
-                                ? 'text-[#53150f]'
-                                : 'text-[#8c7f70] hover:text-[#53150f]'
-                        "
+                        :class="{
+                            'is-active':
+                                modalTab === 'history'
+                        }"
                     >
                         Histórico
-
-                        <span
-                            x-show="
-                                modalTab === 'history'
-                            "
-
-                            class="
-                                absolute
-                                inset-x-3
-                                bottom-0
-                                h-0.5
-                                rounded-full
-                                bg-[#6b1d14]
-                            "
-                        ></span>
 
                     </button>
 
@@ -1505,6 +2210,7 @@
                         "
 
                         class="
+                            hero-hit-dice-tab
                             relative
                             flex-1
                             py-2
@@ -1517,28 +2223,12 @@
                             transition
                         "
 
-                        :class="
-                            modalTab === 'config'
-                                ? 'text-[#53150f]'
-                                : 'text-[#8c7f70] hover:text-[#53150f]'
-                        "
+                        :class="{
+                            'is-active':
+                                modalTab === 'config'
+                        }"
                     >
                         Configurar
-
-                        <span
-                            x-show="
-                                modalTab === 'config'
-                            "
-
-                            class="
-                                absolute
-                                inset-x-3
-                                bottom-0
-                                h-0.5
-                                rounded-full
-                                bg-[#6b1d14]
-                            "
-                        ></span>
 
                     </button>
 
@@ -1555,6 +2245,8 @@
                     "
 
                     class="
+                        hero-hit-dice-modal-body
+                        hero-hit-dice-history
                         min-h-0
                         flex-1
                         overflow-y-auto
@@ -1639,6 +2331,7 @@
 
                             <div
                                 class="
+                                    hero-hit-dice-history-card
                                     rounded-lg
                                     border
                                     border-[#e4d9ca]
@@ -1812,6 +2505,7 @@
 
                                         <span
                                             class="
+                                                hero-hit-dice-heal-total
                                                 font-serif
                                                 text-[13px]
                                                 font-black
@@ -1888,11 +2582,11 @@
                             "
 
                             class="
+                                hero-hit-dice-empty-history
+
                                 rounded-xl
                                 border
                                 border-dashed
-                                border-[#d8cdbc]
-                                bg-[#f5efe6]
                                 px-4
                                 py-7
                                 text-center
@@ -1951,6 +2645,8 @@
                     x-cloak
 
                     class="
+                        hero-hit-dice-modal-body
+                        hero-hit-dice-config
                         min-h-0
                         flex-1
                         overflow-y-auto
@@ -1958,36 +2654,89 @@
                     "
                 >
 
-                    <div class="mb-3">
+                    <div
+                        class="
+                            hero-hit-dice-config-heading
+                            mb-4
+                            flex
+                            items-end
+                            justify-between
+                            gap-4
+                        "
+                    >
 
-                        <p
+                        <div class="min-w-0">
+                            <p
+                                class="
+                                    text-[9px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.11em]
+                                    text-[#8c7f70]
+                                "
+                            >
+                                Dados atuais
+                            </p>
+
+                            <p
+                                class="
+                                    mt-1
+                                    text-[11px]
+                                    leading-snug
+                                    text-[#a09383]
+                                "
+                            >
+                                Ajuste o que ainda está disponível e a capacidade máxima de cada dado.
+                            </p>
+                        </div>
+
+                        <div
                             class="
-                                text-[8px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c7f70]
+                                hero-hit-dice-con-badge
+                                shrink-0
+                                rounded-lg
+                                border
+                                px-2.5
+                                py-1.5
+                                text-right
                             "
                         >
-                            Quantidade
-                        </p>
+                            <span
+                                class="
+                                    block
+                                    text-[7px]
+                                    font-black
+                                    uppercase
+                                    tracking-[0.10em]
+                                "
+                            >
+                                Constituição
+                            </span>
 
-                        <p
-                            class="
-                                mt-0.5
-                                text-[9px]
-                                text-[#a09383]
-                            "
-                        >
-                            Configure quantos dados o personagem possui.
-                        </p>
+                            <strong
+                                class="
+                                    mt-0.5
+                                    block
+                                    font-serif
+                                    text-[13px]
+                                    leading-none
+                                "
+                            >
+                                {{ $constitutionModifier >= 0 ? '+' : '' }}{{ $constitutionModifier }}
+                            </strong>
+                        </div>
 
                     </div>
 
 
                     {{-- DADOS EXISTENTES --}}
 
-                    <div class="space-y-2">
+                    <div
+                        class="
+                            hero-hit-dice-current-list
+                            space-y-2
+                        "
+                    >
 
                         <template
                             x-for="
@@ -2001,127 +2750,91 @@
 
                             <div
                                 class="
+                                    hero-hit-dice-config-row
+
+                                    grid
+                                    grid-cols-[62px_minmax(0,1fr)_34px]
+                                    items-center
+                                    gap-3
+
                                     rounded-xl
                                     border
-                                    border-[#e2d7c5]
-                                    bg-[#f5efe6]
-                                    p-2
+
+                                    p-3
                                 "
                             >
 
+                                {{-- TIPO --}}
                                 <div
                                     class="
+                                        hero-hit-dice-type-badge
+
                                         flex
+                                        h-[52px]
+                                        flex-col
                                         items-center
-                                        justify-between
+                                        justify-center
+
+                                        rounded-lg
+                                        border
+                                    "
+                                >
+                                    <strong
+                                        class="
+                                            font-serif
+                                            text-[15px]
+                                            font-black
+                                            uppercase
+                                            leading-none
+                                        "
+
+                                        x-text="
+                                            die.die
+                                        "
+                                    ></strong>
+
+                                    <span
+                                        class="
+                                            mt-1
+                                            text-[7px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.08em]
+                                        "
+                                    >
+                                        dado
+                                    </span>
+                                </div>
+
+
+                                {{-- VALORES --}}
+                                <div
+                                    class="
+                                        grid
+                                        min-w-0
+                                        grid-cols-2
                                         gap-2
                                     "
                                 >
 
-                                    <div
+                                    <label
                                         class="
-                                            flex
-                                            h-8
-                                            w-10
-                                            items-center
-                                            justify-center
-
-                                            rounded-lg
-
-                                            bg-[#faf7f2]
-
-                                            font-serif
-                                            text-xs
-                                            font-black
-                                            uppercase
-                                            text-[#53150f]
+                                            hero-hit-dice-field
+                                            block
+                                            min-w-0
                                         "
                                     >
-
                                         <span
-                                            x-text="
-                                                die.die
-                                            "
-                                        ></span>
-
-                                    </div>
-
-
-                                    <div
-                                        class="
-                                            flex
-                                            items-center
-                                            gap-1.5
-                                        "
-                                    >
-
-                                        <label
                                             class="
+                                                block
                                                 text-[8px]
                                                 font-black
                                                 uppercase
-                                                tracking-wide
-                                                text-[#8c7f70]
+                                                tracking-[0.09em]
                                             "
                                         >
-                                            Máx.
-                                        </label>
-
-
-                                        <input
-                                            type="number"
-                                            min="0"
-
-                                            :value="
-                                                die.maximum
-                                            "
-
-                                            @input="
-                                                updateDieMax(
-                                                    die,
-                                                    $event.target.value
-                                                )
-                                            "
-
-                                            class="
-                                                w-12
-                                                rounded-lg
-                                                border
-                                                border-[#d8cdbc]
-                                                bg-[#faf7f2]
-                                                px-1
-                                                py-1
-                                                text-center
-                                                text-xs
-                                                font-bold
-                                                text-[#3c120a]
-                                                outline-none
-                                                focus:border-[#6b1d14]
-                                            "
-                                        >
-
-
-                                        <span
-                                            class="
-                                                text-[#b5a898]
-                                            "
-                                        >
-                                            /
+                                            Disponíveis
                                         </span>
-
-
-                                        <label
-                                            class="
-                                                text-[8px]
-                                                font-black
-                                                uppercase
-                                                tracking-wide
-                                                text-[#8c7f70]
-                                            "
-                                        >
-                                            Atual
-                                        </label>
-
 
                                         <input
                                             type="number"
@@ -2146,59 +2859,155 @@
                                             "
 
                                             class="
-                                                w-12
+                                                mt-1.5
+                                                h-10
+                                                w-full
+
                                                 rounded-lg
                                                 border
-                                                border-[#d8cdbc]
-                                                bg-[#faf7f2]
-                                                px-1
-                                                py-1
+
+                                                px-2
+
                                                 text-center
-                                                text-xs
-                                                font-bold
-                                                text-[#3c120a]
+                                                font-serif
+                                                text-[15px]
+                                                font-black
+
                                                 outline-none
-                                                focus:border-[#6b1d14]
                                             "
                                         >
+                                    </label>
 
-                                    </div>
 
-
-                                    <button
-                                        type="button"
-
-                                        @click="
-                                            removeDie(index)
-                                        "
-
+                                    <label
                                         class="
-                                            flex
-                                            h-7
-                                            w-7
-                                            items-center
-                                            justify-center
-
-                                            rounded-lg
-
-                                            text-[#a09383]
-
-                                            transition
-
-                                            hover:bg-red-50
-                                            hover:text-red-600
+                                            hero-hit-dice-field
+                                            block
+                                            min-w-0
                                         "
-
-                                        title="Remover"
                                     >
-                                        ×
-                                    </button>
+                                        <span
+                                            class="
+                                                block
+                                                text-[8px]
+                                                font-black
+                                                uppercase
+                                                tracking-[0.09em]
+                                            "
+                                        >
+                                            Máximo
+                                        </span>
+
+                                        <input
+                                            type="number"
+                                            min="0"
+
+                                            :value="
+                                                die.maximum
+                                            "
+
+                                            @input="
+                                                updateDieMax(
+                                                    die,
+                                                    $event.target.value
+                                                )
+                                            "
+
+                                            class="
+                                                mt-1.5
+                                                h-10
+                                                w-full
+
+                                                rounded-lg
+                                                border
+
+                                                px-2
+
+                                                text-center
+                                                font-serif
+                                                text-[15px]
+                                                font-black
+
+                                                outline-none
+                                            "
+                                        >
+                                    </label>
 
                                 </div>
+
+
+                                {{-- REMOVER --}}
+                                <button
+                                    type="button"
+
+                                    @click="
+                                        removeDie(index)
+                                    "
+
+                                    class="
+                                        hero-hit-dice-remove
+
+                                        flex
+                                        h-8
+                                        w-8
+                                        items-center
+                                        justify-center
+
+                                        rounded-lg
+                                        border
+
+                                        text-[15px]
+                                        transition
+                                    "
+
+                                    title="Remover este tipo de dado"
+                                    aria-label="Remover tipo de dado"
+                                >
+                                    ×
+                                </button>
 
                             </div>
 
                         </template>
+
+
+                        <div
+                            x-show="
+                                dice.length === 0
+                            "
+
+                            class="
+                                hero-hit-dice-config-empty
+
+                                rounded-xl
+                                border
+                                border-dashed
+
+                                px-4
+                                py-6
+
+                                text-center
+                            "
+                        >
+                            <p
+                                class="
+                                    font-serif
+                                    text-sm
+                                    font-black
+                                "
+                            >
+                                Nenhum Dado de Vida configurado
+                            </p>
+
+                            <p
+                                class="
+                                    mt-1
+                                    text-[10px]
+                                "
+                            >
+                                Adicione um tipo abaixo para começar.
+                            </p>
+                        </div>
 
                     </div>
 
@@ -2207,7 +3016,8 @@
 
                     <div
                         class="
-                            mt-3
+                            hero-hit-dice-add-panel
+                            mt-4
 
                             rounded-xl
 
@@ -2222,23 +3032,35 @@
 
                         <div
                             class="
-                                mb-2
-                                text-[8px]
+                                text-[9px]
                                 font-black
                                 uppercase
-                                tracking-widest
+                                tracking-[0.10em]
                                 text-[#8c7f70]
                             "
                         >
-                            Adicionar tipo
+                            Adicionar dado
                         </div>
+
+                        <p
+                            class="
+                                mt-1
+                                text-[10px]
+                                leading-snug
+                                text-[#a09383]
+                            "
+                        >
+                            Escolha um tipo. Se ele já existir, o máximo aumenta em 1.
+                        </p>
 
 
                         <div
                             class="
+                                mt-3
                                 grid
-                                grid-cols-6
-                                gap-1
+                                grid-cols-3
+                                gap-2
+                                sm:grid-cols-6
                             "
                         >
 
@@ -2267,6 +3089,7 @@
                                     "
 
                                     class="
+                                        hero-hit-dice-add-button
                                         rounded-lg
 
                                         border
@@ -2274,11 +3097,12 @@
 
                                         bg-[#faf7f2]
 
-                                        py-1.5
+                                        min-h-[36px]
+                                        py-2
 
                                         font-serif
-                                        text-[9px]
-                                        font-bold
+                                        text-[11px]
+                                        font-black
                                         text-[#4a1813]
 
                                         transition
@@ -2305,179 +3129,285 @@
 
                     <div
                         class="
-                            mt-3
+                            hero-hit-dice-summary
+                            mt-4
 
                             rounded-xl
-
                             border
-                            border-[#d8d0c3]
 
-                            bg-[#efe9dc]/70
-
-                            px-3
-                            py-2
+                            p-3.5
                         "
                     >
 
                         <div
                             class="
                                 flex
-                                items-center
+                                items-start
                                 justify-between
+                                gap-3
                             "
                         >
+                            <div>
+                                <p
+                                    class="
+                                        text-[9px]
+                                        font-black
+                                        uppercase
+                                        tracking-[0.10em]
+                                    "
+                                >
+                                    Resumo
+                                </p>
+
+                                <p
+                                    class="
+                                        mt-1
+                                        text-[10px]
+                                        leading-snug
+                                    "
+                                >
+                                    Estado atual dos recursos de recuperação.
+                                </p>
+                            </div>
 
                             <span
                                 class="
-                                    text-[8px]
+                                    hero-hit-dice-summary-ratio
+
+                                    shrink-0
+                                    rounded-lg
+                                    border
+
+                                    px-2.5
+                                    py-1.5
+
+                                    font-serif
+                                    text-[16px]
                                     font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c7f70]
+                                    tabular-nums
                                 "
                             >
-                                Disponíveis
+                                <span
+                                    x-text="
+                                        totalCurrent
+                                    "
+                                ></span>
+
+                                <span class="opacity-40">/</span>
+
+                                <span
+                                    x-text="
+                                        totalMaximum
+                                    "
+                                ></span>
                             </span>
-
-
-                            <span
-                                class="
-                                    font-serif
-                                    text-sm
-                                    font-black
-                                    text-[#53150f]
-                                "
-
-                                x-text="
-                                    currentSummary
-                                "
-                            ></span>
-
                         </div>
 
 
                         <div
                             class="
-                                mt-1
-                                text-[8px]
-                                text-[#a09383]
+                                mt-3
+                                grid
+                                grid-cols-2
+                                gap-2
                             "
                         >
-                            Máximo:
 
-                            <span
+                            <div
                                 class="
-                                    font-bold
-                                    text-[#8c6239]
+                                    hero-hit-dice-summary-card
+                                    rounded-lg
+                                    border
+                                    p-2.5
                                 "
+                            >
+                                <span
+                                    class="
+                                        block
+                                        text-[8px]
+                                        font-black
+                                        uppercase
+                                        tracking-[0.09em]
+                                    "
+                                >
+                                    Disponíveis
+                                </span>
 
-                                x-text="
-                                    maximumSummary
+                                <strong
+                                    class="
+                                        mt-1
+                                        block
+                                        font-serif
+                                        text-[14px]
+                                        font-black
+                                        leading-tight
+                                    "
+
+                                    x-text="
+                                        currentSummary
+                                    "
+                                ></strong>
+                            </div>
+
+
+                            <div
+                                class="
+                                    hero-hit-dice-summary-card
+                                    rounded-lg
+                                    border
+                                    p-2.5
                                 "
-                            ></span>
+                            >
+                                <span
+                                    class="
+                                        block
+                                        text-[8px]
+                                        font-black
+                                        uppercase
+                                        tracking-[0.09em]
+                                    "
+                                >
+                                    Capacidade
+                                </span>
+
+                                <strong
+                                    class="
+                                        mt-1
+                                        block
+                                        font-serif
+                                        text-[14px]
+                                        font-black
+                                        leading-tight
+                                    "
+
+                                    x-text="
+                                        maximumSummary
+                                    "
+                                ></strong>
+                            </div>
 
                         </div>
 
                     </div>
 
 
-                    {{-- AÇÕES --}}
 
-                    <div
+                </div>
+
+
+                {{-- =================================================
+                     AÇÕES DA CONFIGURAÇÃO
+                ================================================== --}}
+
+                <div
+                    x-show="
+                        modalTab === 'config'
+                    "
+
+                    x-cloak
+
+                    class="
+                        character-theme-modal-footer
+                        hero-hit-dice-modal-footer
+
+                        flex
+                        shrink-0
+                        items-center
+                        justify-end
+                        gap-2
+
+                        border-t
+
+                        px-5
+                        py-3.5
+                    "
+                >
+
+                    <button
+                        type="button"
+
+                        @click="
+                            closeModal()
+                        "
+
+                        :disabled="
+                            saving
+                        "
+
                         class="
-                            mt-4
-                            flex
-                            justify-end
-                            gap-2
+                            hero-hit-dice-secondary
 
-                            border-t
-                            border-[#e8dfd1]
+                            rounded-lg
 
-                            pt-3
+                            px-4
+                            py-2.5
+
+                            text-[10px]
+                            font-black
+                            uppercase
+                            tracking-[0.06em]
+
+                            transition
+
+                            disabled:opacity-50
+                        "
+                    >
+                        Cancelar
+                    </button>
+
+
+                    <button
+                        type="button"
+
+                        @click="
+                            saveConfig()
+                        "
+
+                        :disabled="
+                            saving
+                        "
+
+                        class="
+                            hero-hit-dice-primary
+
+                            min-w-[96px]
+
+                            rounded-lg
+                            border
+
+                            px-4
+                            py-2.5
+
+                            text-[10px]
+                            font-black
+                            uppercase
+                            tracking-[0.06em]
+
+                            transition
+
+                            disabled:opacity-50
                         "
                     >
 
-                        <button
-                            type="button"
-
-                            @click="
-                                closeModal()
-                            "
-
-                            class="
-                                rounded-lg
-                                px-3
-                                py-2
-
-                                text-[9px]
-                                font-bold
-                                text-[#8c7f70]
-
-                                transition
-
-                                hover:text-[#53150f]
+                        <span
+                            x-show="
+                                !saving
                             "
                         >
-                            Cancelar
-                        </button>
+                            Salvar
+                        </span>
 
-
-                        <button
-                            type="button"
-
-                            @click="
-                                saveConfig()
-                            "
-
-                            :disabled="
+                        <span
+                            x-show="
                                 saving
                             "
 
-                            class="
-                                rounded-lg
-
-                                border
-                                border-[#d8cdbc]
-
-                                bg-[#f2ebe1]
-
-                                px-4
-                                py-2
-
-                                font-serif
-                                text-[10px]
-                                font-bold
-                                text-[#4a1813]
-
-                                transition
-
-                                hover:bg-[#e8dfd1]
-
-                                disabled:opacity-50
-                            "
+                            x-cloak
                         >
+                            Salvando...
+                        </span>
 
-                            <span
-                                x-show="
-                                    !saving
-                                "
-                            >
-                                Salvar
-                            </span>
-
-                            <span
-                                x-show="
-                                    saving
-                                "
-
-                                x-cloak
-                            >
-                                Salvando...
-                            </span>
-
-                        </button>
-
-                    </div>
+                    </button>
 
                 </div>
 

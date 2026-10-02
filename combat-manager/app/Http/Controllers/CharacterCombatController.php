@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Character;
+use App\Models\CombatParticipationRequest;
+use App\Models\CombatPlayer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -89,6 +91,83 @@ class CharacterCombatController extends Controller
                 'overrides' => [],
             ]
         );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | HISTÓRICO DE MORTE — ESTADO ANTERIOR
+        |--------------------------------------------------------------------------
+        |
+        | Guardamos o estado antes da atualização para registrar uma morte apenas
+        | na transição vivo/caído -> morto. Atualizações posteriores enquanto o
+        | personagem continuar morto não incrementam o contador novamente.
+        |
+        */
+
+        $previousCurrentHp =
+            max(
+                0,
+                (int) (
+                    $combat->current_hp
+                    ?? 0
+                )
+            );
+
+        $previousDeathFailures =
+            max(
+                0,
+                (int) (
+                    $combat->death_save_failures
+                    ?? 0
+                )
+            );
+
+        $wasDead =
+            $previousCurrentHp <= 0
+            &&
+            $previousDeathFailures >= $deathFailureLimit;
+
+        $overridesBeforeUpdate =
+            $this->normalizedCombatOverrides(
+                $combat->overrides
+                ?? []
+            );
+
+        $deathHistoryBeforeUpdate =
+            data_get(
+                $overridesBeforeUpdate,
+                'death_history',
+                []
+            );
+
+        if (!is_array($deathHistoryBeforeUpdate)) {
+            $deathHistoryBeforeUpdate = [];
+        }
+
+        /*
+        | Se o personagem já estava morto antes deste recurso existir, não temos
+        | como reconstruir a data real. Mesmo assim, preservamos o fato histórico
+        | antes que uma cura ou reset dos death saves apague o estado observável.
+        */
+        if (
+            $wasDead
+            &&
+            max(
+                0,
+                (int) (
+                    $deathHistoryBeforeUpdate['count']
+                    ?? 0
+                )
+            )
+            ===
+            0
+        ) {
+            $deathHistoryBeforeUpdate = [
+                'count' => 1,
+                'last_at' => null,
+                'events' => [],
+            ];
+        }
 
         /*
         |--------------------------------------------------------------------------
@@ -534,6 +613,148 @@ class CharacterCombatController extends Controller
             $validated
         );
 
+        $freshCombat =
+            $combat->fresh();
+
+        $finalOverrides =
+            $this->normalizedCombatOverrides(
+                $freshCombat?->overrides
+                ?? []
+            );
+
+        /*
+        | O histórico é interno do sistema. Mesmo que algum componente da ficha
+        | envie o objeto overrides sem death_history, preservamos o registro.
+        */
+        if (!empty($deathHistoryBeforeUpdate)) {
+            data_set(
+                $finalOverrides,
+                'death_history',
+                $deathHistoryBeforeUpdate
+            );
+        }
+
+        $finalCurrentHp =
+            max(
+                0,
+                (int) (
+                    $freshCombat?->current_hp
+                    ?? 0
+                )
+            );
+
+        $finalDeathFailures =
+            max(
+                0,
+                (int) (
+                    $freshCombat?->death_save_failures
+                    ?? 0
+                )
+            );
+
+        $isDead =
+            $finalCurrentHp <= 0
+            &&
+            $finalDeathFailures >= $deathFailureLimit;
+
+        if (
+            !$wasDead
+            &&
+            $isDead
+        ) {
+            $deathHistory =
+                data_get(
+                    $finalOverrides,
+                    'death_history',
+                    []
+                );
+
+            if (!is_array($deathHistory)) {
+                $deathHistory = [];
+            }
+
+            $events =
+                $deathHistory['events']
+                ?? [];
+
+            if (!is_array($events)) {
+                $events = [];
+            }
+
+            $deathAt =
+                now()->toIso8601String();
+
+            $events[] = [
+                'at' =>
+                    $deathAt,
+
+                'failure_limit' =>
+                    $deathFailureLimit,
+
+                'morquen' =>
+                    $morquenRuleActive,
+            ];
+
+            /*
+            | Mantemos as ocorrências recentes para consulta sem permitir que o
+            | JSON cresça indefinidamente. O contador total nunca é truncado.
+            */
+            $events =
+                array_slice(
+                    array_values(
+                        array_filter(
+                            $events,
+                            fn ($event) =>
+                                is_array($event)
+                        )
+                    ),
+                    -20
+                );
+
+            $deathHistory['count'] =
+                max(
+                    0,
+                    (int) (
+                        $deathHistory['count']
+                        ?? 0
+                    )
+                )
+                +
+                1;
+
+            $deathHistory['last_at'] =
+                $deathAt;
+
+            $deathHistory['events'] =
+                $events;
+
+            data_set(
+                $finalOverrides,
+                'death_history',
+                $deathHistory
+            );
+        }
+
+        $storedOverrides =
+            $this->normalizedCombatOverrides(
+                $freshCombat?->overrides
+                ?? []
+            );
+
+        if (
+            $finalOverrides
+            !==
+            $storedOverrides
+        ) {
+            $freshCombat->overrides =
+                $finalOverrides;
+
+            $freshCombat->save();
+
+            $freshCombat =
+                $freshCombat->fresh();
+        }
+
         /*
         |--------------------------------------------------------------------------
         | RETORNO
@@ -544,7 +765,7 @@ class CharacterCombatController extends Controller
             'success' => true,
 
             'combat' =>
-                $combat->fresh(),
+                $freshCombat,
         ]);
     }
 
@@ -680,6 +901,39 @@ class CharacterCombatController extends Controller
                     $overrides = [];
                 }
 
+                $deathHistory =
+                    data_get(
+                        $overrides,
+                        'death_history',
+                        []
+                    );
+
+                if (!is_array($deathHistory)) {
+                    $deathHistory = [];
+                }
+
+                if (
+                    max(
+                        0,
+                        (int) (
+                            $deathHistory['count']
+                            ?? 0
+                        )
+                    )
+                    ===
+                    0
+                ) {
+                    data_set(
+                        $overrides,
+                        'death_history',
+                        [
+                            'count' => 1,
+                            'last_at' => null,
+                            'events' => [],
+                        ]
+                    );
+                }
+
                 $determinationLocked =
                     (bool) data_get(
                         $overrides,
@@ -785,6 +1039,514 @@ class CharacterCombatController extends Controller
                     $result['exhaustion_added'],
             ],
         ]);
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHAMADO DE COMBATE DA CAMPANHA
+    |--------------------------------------------------------------------------
+    |
+    | A Quick Stat continua salvando normalmente pelo método update().
+    | Estes endpoints existem apenas para a interação iniciada pelo Mestre:
+    | participar -> rolar iniciativa -> entrar na fila do combate.
+    |
+    */
+
+    public function combatCall(
+        Request $request,
+        Character $character
+    ): JsonResponse {
+        Gate::authorize('update', $character);
+
+        CombatParticipationRequest::query()
+            ->where('character_id', $character->id)
+            ->where('status', 'pending')
+            ->where('expires_at', '<=', now())
+            ->update([
+                'status' => 'declined',
+                'responded_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $call = CombatParticipationRequest::query()
+            ->where('character_id', $character->id)
+            ->whereIn('status', ['pending', 'accepted'])
+            ->whereNull('initiative')
+            ->whereHas(
+                'combat',
+                fn ($query) => $query->where('is_active', true)
+            )
+            ->with(['combat.campaign'])
+            ->latest('id')
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'call' => $call ? $this->combatCallPayload($call) : null,
+        ]);
+    }
+
+
+    public function respondCombatCall(
+        Request $request,
+        Character $character
+    ): JsonResponse {
+        Gate::authorize('update', $character);
+
+        $validated = $request->validate([
+            'request_id' => ['required', 'integer'],
+            'accepted' => ['required', 'boolean'],
+        ]);
+
+        return DB::transaction(function () use ($character, $validated): JsonResponse {
+            $call = CombatParticipationRequest::query()
+                ->whereKey((int) $validated['request_id'])
+                ->where('character_id', $character->id)
+                ->with(['combat.campaign'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($call->status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Este chamado já foi respondido.',
+                ], 409);
+            }
+
+            if ($call->expires_at->lte(now())) {
+                $call->update([
+                    'status' => 'declined',
+                    'responded_at' => now(),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'timed_out' => true,
+                    'call' => null,
+                ]);
+            }
+
+            if (!(bool) $validated['accepted']) {
+                $call->update([
+                    'status' => 'declined',
+                    'responded_at' => now(),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'call' => null,
+                ]);
+            }
+
+            $combat = $call->combat;
+
+            abort_unless(
+                $combat && $combat->is_active,
+                422,
+                'Este combate não está mais ativo.'
+            );
+
+            $campaign = $combat->campaign;
+
+            abort_unless(
+                $campaign,
+                422,
+                'Este combate não está vinculado a uma campanha.'
+            );
+
+            $isActiveCharacter = $campaign
+                ->characters()
+                ->where('characters.id', $character->id)
+                ->wherePivot('is_active', true)
+                ->exists();
+
+            abort_unless(
+                $isActiveCharacter,
+                422,
+                'Este personagem não está mais ativo nesta campanha.'
+            );
+
+            CombatPlayer::query()->firstOrCreate(
+                [
+                    'combat_id' => $combat->id,
+                    'character_id' => $character->id,
+                ],
+                [
+                    'name' => $character->name,
+                    'initiative' => 0,
+                ]
+            );
+
+            $call->update([
+                'status' => 'accepted',
+                'responded_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'call' => $this->combatCallPayload(
+                    $call->fresh()->loadMissing(['combat.campaign'])
+                ),
+            ]);
+        });
+    }
+
+
+    public function submitCombatCallInitiative(
+        Request $request,
+        Character $character
+    ): JsonResponse {
+        Gate::authorize('update', $character);
+
+        $validated = $request->validate([
+            'request_id' => [
+                'required',
+                'integer',
+            ],
+
+            /*
+            | O Player envia o valor FINAL que decidiu usar.
+            | Isso também permite rolagem com dado físico,
+            | vantagem, desvantagem e efeitos especiais.
+            */
+            'initiative' => [
+                'required',
+                'integer',
+                'between:-100,200',
+            ],
+        ]);
+
+        return DB::transaction(function () use ($character, $validated): JsonResponse {
+            $call = CombatParticipationRequest::query()
+                ->whereKey((int) $validated['request_id'])
+                ->where('character_id', $character->id)
+                ->with(['combat'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            abort_unless(
+                $call->status === 'accepted',
+                422,
+                'Aceite o combate antes de rolar iniciativa.'
+            );
+
+            $combat = $call->combat;
+
+            abort_unless(
+                $combat && $combat->is_active,
+                422,
+                'Este combate não está mais ativo.'
+            );
+
+            if ($call->initiative !== null) {
+                return response()->json([
+                    'success' => true,
+                    'total' => (int) $call->initiative,
+                    'already_submitted' => true,
+                ]);
+            }
+
+            $modifier =
+                $this->quickStatInitiativeModifier(
+                    $character
+                );
+
+            $total =
+                (int) $validated[
+                    'initiative'
+                ];
+
+            $combatPlayer = CombatPlayer::query()->firstOrCreate(
+                [
+                    'combat_id' => $combat->id,
+                    'character_id' => $character->id,
+                ],
+                [
+                    'name' => $character->name,
+                    'initiative' => 0,
+                ]
+            );
+
+            $combatPlayer->forceFill([
+                'name' => $character->name,
+                'initiative' => $total,
+            ])->save();
+
+            $call->update(['initiative' => $total]);
+
+            $this->storeQuickStatCombatInitiative(
+                $character,
+                $modifier,
+                $total
+            );
+
+            DB::table('combat_logs')->insert([
+                'combat_id' => $combat->id,
+                'round' => (int) ($combat->current_round ?? 1),
+                'turn' => (int) ($combat->current_turn ?? 0),
+                'description' => "{$character->name} entrou no combate com iniciativa {$total}.",
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' =>
+                    true,
+
+                'modifier' =>
+                    $modifier,
+
+                'total' =>
+                    $total,
+            ]);
+        });
+    }
+
+
+    private function combatCallPayload(
+        CombatParticipationRequest $call
+    ): array {
+        $phase = $call->status === 'pending' ? 'join' : 'initiative';
+
+        return [
+            'request_id' => (int) $call->id,
+            'combat_id' => (int) $call->combat_id,
+            'combat_name' => (string) ($call->combat?->name ?? 'Combate'),
+            'campaign_name' => $call->combat?->campaign?->name
+                ? (string) $call->combat->campaign->name
+                : null,
+            'phase' => $phase,
+            'seconds_left' => $phase === 'join'
+                ? max(0, now()->diffInSeconds($call->expires_at, false))
+                : null,
+        ];
+    }
+
+
+    private function quickStatInitiativeModifier(
+        Character $character
+    ): int {
+        $character->loadMissing([
+            'abilities',
+            'combat',
+        ]);
+
+        $abilities =
+            $character->abilities;
+
+        $temporaryBonuses =
+            is_array(
+                $abilities?->temporary_bonuses
+            )
+                ? $abilities->temporary_bonuses
+                : [];
+
+        $abilityOverrides =
+            is_array(
+                $abilities?->overrides
+            )
+                ? $abilities->overrides
+                : [];
+
+        $baseDexterity =
+            (int) (
+                $abilities?->dexterity
+                ?? 10
+            );
+
+        $hasDexterityOverride =
+            array_key_exists(
+                'dexterity',
+                $abilityOverrides
+            )
+            &&
+            $abilityOverrides[
+                'dexterity'
+            ] !== null
+            &&
+            $abilityOverrides[
+                'dexterity'
+            ] !== '';
+
+        $hasShortDexterityOverride =
+            array_key_exists(
+                'dex',
+                $abilityOverrides
+            )
+            &&
+            $abilityOverrides[
+                'dex'
+            ] !== null
+            &&
+            $abilityOverrides[
+                'dex'
+            ] !== '';
+
+        if ($hasDexterityOverride) {
+            $dexterityScore =
+                max(
+                    1,
+                    (int) $abilityOverrides[
+                        'dexterity'
+                    ]
+                );
+        } elseif (
+            $hasShortDexterityOverride
+        ) {
+            $dexterityScore =
+                max(
+                    1,
+                    (int) $abilityOverrides[
+                        'dex'
+                    ]
+                );
+        } else {
+            $dexterityScore =
+                max(
+                    1,
+                    $baseDexterity
+                    +
+                    (int) (
+                        $temporaryBonuses[
+                            'dexterity'
+                        ]
+                        ?? $temporaryBonuses[
+                            'dex'
+                        ]
+                        ?? 0
+                    )
+                );
+        }
+
+        $dexterityModifier =
+            (int) floor(
+                (
+                    $dexterityScore
+                    -
+                    10
+                )
+                /
+                2
+            );
+
+        $combat = $character->combat;
+        $overrides = $this->normalizedCombatOverrides($combat?->overrides ?? []);
+        $initiativeConfig = data_get($overrides, 'quick_stats.initiative', []);
+
+        if (!is_array($initiativeConfig)) {
+            $initiativeConfig = [];
+        }
+
+        $mode = in_array(
+            $initiativeConfig['mode'] ?? 'none',
+            ['none', 'proficient', 'expertise'],
+            true
+        )
+            ? $initiativeConfig['mode']
+            : 'none';
+
+        $legacyInitiative = (int) ($combat?->initiative_bonus ?? 0);
+
+        $initiativeBonus = array_key_exists('bonus', $initiativeConfig)
+            ? (int) $initiativeConfig['bonus']
+            : ($legacyInitiative !== 0
+                ? $legacyInitiative - $dexterityModifier
+                : 0);
+
+        $proficiencyBonus = max(
+            0,
+            (int) ($character->proficiency_bonus ?? $this->proficiencyBonusByLevel(
+                (int) ($character->level ?? 1)
+            ))
+        );
+
+        $training = match ($mode) {
+            'expertise' => $proficiencyBonus * 2,
+            'proficient' => $proficiencyBonus,
+            default => 0,
+        };
+
+        return $dexterityModifier + $training + $initiativeBonus;
+    }
+
+
+    private function quickStatInitiativeExhaustionPenalty(
+        Character $character
+    ): int {
+        $character->loadMissing('combat');
+
+        $level = max(
+            0,
+            min(6, (int) ($character->combat?->exhaustion_level ?? 0))
+        );
+
+        return $level * 2;
+    }
+
+
+    private function storeQuickStatCombatInitiative(
+        Character $character,
+        int $modifier,
+        int $total
+    ): void {
+        $combat = $character->combat()->firstOrCreate([], [
+            'experience_points' => 0,
+            'current_hp' => 0,
+            'max_hp' => 1,
+            'temporary_hp' => 0,
+            'temporary_max_hp' => 0,
+            'hit_dice' => [],
+            'armor_class' => 10,
+            'speed' => 30,
+            'initiative_bonus' => 0,
+            'death_save_successes' => 0,
+            'death_save_failures' => 0,
+            'concentration_active' => false,
+            'concentration_spell_id' => null,
+            'exhaustion_level' => 0,
+            'conditions' => [],
+            'damage_resistances' => [],
+            'damage_immunities' => [],
+            'damage_vulnerabilities' => [],
+            'overrides' => [],
+        ]);
+
+        $overrides = $this->normalizedCombatOverrides($combat->overrides ?? []);
+        data_set($overrides, 'quick_stats.initiative.combat_value', $total);
+
+        $combat->initiative_bonus = $modifier;
+        $combat->overrides = $overrides;
+        $combat->save();
+    }
+
+
+    private function normalizedCombatOverrides(mixed $value): array
+    {
+        if (is_array($value)) {
+            return $value;
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return [];
+    }
+
+
+    private function proficiencyBonusByLevel(int $level): int
+    {
+        $level = max(1, $level);
+
+        return match (true) {
+            $level >= 17 => 6,
+            $level >= 13 => 5,
+            $level >= 9 => 4,
+            $level >= 5 => 3,
+            default => 2,
+        };
     }
 
 }

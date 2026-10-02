@@ -1,7 +1,32 @@
-@props(['character'])
+@props([
+    'character',
+    'identityCharacter' => null,
+    'inventoryCharacter' => null,
+    'imageOverrideUrl' => null,
+])
 
 @php
+    /*
+     * character          = ficha mecânica atual
+     * identityCharacter  = Character original
+     * inventoryCharacter = Character original (inventário compartilhado)
+     */
+    $identityCharacter =
+        $identityCharacter
+        ?? $character;
+
+    $inventoryCharacter =
+        $inventoryCharacter
+        ?? $identityCharacter;
+
     $combat = $character->combat;
+
+    /*
+     * A Exaustão é compartilhada entre Forma Normal e Nova Ficha.
+     * Ela pertence exclusivamente ao Character original.
+     */
+    $identityCombat =
+        $identityCharacter->combat;
 
     /*
     |--------------------------------------------------------------------------
@@ -37,10 +62,10 @@
 
     $sheetSettings =
         is_array(
-            $character->sheet_settings
+            $identityCharacter->sheet_settings
             ?? null
         )
-            ? $character->sheet_settings
+            ? $identityCharacter->sheet_settings
             : [];
 
     $morquenRuleActive =
@@ -74,12 +99,25 @@
                 max(
                     0,
                     (int) (
-                        $combat?->exhaustion_level
+                        $identityCombat?->exhaustion_level
                         ?? 0
                     )
                 )
             )
             : 0;
+
+    /*
+     * Na ficha original o controle de Exaustão continua sempre visível
+     * quando a regra estiver ativa, inclusive em nível 0.
+     *
+     * Na "Nova Ficha", o selo aparece somente quando aquela ficha auxiliar
+     * realmente possui Exaustão. Ao reduzir para 0 pelo modal, ele some.
+     */
+    $hideZeroExhaustion =
+        (bool) (
+            $character->is_transformation_form
+            ?? false
+        );
 
     /*
     |--------------------------------------------------------------------------
@@ -119,6 +157,22 @@
         )
         ->values();
 
+    /*
+     * O cabeçalho exibe as classes da ficha mecânica,
+     * mas o modal aberto pela foto continua editando o Character original.
+     */
+    $identityClasses =
+        $identityCharacter
+            ->classes
+            ->sortByDesc(
+                fn ($class) => [
+                    (int) ($class->is_primary ?? false),
+                    (int) $class->level,
+                    -((int) ($class->sort_order ?? 0)),
+                ]
+            )
+            ->values();
+
     $primaryClass =
         $character->primary_class ??
         $classes->first();
@@ -131,11 +185,14 @@
         $primaryClass?->subclass;
 
     $imageUrl =
-        $character->image_path
-            ? Storage::url(
-                $character->image_path
-            )
-            : null;
+        $imageOverrideUrl
+        ?: (
+            $identityCharacter->image_path
+                ? Storage::url(
+                    $identityCharacter->image_path
+                )
+                : null
+        );
 
     $hasMulticlass =
         $classes->count() > 1;
@@ -329,6 +386,35 @@
 
     /*
     |--------------------------------------------------------------------------
+    | REDUÇÃO DE VIDA MÁXIMA
+    |--------------------------------------------------------------------------
+    |
+    | Guardamos a redução em combat.overrides.hp.max_reduction para não
+    | exigir uma nova coluna no banco e para preservar a Vida Máxima base.
+    |
+    | A redução nunca pode eliminar 100% do limite: o personagem mantém
+    | ao menos 1 PV máximo efetivo.
+    |
+    */
+
+    $maxHpReduction =
+        min(
+            max(
+                0,
+                $maxHp + $temporaryMaxHp - 1
+            ),
+            max(
+                0,
+                (int) data_get(
+                    $combatOverrides,
+                    'hp.max_reduction',
+                    0
+                )
+            )
+        );
+
+    /*
+    |--------------------------------------------------------------------------
     | DEFESA / ARMADURA
     |--------------------------------------------------------------------------
     |
@@ -399,7 +485,7 @@
             ->all();
 
     $armorItemsPayload =
-        $character->items
+        $inventoryCharacter->items
             ->filter(
                 fn ($item) =>
                     is_array(
@@ -410,7 +496,7 @@
                     )
             )
             ->map(
-                function ($item) use ($character) {
+                function ($item) use ($inventoryCharacter) {
                     $armor =
                         data_get(
                             $item->properties,
@@ -431,7 +517,7 @@
                                     'characters.items.image',
                                     [
                                         'character' =>
-                                            $character,
+                                            $inventoryCharacter,
 
                                         'item' =>
                                             $item,
@@ -549,7 +635,7 @@
                                 'characters.items.equipped.update',
                                 [
                                     'character' =>
-                                        $character,
+                                        $inventoryCharacter,
 
                                     'item' =>
                                         $item,
@@ -563,7 +649,7 @@
             ->all();
 
     $shieldItemsPayload =
-        $character->items
+        $inventoryCharacter->items
             ->filter(
                 fn ($item) =>
                     is_array(
@@ -574,7 +660,7 @@
                     )
             )
             ->map(
-                function ($item) use ($character) {
+                function ($item) use ($inventoryCharacter) {
                     $shield =
                         data_get(
                             $item->properties,
@@ -595,7 +681,7 @@
                                     'characters.items.image',
                                     [
                                         'character' =>
-                                            $character,
+                                            $inventoryCharacter,
 
                                         'item' =>
                                             $item,
@@ -644,7 +730,7 @@
                                 'characters.items.equipped.update',
                                 [
                                     'character' =>
-                                        $character,
+                                        $inventoryCharacter,
 
                                     'item' =>
                                         $item,
@@ -708,6 +794,38 @@
 
     $initiative =
         $combat?->initiative_bonus;
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA ATUAL
+    |--------------------------------------------------------------------------
+    |
+    | Alguns painéis do Hero Header usam x-teleport="body". Como esses
+    | portais deixam de herdar as variáveis da ficha, reaplicamos o tema
+    | explicitamente nos elementos que precisam seguir a paleta escolhida.
+    |
+    */
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme = strtolower(trim((string) data_get(
+        $sheetSettings,
+        'appearance.theme',
+        'spellbound'
+    )));
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
+
 @endphp
 
 
@@ -763,6 +881,146 @@
                         inset 0 0 25px rgba(185,28,28,.25),
                         0 0 8px rgba(220,38,38,.08);
                 }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | FEEDBACK DE IMPACTO — BARRA DE PV
+            |--------------------------------------------------------------------------
+            */
+
+            @keyframes hp-damage-sweep {
+                0% {
+                    opacity: 0;
+                    transform:
+                        translateX(24%)
+                        skewX(-16deg);
+                }
+
+                16% {
+                    opacity: .95;
+                }
+
+                100% {
+                    opacity: 0;
+                    transform:
+                        translateX(-46%)
+                        skewX(-16deg);
+                }
+            }
+
+            @keyframes hp-shield-impact {
+                0% {
+                    opacity: 0;
+                    transform: scaleX(.82);
+                    filter: brightness(1);
+                }
+
+                22% {
+                    opacity: .95;
+                    transform: scaleX(1.02);
+                    filter: brightness(1.5);
+                }
+
+                100% {
+                    opacity: 0;
+                    transform: scaleX(1.08);
+                    filter: brightness(1);
+                }
+            }
+
+            @keyframes hp-feedback-float {
+                0% {
+                    opacity: 0;
+                    transform:
+                        translateY(6px)
+                        scale(.88);
+                    filter: blur(1px);
+                }
+
+                16% {
+                    opacity: 1;
+                    transform:
+                        translateY(0)
+                        scale(1.04);
+                    filter: blur(0);
+                }
+
+                72% {
+                    opacity: 1;
+                    transform:
+                        translateY(-8px)
+                        scale(1);
+                }
+
+                100% {
+                    opacity: 0;
+                    transform:
+                        translateY(-14px)
+                        scale(.96);
+                }
+            }
+
+            @keyframes hp-heal-rise {
+                0% {
+                    opacity: 0;
+                    transform:
+                        translateY(7px)
+                        scale(.9);
+                }
+
+                20% {
+                    opacity: .95;
+                    transform:
+                        translateY(0)
+                        scale(1.04);
+                }
+
+                100% {
+                    opacity: 0;
+                    transform:
+                        translateY(-13px)
+                        scale(.98);
+                }
+            }
+
+            .animate-damage-blue {
+                animation:
+                    shield-hit .46s cubic-bezier(.2,.9,.2,1),
+                    shield-flash .62s ease-out;
+            }
+
+            .hp-damage-sweep {
+                animation:
+                    hp-damage-sweep
+                    .52s
+                    cubic-bezier(.2,.78,.2,1)
+                    both;
+            }
+
+            .hp-shield-impact {
+                animation:
+                    hp-shield-impact
+                    .58s
+                    cubic-bezier(.2,.9,.2,1)
+                    both;
+            }
+
+            .hp-feedback-float {
+                animation:
+                    hp-feedback-float
+                    1.05s
+                    cubic-bezier(.16,.84,.22,1)
+                    both;
+            }
+
+            .hp-heal-rise {
+                animation:
+                    hp-heal-rise
+                    1.05s
+                    cubic-bezier(.16,.84,.22,1)
+                    both;
             }
 
             @keyframes photo-damage {
@@ -834,6 +1092,44 @@
                 }
             }
 
+            @keyframes shield-hit {
+                0%, 100% {
+                    transform: translate3d(0,0,0) scale(1);
+                }
+
+                18% {
+                    transform: translateX(-3px) scale(.995);
+                }
+
+                38% {
+                    transform: translateX(3px) scale(1.006);
+                }
+
+                62% {
+                    transform: translateX(-1px);
+                }
+            }
+
+            @keyframes shield-flash {
+                0%, 100% {
+                    box-shadow:
+                        inset 0 0 0 rgba(56,189,248,0),
+                        0 0 0 rgba(56,189,248,0);
+                }
+
+                28% {
+                    box-shadow:
+                        inset 0 0 42px rgba(56,189,248,.28),
+                        0 0 20px rgba(56,189,248,.22);
+                }
+
+                68% {
+                    box-shadow:
+                        inset 0 0 16px rgba(56,189,248,.10),
+                        0 0 7px rgba(56,189,248,.08);
+                }
+            }
+
             @keyframes shield {
                 0%, 100% {
                     box-shadow:
@@ -849,32 +1145,41 @@
 
             @keyframes bloodied {
                 0%, 100% {
+                    border-color:
+                        rgba(205,187,159,.60);
+
                     box-shadow:
-                        0 0 0 rgba(127,29,29,.10);
+                        0 0 0 rgba(127,29,29,0),
+                        inset 0 0 0 rgba(127,29,29,0);
                 }
 
                 50% {
+                    border-color:
+                        rgba(127,29,29,.28);
+
                     box-shadow:
-                        0 0 18px rgba(127,29,29,.30),
-                        inset 0 0 18px rgba(127,29,29,.18);
+                        0 0 13px rgba(127,29,29,.15),
+                        inset 0 0 12px rgba(127,29,29,.045);
                 }
             }
 
             @keyframes critical {
                 0%, 100% {
-                    transform: scale(1);
-                    box-shadow: 0 0 0 rgba(220,38,38,.20);
-                    filter: brightness(1);
+                    border-color:
+                        rgba(205,187,159,.60);
+
+                    box-shadow:
+                        0 0 0 rgba(153,27,27,0),
+                        inset 0 0 0 rgba(153,27,27,0);
                 }
 
                 50% {
-                    transform: scale(1.01);
+                    border-color:
+                        rgba(153,27,27,.40);
 
                     box-shadow:
-                        0 0 26px rgba(220,38,38,.55),
-                        inset 0 0 22px rgba(220,38,38,.28);
-
-                    filter: brightness(1.05);
+                        0 0 17px rgba(153,27,27,.22),
+                        inset 0 0 15px rgba(153,27,27,.065);
                 }
             }
 
@@ -1106,13 +1411,6 @@
                     death-d20-breathe 1.8s ease-in-out infinite;
             }
 
-            .death-d20-spin {
-                animation:
-                    death-roll-orbit .95s linear infinite;
-                transform-origin:
-                    50% 50%;
-            }
-
             .death-world-fade {
                 animation:
                     death-world-fade .9s ease-out both;
@@ -1238,12 +1536,18 @@
 
             .bloodied-card {
                 animation:
-                    bloodied 2.1s ease-in-out infinite;
+                    bloodied
+                    2.8s
+                    ease-in-out
+                    infinite;
             }
 
             .critical-card {
                 animation:
-                    critical 2.5s ease-in-out infinite;
+                    critical
+                    2.35s
+                    ease-in-out
+                    infinite;
             }
 
 
@@ -1261,8 +1565,13 @@
             .hero-hp-modal-open.bloodied-card,
             .hero-hp-modal-open.critical-card,
             .hero-hp-modal-open .animate-damage-red,
+            .hero-hp-modal-open .animate-damage-blue,
             .hero-hp-modal-open .animate-damage-photo,
             .hero-hp-modal-open .animate-heal-green,
+            .hero-hp-modal-open .hp-damage-sweep,
+            .hero-hp-modal-open .hp-shield-impact,
+            .hero-hp-modal-open .hp-feedback-float,
+            .hero-hp-modal-open .hp-heal-rise,
             .hero-hp-modal-open .temp-hp-active,
             .hero-hp-modal-open .bonus-hp-active,
             .hero-hp-modal-open .death-drawer-active {
@@ -1339,6 +1648,1773 @@
                 pointer-events: none;
                 border: 1px solid rgba(216,199,171,.72);
             }
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HEADER V18 — PADRÃO VISUAL / PORTAIS / MOTION
+            |--------------------------------------------------------------------------
+            |
+            | Mantém toda a lógica mecânica e as animações semânticas de vida,
+            | morte e cura. Esta camada cuida apenas de:
+            | - portais que precisam herdar o tema;
+            | - menu de descanso;
+            | - modal de configuração de PV;
+            | - gaveta/reabertura de salvamentos contra a morte;
+            | - hierarquia visual consistente com os demais componentes.
+            |
+            */
+
+            /* ==============================================================
+               MENU DE DESCANSO
+            ============================================================== */
+
+            .character-sheet-theme[data-theme].hero-rest-popover {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+
+                box-shadow:
+                    0 18px 52px rgba(0,0,0,.20),
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            .hero-rest-popover-header {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            .hero-rest-popover-body {
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme].hero-rest-popover
+            [class*="text-[#6b1d14]"] {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            [class*="text-[#76553f]"],
+            .character-sheet-theme[data-theme].hero-rest-popover
+            [class*="text-[#7d604d]"],
+            .character-sheet-theme[data-theme].hero-rest-popover
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme].hero-rest-popover
+            [class*="text-[#a0774d]"] {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            .hero-rest-option {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.06)) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            .hero-rest-option:hover:not(:disabled) {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme].hero-rest-popover
+            .hero-rest-option
+            > span:first-child {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               MODAL DE VIDA
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal {
+                width:
+                    min(
+                        580px,
+                        calc(100vw - 28px)
+                    ) !important;
+
+                max-height:
+                    min(
+                        92dvh,
+                        820px
+                    ) !important;
+
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                border-radius:
+                    18px !important;
+
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+
+                box-shadow:
+                    var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.30)) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme]
+                .hero-hp-settings-modal {
+                    max-height:
+                        min(
+                            92vh,
+                            820px
+                        ) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            header,
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            footer {
+                flex:
+                    0 0 auto;
+
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            header
+            > button {
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            header
+            > button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="text-[#53150f]"] {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="text-[#6f5544]"] {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="border-[#d8c7ab]"],
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="border-[#cdbb9f]"] {
+                border-color:
+                    var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="bg-[#f4f1e8]"],
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            [class*="bg-[#fffdf9]"] {
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            input[type="number"] {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+
+                box-shadow:
+                    none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            input[type="number"]:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 15%,
+                        transparent
+                    ) !important;
+            }
+
+            /*
+             * Vida Máxima Extra continua dourada por significado mecânico,
+             * mas a superfície deixa de ser um bloco bege fixo.
+             */
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-extra-card {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        #b88920 34%,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-card) 92%,
+                        #d9a441 8%
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-preview-card {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            footer
+            button:first-child {
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            footer
+            button:first-child:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            footer
+            button:last-child {
+                border:
+                    1px solid
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+
+                box-shadow:
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            footer
+            button:last-child:hover {
+                background:
+                    var(--theme-button-hover-background) !important;
+            }
+
+
+            /* ==============================================================
+               SALVAMENTOS CONTRA A MORTE
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-drawer-panel {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-module-background) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    0 22px 55px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-deep) 12%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-drawer-band {
+                background:
+                    linear-gradient(
+                        90deg,
+                        var(--theme-accent-deep) 0%,
+                        var(--theme-accent-strong) 50%,
+                        var(--theme-accent-deep) 100%
+                    ) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-drawer-band
+            [class*="text-[#f0d5ad]"] {
+                color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-button-text) 78%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-tab-button {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    var(--theme-modal-control-shadow, 0 7px 18px rgba(0,0,0,.10)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-tab-button:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-tab-button
+            > span:first-child {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-accent-soft) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-tab-button
+            > span:first-child
+            > span {
+                background:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-header-v18
+            .hero-death-tab-button
+            svg {
+                color:
+                    var(--theme-label) !important;
+            }
+
+
+            /* ==============================================================
+               ACESSIBILIDADE / MOVIMENTO REDUZIDO
+            ============================================================== */
+
+            @media (prefers-reduced-motion: reduce) {
+                .hero-rest-popover,
+                .hero-death-drawer-panel,
+                .hero-death-tab-button {
+                    transition-duration:
+                        1ms !important;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | VIDA MÁXIMA REDUZIDA
+            |--------------------------------------------------------------------------
+            |
+            | A barra completa representa o potencial total:
+            | Vida Máxima + Vida Máxima Extra.
+            |
+            | A redução ocupa visualmente a extremidade direita em roxo,
+            | deixando explícita a parte do limite que está bloqueada.
+            |
+            */
+
+            .hero-life-modal-source
+            .hero-life-bar::after {
+                content: "";
+
+                position:
+                    absolute;
+
+                inset-block:
+                    0;
+
+                right:
+                    0;
+
+                z-index:
+                    18;
+
+                width:
+                    var(--hero-max-hp-reduction, 0%);
+
+                pointer-events:
+                    none;
+
+                border-left:
+                    1px solid rgba(221,214,254,.62);
+
+                background:
+                    linear-gradient(
+                        90deg,
+                        rgba(88,28,135,.92) 0%,
+                        rgba(107,33,168,.96) 48%,
+                        rgba(76,29,149,.98) 100%
+                    );
+
+                box-shadow:
+                    inset 8px 0 16px rgba(35,16,55,.18);
+
+                transition:
+                    width .7s ease;
+            }
+
+            .hero-life-modal-source
+            .hero-life-bar::before {
+                content: "";
+
+                position:
+                    absolute;
+
+                inset-block:
+                    0;
+
+                right:
+                    0;
+
+                z-index:
+                    19;
+
+                width:
+                    var(--hero-max-hp-reduction, 0%);
+
+                pointer-events:
+                    none;
+
+                opacity:
+                    .28;
+
+                background:
+                    repeating-linear-gradient(
+                        -45deg,
+                        rgba(255,255,255,.16) 0,
+                        rgba(255,255,255,.16) 2px,
+                        transparent 2px,
+                        transparent 6px
+                    );
+
+                transition:
+                    width .7s ease;
+            }
+
+            .hero-life-modal-source[data-hp-reduction-active="true"]
+            .hero-life-heading::after {
+                content:
+                    "−" attr(data-hp-reduction);
+
+                display:
+                    inline-flex;
+
+                min-height:
+                    18px;
+
+                align-items:
+                    center;
+
+                border:
+                    1px solid rgba(126,34,206,.24);
+
+                border-radius:
+                    4px;
+
+                background:
+                    rgba(237,233,254,.88);
+
+                padding:
+                    2px 6px;
+
+                font-size:
+                    8px;
+
+                font-weight:
+                    900;
+
+                line-height:
+                    1;
+
+                letter-spacing:
+                    .04em;
+
+                color:
+                    #6b21a8;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-reduction-card {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        #7e22ce 34%,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-card) 92%,
+                        #7e22ce 8%
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-reduction-card
+            input {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        #7e22ce 38%,
+                        var(--theme-input-border)
+                    ) !important;
+
+                color:
+                    #6b21a8 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-reduction-card
+            input:focus {
+                border-color:
+                    #7e22ce !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    rgba(126,34,206,.12) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-reduction-label,
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-reduction-value {
+                color:
+                    #6b21a8 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-reduction-preview {
+                background:
+                    linear-gradient(
+                        90deg,
+                        #581c87 0%,
+                        #7e22ce 52%,
+                        #4c1d95 100%
+                    ) !important;
+            }
+
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            )
+            .hero-hp-settings-modal
+            .hero-hp-reduction-card {
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-card) 84%,
+                        #7e22ce 16%
+                    ) !important;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HEADER V20 — CARDS DE VIDA ALINHADOS
+            |--------------------------------------------------------------------------
+            |
+            | Padrão visual reutilizável:
+            | - cards irmãos com mesma altura;
+            | - área de título reservada;
+            | - área de descrição reservada;
+            | - controle principal ancorado na mesma linha inferior.
+            |
+            */
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-grid {
+                align-items:
+                    stretch;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-card {
+                display:
+                    flex;
+
+                min-width:
+                    0;
+
+                min-height:
+                    176px;
+
+                flex-direction:
+                    column;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-title {
+                display:
+                    flex;
+
+                min-height:
+                    30px;
+
+                align-items:
+                    flex-start;
+
+                font-size:
+                    10.5px !important;
+
+                line-height:
+                    1.28 !important;
+
+                letter-spacing:
+                    .07em !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-copy {
+                min-height:
+                    48px;
+
+                margin-top:
+                    5px !important;
+
+                font-size:
+                    11px !important;
+
+                line-height:
+                    1.45 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-input {
+                margin-top:
+                    auto !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-summary {
+                display:
+                    grid;
+
+                grid-template-columns:
+                    repeat(3, minmax(0, 1fr));
+
+                gap:
+                    10px 14px;
+
+                align-items:
+                    center;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-hp-settings-modal
+            .hero-hp-limit-summary
+            > span {
+                min-width:
+                    0;
+            }
+
+            @media (max-width: 639px) {
+                .character-sheet-theme[data-theme]
+                .hero-hp-settings-modal
+                .hero-hp-limit-card {
+                    min-height:
+                        0;
+                }
+
+                .character-sheet-theme[data-theme]
+                .hero-hp-settings-modal
+                .hero-hp-limit-title,
+                .character-sheet-theme[data-theme]
+                .hero-hp-settings-modal
+                .hero-hp-limit-copy {
+                    min-height:
+                        0;
+                }
+
+                .character-sheet-theme[data-theme]
+                .hero-hp-settings-modal
+                .hero-hp-limit-input {
+                    margin-top:
+                        12px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .hero-hp-settings-modal
+                .hero-hp-limit-summary {
+                    grid-template-columns:
+                        1fr;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HEADER V21 — SISTEMA DE DANO / ESTADO
+            |--------------------------------------------------------------------------
+            |
+            | Regra visual:
+            | - impactos são curtos e acontecem somente quando o valor muda;
+            | - Ferido/Crítico são estados persistentes, mas não fazem o Hero
+            |   inteiro pulsar eternamente;
+            | - PV temporários reagem em azul sem sacudir o retrato quando
+            |   absorvem todo o golpe;
+            | - cura usa luz verde curta, sem movimento agressivo.
+            |
+            */
+
+            @keyframes hero-impact-portrait-soft {
+                0%, 100% {
+                    transform:
+                        translate3d(0,0,0)
+                        rotate(0deg);
+                }
+
+                32% {
+                    transform:
+                        translate3d(-1px,0,0)
+                        rotate(-.15deg);
+                }
+
+                62% {
+                    transform:
+                        translate3d(1px,0,0)
+                        rotate(.12deg);
+                }
+            }
+
+            @keyframes hero-impact-portrait-medium {
+                0%, 100% {
+                    transform:
+                        translate3d(0,0,0)
+                        rotate(0deg);
+                }
+
+                18% {
+                    transform:
+                        translate3d(-3px,0,0)
+                        rotate(-.45deg);
+                }
+
+                42% {
+                    transform:
+                        translate3d(2px,0,0)
+                        rotate(.32deg);
+                }
+
+                68% {
+                    transform:
+                        translate3d(-1px,0,0)
+                        rotate(-.12deg);
+                }
+            }
+
+            @keyframes hero-impact-portrait-heavy {
+                0%, 100% {
+                    transform:
+                        translate3d(0,0,0)
+                        rotate(0deg)
+                        scale(1);
+                }
+
+                14% {
+                    transform:
+                        translate3d(-5px,0,0)
+                        rotate(-.7deg)
+                        scale(.992);
+                }
+
+                34% {
+                    transform:
+                        translate3d(4px,0,0)
+                        rotate(.55deg)
+                        scale(.997);
+                }
+
+                58% {
+                    transform:
+                        translate3d(-2px,0,0)
+                        rotate(-.24deg)
+                        scale(1);
+                }
+
+                78% {
+                    transform:
+                        translate3d(1px,0,0)
+                        rotate(.10deg);
+                }
+            }
+
+            @keyframes hero-life-hit-soft {
+                0%, 100% {
+                    filter:
+                        brightness(1);
+                }
+
+                35% {
+                    filter:
+                        brightness(1.12)
+                        saturate(1.08);
+                }
+            }
+
+            @keyframes hero-life-hit-medium {
+                0%, 100% {
+                    filter:
+                        brightness(1);
+                    box-shadow:
+                        inset 0 0 0 rgba(220,38,38,0);
+                }
+
+                34% {
+                    filter:
+                        brightness(1.18)
+                        saturate(1.12);
+                    box-shadow:
+                        inset 0 0 22px rgba(220,38,38,.22);
+                }
+            }
+
+            @keyframes hero-life-hit-heavy {
+                0%, 100% {
+                    filter:
+                        brightness(1);
+                    box-shadow:
+                        inset 0 0 0 rgba(220,38,38,0);
+                }
+
+                28% {
+                    filter:
+                        brightness(1.28)
+                        saturate(1.18);
+                    box-shadow:
+                        inset 0 0 34px rgba(220,38,38,.32);
+                }
+
+                62% {
+                    filter:
+                        brightness(1.08);
+                    box-shadow:
+                        inset 0 0 12px rgba(220,38,38,.12);
+                }
+            }
+
+            @keyframes hero-shield-impact-v21 {
+                0%, 100% {
+                    filter:
+                        brightness(1);
+                    box-shadow:
+                        inset 0 0 0 rgba(56,189,248,0);
+                }
+
+                34% {
+                    filter:
+                        brightness(1.16);
+                    box-shadow:
+                        inset 0 0 28px rgba(56,189,248,.26),
+                        0 0 10px rgba(56,189,248,.12);
+                }
+            }
+
+            @keyframes hero-heal-impact-v21 {
+                0%, 100% {
+                    filter:
+                        brightness(1);
+                    box-shadow:
+                        inset 0 0 0 rgba(34,197,94,0);
+                }
+
+                38% {
+                    filter:
+                        brightness(1.16);
+                    box-shadow:
+                        inset 0 0 24px rgba(34,197,94,.18),
+                        0 0 10px rgba(34,197,94,.10);
+                }
+            }
+
+            @keyframes hero-critical-bar-breathe-v21 {
+                0%, 100% {
+                    border-color:
+                        rgba(153,27,27,.44);
+
+                    box-shadow:
+                        inset 0 0 0 1px rgba(153,27,27,.10),
+                        0 0 0 rgba(153,27,27,0);
+                }
+
+                50% {
+                    border-color:
+                        rgba(185,28,28,.72);
+
+                    box-shadow:
+                        inset 0 0 0 1px rgba(185,28,28,.18),
+                        0 0 12px rgba(153,27,27,.12);
+                }
+            }
+
+
+            /* ==============================================================
+               ESTADOS PERSISTENTES
+            ============================================================== */
+
+            .hero-header-v21[data-health-state="bloodied"]
+            .hero-life-bar {
+                border-color:
+                    rgba(180,83,9,.58) !important;
+
+                box-shadow:
+                    inset 0 0 0 1px rgba(180,83,9,.08),
+                    inset 0 -8px 18px rgba(127,29,29,.06) !important;
+            }
+
+            .hero-header-v21[data-health-state="bloodied"]
+            .hero-data-status-strip {
+                box-shadow:
+                    inset 3px 0 0 rgba(180,83,9,.48) !important;
+            }
+
+            .hero-header-v21[data-health-state="bloodied"]
+            .hero-data-portrait {
+                border-color:
+                    rgba(180,83,9,.34) !important;
+            }
+
+
+            .hero-header-v21[data-health-state="critical"]
+            .hero-life-bar {
+                animation:
+                    hero-critical-bar-breathe-v21
+                    2.8s
+                    ease-in-out
+                    infinite;
+
+                border-color:
+                    rgba(153,27,27,.58) !important;
+            }
+
+            .hero-header-v21[data-health-state="critical"]
+            .hero-data-status-strip {
+                box-shadow:
+                    inset 3px 0 0 rgba(185,28,28,.72) !important;
+            }
+
+            .hero-header-v21[data-health-state="critical"]
+            .hero-data-portrait {
+                border-color:
+                    rgba(185,28,28,.46) !important;
+
+                box-shadow:
+                    0 0 0 1px rgba(185,28,28,.05),
+                    0 4px 12px rgba(127,29,29,.08) !important;
+            }
+
+
+            .hero-header-v21[data-health-state="downed"]
+            .hero-life-bar,
+            .hero-header-v21[data-health-state="dead"]
+            .hero-life-bar {
+                border-color:
+                    rgba(127,29,29,.62) !important;
+            }
+
+
+            /* ==============================================================
+               IMPACTO — RETRATO
+            ============================================================== */
+
+            .hero-header-v21[data-impact-kind="damage"]
+            .hero-data-portrait,
+            .hero-header-v21[data-impact-kind="mixed"]
+            .hero-data-portrait {
+                transform-origin:
+                    center center;
+            }
+
+            .hero-header-v21[data-impact-kind="damage"][data-impact-strength="soft"]
+            .hero-data-portrait,
+            .hero-header-v21[data-impact-kind="mixed"][data-impact-strength="soft"]
+            .hero-data-portrait {
+                animation:
+                    hero-impact-portrait-soft
+                    .34s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v21[data-impact-kind="damage"][data-impact-strength="medium"]
+            .hero-data-portrait,
+            .hero-header-v21[data-impact-kind="mixed"][data-impact-strength="medium"]
+            .hero-data-portrait {
+                animation:
+                    hero-impact-portrait-medium
+                    .46s
+                    cubic-bezier(.2,.8,.2,1)
+                    both !important;
+            }
+
+            .hero-header-v21[data-impact-kind="damage"][data-impact-strength="heavy"]
+            .hero-data-portrait,
+            .hero-header-v21[data-impact-kind="mixed"][data-impact-strength="heavy"]
+            .hero-data-portrait {
+                animation:
+                    hero-impact-portrait-heavy
+                    .62s
+                    cubic-bezier(.18,.82,.22,1)
+                    both !important;
+            }
+
+
+            /* ==============================================================
+               IMPACTO — BARRA DE VIDA
+            ============================================================== */
+
+            .hero-header-v21[data-impact-kind="damage"][data-impact-strength="soft"]
+            .hero-life-bar,
+            .hero-header-v21[data-impact-kind="mixed"][data-impact-strength="soft"]
+            .hero-life-bar {
+                animation:
+                    hero-life-hit-soft
+                    .34s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v21[data-impact-kind="damage"][data-impact-strength="medium"]
+            .hero-life-bar,
+            .hero-header-v21[data-impact-kind="mixed"][data-impact-strength="medium"]
+            .hero-life-bar {
+                animation:
+                    hero-life-hit-medium
+                    .46s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v21[data-impact-kind="damage"][data-impact-strength="heavy"]
+            .hero-life-bar,
+            .hero-header-v21[data-impact-kind="mixed"][data-impact-strength="heavy"]
+            .hero-life-bar {
+                animation:
+                    hero-life-hit-heavy
+                    .62s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v21[data-impact-kind="shield"]
+            .hero-life-bar,
+            .hero-header-v21[data-impact-kind="mixed"]
+            .hp-shield-impact {
+                animation:
+                    hero-shield-impact-v21
+                    .48s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v21[data-impact-kind="heal"]
+            .hero-life-bar {
+                animation:
+                    hero-heal-impact-v21
+                    .52s
+                    ease-out
+                    both !important;
+            }
+
+            /*
+             * Neutraliza as animações legadas aplicadas pelo hero-data.
+             * A V21 passa a ser a única autoridade sobre o movimento do retrato.
+             */
+            .hero-header-v21
+            .hero-data-portrait.animate-damage-photo,
+            .hero-header-v21
+            .hero-data-portrait.animate-damage-red,
+            .hero-header-v21
+            .hero-data-portrait.animate-heal-green {
+                box-shadow:
+                    inherit;
+            }
+
+
+            /* ==============================================================
+               MODAL DE PV ABERTO
+            ============================================================== */
+
+            .hero-header-v21.hero-hp-modal-open
+            .hero-life-bar,
+            .hero-header-v21.hero-hp-modal-open
+            .hero-data-portrait {
+                animation:
+                    none !important;
+            }
+
+
+            /* ==============================================================
+               MOVIMENTO REDUZIDO
+            ============================================================== */
+
+            @media (prefers-reduced-motion: reduce) {
+                .hero-header-v21
+                .hero-data-portrait,
+                .hero-header-v21
+                .hero-life-bar,
+                .hero-header-v21
+                .hp-shield-impact {
+                    animation:
+                        none !important;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HEADER V22 — ESTADOS DE VIDA / IMPACTOS VARIANTES
+            |--------------------------------------------------------------------------
+            |
+            | Filosofia:
+            | - estado persistente = discreto, legível, sem tremer o layout;
+            | - impacto = curto, reativo e proporcional;
+            | - cada camada de proteção possui uma linguagem própria:
+            |   azul (PV temporários), dourado (Vida Máxima Extra),
+            |   vermelho (PV normais).
+            |
+            */
+
+
+            /* ==============================================================
+               ESTADO: SANGRANDO
+            ============================================================== */
+
+            @keyframes hero-bloodied-portrait-v22 {
+                0%, 68%, 100% {
+                    filter:
+                        saturate(1)
+                        brightness(1);
+
+                    box-shadow:
+                        0 0 0 1px rgba(153,27,27,.04),
+                        0 4px 12px rgba(127,29,29,.04);
+                }
+
+                76% {
+                    filter:
+                        saturate(1.14)
+                        brightness(1.025);
+
+                    box-shadow:
+                        0 0 0 1px rgba(185,28,28,.20),
+                        0 0 14px rgba(153,27,27,.14),
+                        0 4px 14px rgba(127,29,29,.08);
+                }
+
+                84% {
+                    filter:
+                        saturate(1.02)
+                        brightness(1);
+
+                    box-shadow:
+                        0 0 0 1px rgba(153,27,27,.08),
+                        0 0 4px rgba(153,27,27,.05);
+                }
+
+                91% {
+                    filter:
+                        saturate(1.10)
+                        brightness(1.018);
+
+                    box-shadow:
+                        0 0 0 1px rgba(185,28,28,.15),
+                        0 0 9px rgba(153,27,27,.10);
+                }
+            }
+
+            @keyframes hero-bloodied-bar-v22 {
+                0%, 68%, 100% {
+                    box-shadow:
+                        inset 0 0 0 1px rgba(153,27,27,.08),
+                        inset 0 0 0 rgba(127,29,29,0);
+                }
+
+                76% {
+                    box-shadow:
+                        inset 0 0 0 1px rgba(185,28,28,.20),
+                        inset 0 0 18px rgba(127,29,29,.14),
+                        0 0 8px rgba(153,27,27,.08);
+                }
+
+                91% {
+                    box-shadow:
+                        inset 0 0 0 1px rgba(185,28,28,.14),
+                        inset 0 0 11px rgba(127,29,29,.09);
+                }
+            }
+
+            .hero-header-v22[data-health-state="bloodied"]
+            .hero-data-portrait {
+                animation:
+                    hero-bloodied-portrait-v22
+                    3.8s
+                    ease-in-out
+                    infinite;
+            }
+
+            .hero-header-v22[data-health-state="bloodied"]
+            .hero-life-bar {
+                animation:
+                    hero-bloodied-bar-v22
+                    3.8s
+                    ease-in-out
+                    infinite;
+            }
+
+            .hero-header-v22[data-health-state="bloodied"]
+            .hero-data-status-strip {
+                box-shadow:
+                    inset 3px 0 0 rgba(185,28,28,.52),
+                    inset 12px 0 18px -18px rgba(185,28,28,.55) !important;
+            }
+
+
+            /* ==============================================================
+               ESTADO: CRÍTICO
+            ============================================================== */
+
+            @keyframes hero-critical-double-beat-v22 {
+                0%, 100% {
+                    filter:
+                        brightness(1)
+                        saturate(1);
+
+                    box-shadow:
+                        inset 0 0 0 1px rgba(153,27,27,.16),
+                        0 0 0 rgba(153,27,27,0);
+                }
+
+                12% {
+                    filter:
+                        brightness(1.08)
+                        saturate(1.18);
+
+                    box-shadow:
+                        inset 0 0 22px rgba(153,27,27,.20),
+                        0 0 11px rgba(153,27,27,.12);
+                }
+
+                22% {
+                    filter:
+                        brightness(1)
+                        saturate(1.03);
+                }
+
+                32% {
+                    filter:
+                        brightness(1.055)
+                        saturate(1.13);
+
+                    box-shadow:
+                        inset 0 0 14px rgba(153,27,27,.14),
+                        0 0 7px rgba(153,27,27,.08);
+                }
+
+                52% {
+                    filter:
+                        brightness(1)
+                        saturate(1);
+                }
+            }
+
+            @keyframes hero-critical-portrait-v22 {
+                0%, 100% {
+                    box-shadow:
+                        0 0 0 1px rgba(185,28,28,.15),
+                        0 4px 12px rgba(127,29,29,.08);
+                }
+
+                12% {
+                    box-shadow:
+                        0 0 0 1px rgba(220,38,38,.38),
+                        0 0 18px rgba(185,28,28,.20),
+                        0 4px 14px rgba(127,29,29,.10);
+                }
+
+                32% {
+                    box-shadow:
+                        0 0 0 1px rgba(220,38,38,.28),
+                        0 0 11px rgba(185,28,28,.13);
+                }
+            }
+
+            .hero-header-v22[data-health-state="critical"]
+            .hero-life-bar {
+                animation:
+                    hero-critical-double-beat-v22
+                    2.15s
+                    ease-in-out
+                    infinite !important;
+            }
+
+            .hero-header-v22[data-health-state="critical"]
+            .hero-data-portrait {
+                animation:
+                    hero-critical-portrait-v22
+                    2.15s
+                    ease-in-out
+                    infinite;
+            }
+
+
+            /* ==============================================================
+               DANO REAL — FLASH VERMELHO
+            ============================================================== */
+
+            @keyframes hero-damage-red-flash-v22 {
+                0%, 100% {
+                    filter:
+                        brightness(1)
+                        saturate(1);
+
+                    box-shadow:
+                        0 0 0 1px rgba(220,38,38,0),
+                        0 4px 12px rgba(127,29,29,.05);
+                }
+
+                20% {
+                    filter:
+                        sepia(.20)
+                        saturate(1.75)
+                        brightness(1.08);
+
+                    box-shadow:
+                        0 0 0 2px rgba(239,68,68,.30),
+                        0 0 24px rgba(220,38,38,.24),
+                        inset 0 0 18px rgba(220,38,38,.10);
+                }
+
+                52% {
+                    filter:
+                        sepia(.06)
+                        saturate(1.20)
+                        brightness(1.02);
+
+                    box-shadow:
+                        0 0 0 1px rgba(220,38,38,.12),
+                        0 0 10px rgba(220,38,38,.10);
+                }
+            }
+
+            .hero-header-v22[data-impact-damage="true"][data-impact-strength="soft"]
+            .hero-data-portrait {
+                animation:
+                    hero-impact-portrait-soft
+                    .34s
+                    ease-out
+                    both,
+                    hero-damage-red-flash-v22
+                    .42s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v22[data-impact-damage="true"][data-impact-strength="medium"]
+            .hero-data-portrait {
+                animation:
+                    hero-impact-portrait-medium
+                    .48s
+                    cubic-bezier(.2,.8,.2,1)
+                    both,
+                    hero-damage-red-flash-v22
+                    .54s
+                    ease-out
+                    both !important;
+            }
+
+            .hero-header-v22[data-impact-damage="true"][data-impact-strength="heavy"]
+            .hero-data-portrait {
+                animation:
+                    hero-impact-portrait-heavy
+                    .66s
+                    cubic-bezier(.18,.82,.22,1)
+                    both,
+                    hero-damage-red-flash-v22
+                    .72s
+                    ease-out
+                    both !important;
+            }
+
+
+            /* ==============================================================
+               VIDA MÁXIMA EXTRA — IMPACTO DOURADO
+            ============================================================== */
+
+            @keyframes hero-bonus-portrait-v22 {
+                0%, 100% {
+                    filter:
+                        brightness(1)
+                        saturate(1);
+                }
+
+                24% {
+                    filter:
+                        brightness(1.10)
+                        saturate(1.20)
+                        sepia(.10);
+
+                    box-shadow:
+                        0 0 13px rgba(217,164,65,.16);
+                }
+
+                55% {
+                    filter:
+                        brightness(1.02)
+                        saturate(1.06);
+                }
+            }
+
+            .hero-header-v22[data-impact-bonus="true"][data-impact-damage="false"]
+            .hero-data-portrait {
+                animation:
+                    hero-bonus-portrait-v22
+                    .56s
+                    ease-out
+                    both !important;
+            }
+
+
+            /* ==============================================================
+               PV TEMPORÁRIOS — BLOQUEIO AZUL
+            ============================================================== */
+
+            @keyframes hero-shield-portrait-v22 {
+                0%, 100% {
+                    filter:
+                        brightness(1);
+
+                    box-shadow:
+                        0 0 0 rgba(56,189,248,0);
+                }
+
+                24% {
+                    filter:
+                        brightness(1.08)
+                        saturate(1.10);
+
+                    box-shadow:
+                        0 0 0 1px rgba(125,211,252,.28),
+                        0 0 18px rgba(56,189,248,.18);
+                }
+
+                62% {
+                    filter:
+                        brightness(1.02);
+
+                    box-shadow:
+                        0 0 7px rgba(56,189,248,.07);
+                }
+            }
+
+            .hero-header-v22[data-impact-shield="true"][data-impact-damage="false"][data-impact-bonus="false"]
+            .hero-data-portrait {
+                animation:
+                    hero-shield-portrait-v22
+                    .56s
+                    ease-out
+                    both !important;
+            }
+
+
+            /* ==============================================================
+               TRANSIÇÕES ENTRE ESTADOS
+            ============================================================== */
+
+            .hero-header-v22
+            .hero-data-status-strip,
+            .hero-header-v22
+            .hero-data-portrait,
+            .hero-header-v22
+            .hero-life-bar {
+                transition:
+                    border-color .28s ease,
+                    box-shadow .28s ease,
+                    filter .28s ease;
+            }
+
+
+            /* ==============================================================
+               MODAL / MOVIMENTO REDUZIDO
+            ============================================================== */
+
+            .hero-header-v22.hero-hp-modal-open
+            .hero-data-portrait,
+            .hero-header-v22.hero-hp-modal-open
+            .hero-life-bar {
+                animation:
+                    none !important;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .hero-header-v22
+                .hero-data-portrait,
+                .hero-header-v22
+                .hero-life-bar,
+                .hero-header-v22
+                .hero-data-status-strip {
+                    animation:
+                        none !important;
+                }
+            }
+
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | HERO HEADER V24 — SUPERFÍCIE CONTÍNUA SEM ALTERAR A ESTRUTURA
+            |--------------------------------------------------------------------------
+            |
+            | O painel CA/Vida permanece integralmente no DOM. Não removemos
+            | main-panel, frame, bridge, includes, Alpine, eventos ou modais.
+            |
+            | Em desktop, Classic/Spellbound e os dois temas escuros deixam de
+            | desenhar uma segunda placa sobre o fundo do Header. O gradiente/fundo
+            | do hero-header-segment passa a aparecer continuamente por baixo.
+            |
+            | Em telas menores mantemos o comportamento original do componente.
+            |
+            */
+
+            @media (min-width: 1280px) {
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-main-panel {
+                    border-color:
+                        transparent !important;
+
+                    background:
+                        transparent !important;
+
+                    box-shadow:
+                        none !important;
+
+                    filter:
+                        none !important;
+                }
+
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-main-frame {
+                    border-color:
+                        transparent !important;
+
+                    background:
+                        transparent !important;
+
+                    box-shadow:
+                        none !important;
+
+                    opacity:
+                        0 !important;
+                }
+
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-main-bridge {
+                    background:
+                        transparent !important;
+
+                    box-shadow:
+                        none !important;
+
+                    opacity:
+                        0 !important;
+                }
+
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-armor-zone,
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-vitals-zone,
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-life-zone,
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-quick-stats-slot,
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-footer {
+                    background:
+                        transparent !important;
+
+                    box-shadow:
+                        none !important;
+                }
+
+                /*
+                 * A CA pode continuar tendo sua divisão estrutural, mas sem
+                 * criar halo ou segunda camada de profundidade.
+                 */
+                .character-sheet-theme:is(
+                    [data-theme="spellbound"],
+                    [data-theme="midnight"],
+                    [data-theme="obsidian"]
+                )
+                .hero-header-segment
+                .hero-header-armor-divider {
+                    box-shadow:
+                        none !important;
+                }
+            }
+
         </style>
     @endpush
 @endonce
@@ -1359,6 +3435,7 @@
 
         temporaryHp: {{ $temporaryHp }},
         temporaryMaxHp: {{ $temporaryMaxHp }},
+        maxHpReduction: {{ $maxHpReduction }},
 
 
         /*
@@ -1378,6 +3455,13 @@
 
         exhaustionRuleActive:
             @js($exhaustionRuleActive),
+
+        exhaustionUsesIdentityCharacter:
+            @js(
+                (int) $identityCharacter->id
+                !==
+                (int) $character->id
+            ),
 
         exhaustionLevel:
             {{ $exhaustionLevel }},
@@ -1446,6 +3530,11 @@
         editingHp: false,
         directHp: {{ $currentHp }},
 
+        hpQuickOpen: false,
+        hpQuickDamage: null,
+        hpQuickHeal: null,
+        hpQuickBusy: false,
+
         editingTempHp: false,
         directTempHp: {{ $temporaryHp }},
 
@@ -1454,6 +3543,7 @@
 
         directMaxHp: {{ $maxHp }},
         directTemporaryMaxHp: {{ $temporaryMaxHp }},
+        directMaxHpReduction: {{ $maxHpReduction }},
 
 
         /*
@@ -1512,7 +3602,7 @@
                     'characters.items.equipped.update',
                     [
                         'character' =>
-                            $character,
+                            $inventoryCharacter,
 
                         'item' =>
                             '__ITEM__',
@@ -1545,9 +3635,40 @@
         |--------------------------------------------------------------------------
         */
 
+        /*
+        |--------------------------------------------------------------------------
+        | FEEDBACK DE IMPACTO
+        |--------------------------------------------------------------------------
+        |
+        | Um único estado controla dano, escudo e cura. Os booleanos antigos
+        | permanecem apenas como ponte para hero-life/hero-data, mas agora são
+        | acionados exclusivamente por playHpImpact().
+        |
+        */
+        hpImpactKind: null,
+        hpImpactStrength: 'soft',
+        hpImpactTimer: null,
+
+        /*
+         * Quantidades por camada visual.
+         *
+         * damage = atingiu PV normais
+         * shield = absorvido por PV temporários
+         * bonus  = consumiu a faixa de Vida Máxima Extra
+         */
+        hpImpactDamageAmount: 0,
+        hpImpactShieldAmount: 0,
+        hpImpactBonusAmount: 0,
+
         shakingRed: false,
         shakingBlue: false,
         flashingGreen: false,
+
+        hpFeedbackVisible: false,
+        hpFeedbackKind: null,
+        hpFeedbackAmount: 0,
+        hpFeedbackSecondaryAmount: 0,
+        hpFeedbackTimer: null,
 
 
         /*
@@ -1556,11 +3677,34 @@
         |--------------------------------------------------------------------------
         */
 
-        get effectiveMaxHp() {
+        get potentialMaxHp() {
             return Math.max(
                 1,
                 this.maxHp +
                 this.temporaryMaxHp
+            );
+        },
+
+
+        get effectiveMaxHp() {
+            return Math.max(
+                1,
+                this.potentialMaxHp -
+                this.maxHpReduction
+            );
+        },
+
+
+        get maxHpReductionPercent() {
+            return Math.max(
+                0,
+                Math.min(
+                    100,
+                    (
+                        this.maxHpReduction /
+                        this.potentialMaxHp
+                    ) * 100
+                )
             );
         },
 
@@ -1592,7 +3736,7 @@
                     100,
                     (
                         hp /
-                        this.effectiveMaxHp
+                        this.potentialMaxHp
                     ) * 100
                 )
             );
@@ -1613,7 +3757,7 @@
                     100,
                     (
                         bonus /
-                        this.effectiveMaxHp
+                        this.potentialMaxHp
                     ) * 100
                 )
             );
@@ -1627,7 +3771,7 @@
                     100,
                     (
                         this.ghostHp /
-                        this.effectiveMaxHp
+                        this.potentialMaxHp
                     ) * 100
                 )
             );
@@ -1728,6 +3872,27 @@
                 this.hpPercent <= 50 &&
                 this.hpPercent > 25
             );
+        },
+
+
+        get healthState() {
+            if (this.isDead) {
+                return 'dead';
+            }
+
+            if (this.isDowned) {
+                return 'downed';
+            }
+
+            if (this.isCritical) {
+                return 'critical';
+            }
+
+            if (this.isBloodied) {
+                return 'bloodied';
+            }
+
+            return 'healthy';
         },
 
 
@@ -1927,10 +4092,13 @@
 
             try {
                 const response =
-                    await this.persistCombat({
-                        exhaustion_level:
-                            level,
-                    });
+                    await this.persistCombat(
+                        {
+                            exhaustion_level:
+                                level,
+                        },
+                        true
+                    );
 
                 if (!response) {
                     throw new Error(
@@ -2444,7 +4612,10 @@
         |--------------------------------------------------------------------------
         */
 
-        async persistCombat(fields) {
+        async persistCombat(
+            fields,
+            useIdentityCharacter = false
+        ) {
 
             /*
             |--------------------------------------------------------------------------
@@ -2543,9 +4714,24 @@
 
             try {
 
+                const targetUrl =
+                    useIdentityCharacter
+                        ? @js(
+                            route(
+                                'characters.combat.update',
+                                $identityCharacter
+                            )
+                        )
+                        : @js(
+                            route(
+                                'characters.combat.update',
+                                $character
+                            )
+                        );
+
                 const response =
                     await fetch(
-                        '{{ route('characters.combat.update', $character) }}',
+                        targetUrl,
                         {
                             method: 'POST',
 
@@ -2698,6 +4884,51 @@
             }
 
 
+            let restOverrides =
+                combat.overrides;
+
+            if (
+                typeof restOverrides ===
+                'string'
+            ) {
+                try {
+                    restOverrides =
+                        JSON.parse(
+                            restOverrides
+                        );
+                } catch (error) {
+                    restOverrides =
+                        null;
+                }
+            }
+
+            if (
+                restOverrides &&
+                typeof restOverrides ===
+                    'object' &&
+                !Array.isArray(
+                    restOverrides
+                )
+            ) {
+                this.combatOverrides =
+                    restOverrides;
+
+                this.maxHpReduction =
+                    Math.max(
+                        0,
+                        Math.min(
+                            this.maxHp +
+                            this.temporaryMaxHp -
+                            1,
+                            parseInt(
+                                restOverrides?.hp
+                                    ?.max_reduction
+                            ) || 0
+                        )
+                    );
+            }
+
+
             if (
                 combat.death_save_successes !== undefined &&
                 combat.death_save_successes !== null
@@ -2733,7 +4964,10 @@
 
 
             if (
-                combat.exhaustion_level !== undefined &&
+                !this.exhaustionUsesIdentityCharacter
+                &&
+                combat.exhaustion_level !== undefined
+                &&
                 combat.exhaustion_level !== null
             ) {
                 this.exhaustionLevel =
@@ -2908,12 +5142,12 @@
                 */
 
                 if (type === 'long') {
-
-                    this.flashingGreen = true;
-
-                    setTimeout(() => {
-                        this.flashingGreen = false;
-                    }, 900);
+                    this.playHpImpact(
+                        'heal',
+                        1,
+                        0,
+                        'soft'
+                    );
                 }
 
 
@@ -3294,13 +5528,15 @@
                         0,
                 });
 
-                this.flashingGreen =
-                    true;
-
-                setTimeout(() => {
-                    this.flashingGreen =
-                        false;
-                }, 900);
+                this.playHpImpact(
+                    'heal',
+                    Math.max(
+                        1,
+                        this.currentHp
+                    ),
+                    0,
+                    'medium'
+                );
 
                 this.deathDrawerOpen =
                     false;
@@ -3574,15 +5810,14 @@
 
             this.clearDeathSequence();
 
-            this.flashingGreen =
-                true;
-
-            setTimeout(
-                () => {
-                    this.flashingGreen =
-                        false;
-                },
-                1200
+            this.playHpImpact(
+                'heal',
+                Math.max(
+                    1,
+                    this.currentHp
+                ),
+                0,
+                'medium'
             );
 
             this.deathReviving =
@@ -3710,16 +5945,20 @@
                         ) || 0
                     );
 
-                this.exhaustionLevel =
-                    Math.min(
-                        6,
-                        Math.max(
-                            0,
-                            parseInt(
-                                combat.exhaustion_level
-                            ) || 0
-                        )
-                    );
+                if (
+                    !this.exhaustionUsesIdentityCharacter
+                ) {
+                    this.exhaustionLevel =
+                        Math.min(
+                            6,
+                            Math.max(
+                                0,
+                                parseInt(
+                                    combat.exhaustion_level
+                                ) || 0
+                            )
+                        );
+                }
 
                 let returnedOverrides =
                     combat.overrides;
@@ -3757,13 +5996,15 @@
                 this.deathRollResult =
                     null;
 
-                this.flashingGreen =
-                    true;
-
-                setTimeout(() => {
-                    this.flashingGreen =
-                        false;
-                }, 1200);
+                this.playHpImpact(
+                    'heal',
+                    Math.max(
+                        1,
+                        this.currentHp
+                    ),
+                    0,
+                    'medium'
+                );
 
             } catch (error) {
                 console.error(
@@ -3784,16 +6025,581 @@
 
         /*
         |--------------------------------------------------------------------------
+        | TRANSFORMAÇÃO ESPECIAL — EVENTO DE VIDA
+        |--------------------------------------------------------------------------
+        |
+        | O Hero não conhece as transformações.
+        | Ele apenas informa quando os PV reais diminuem.
+        |--------------------------------------------------------------------------
+        */
+        dispatchCharacterDamageApplied(
+            damage
+        ) {
+            const parsedDamage =
+                Math.max(
+                    0,
+                    parseInt(
+                        damage
+                    ) || 0
+                );
+
+            if (parsedDamage < 1) {
+                return;
+            }
+
+            window.dispatchEvent(
+                new CustomEvent(
+                    'character-damage-applied',
+                    {
+                        detail: {
+                            characterId:
+                                {{ (int) $identityCharacter->id }},
+
+                            mechanicalCharacterId:
+                                {{ (int) $character->id }},
+
+                            damage:
+                                parsedDamage,
+                        },
+                    }
+                )
+            );
+        },
+
+
+        dispatchCharacterHpChanged(
+            previousHp,
+            currentHp
+        ) {
+            const previous =
+                Math.max(
+                    0,
+                    parseInt(
+                        previousHp
+                    ) || 0
+                );
+
+            const current =
+                Math.max(
+                    0,
+                    parseInt(
+                        currentHp
+                    ) || 0
+                );
+
+            if (
+                current >= previous
+            ) {
+                return;
+            }
+
+            window.dispatchEvent(
+                new CustomEvent(
+                    'character-hp-changed',
+                    {
+                        detail: {
+                            characterId:
+                                {{ (int) $identityCharacter->id }},
+
+                            previousHp:
+                                previous,
+
+                            currentHp:
+                                current,
+
+                            maxHp:
+                                this.effectiveMaxHp,
+                        },
+                    }
+                )
+            );
+        },
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | DANO / CURA RÁPIDOS
+        |--------------------------------------------------------------------------
+        |
+        | Esse painel não cria uma segunda regra de PV.
+        | Ele apenas converte o valor digitado em changeHp(), preservando:
+        |
+        | - PV temporários;
+        | - death saves;
+        | - concentração;
+        | - gatilhos de transformação;
+        | - animações e persistência existentes.
+        |--------------------------------------------------------------------------
+        */
+
+        toggleHpQuick() {
+            if (this.hpQuickBusy) {
+                return;
+            }
+
+            if (this.hpQuickOpen) {
+                this.closeHpQuick();
+                return;
+            }
+
+            this.hpQuickDamage =
+                null;
+
+            this.hpQuickHeal =
+                null;
+
+            this.hpQuickOpen =
+                true;
+
+            this.$nextTick(() => {
+                this.$refs
+                    .hpQuickDamageInput
+                    ?.focus();
+            });
+        },
+
+
+        closeHpQuick() {
+            if (this.hpQuickBusy) {
+                return;
+            }
+
+            this.hpQuickOpen =
+                false;
+
+            this.hpQuickDamage =
+                null;
+
+            this.hpQuickHeal =
+                null;
+        },
+
+
+        async applyHpQuick(kind) {
+            if (this.hpQuickBusy) {
+                return;
+            }
+
+            const rawValue =
+                kind === 'damage'
+                    ? this.hpQuickDamage
+                    : this.hpQuickHeal;
+
+            const amount =
+                Math.max(
+                    0,
+                    parseInt(
+                        rawValue
+                    ) || 0
+                );
+
+            if (amount < 1) {
+                return;
+            }
+
+            this.hpQuickBusy =
+                true;
+
+            try {
+                await this.changeHp(
+                    kind === 'damage'
+                        ? -amount
+                        : amount
+                );
+
+                this.hpQuickOpen =
+                    false;
+
+                this.hpQuickDamage =
+                    null;
+
+                this.hpQuickHeal =
+                    null;
+
+            } finally {
+                this.hpQuickBusy =
+                    false;
+            }
+        },
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | IMPACTO VISUAL CENTRALIZADO
+        |--------------------------------------------------------------------------
+        |
+        | kind:
+        | - damage = dano que atingiu PV normais
+        | - shield = dano totalmente absorvido por PV temporários
+        | - bonus  = dano contido na faixa de Vida Máxima Extra
+        | - mixed  = duas ou mais camadas foram atingidas
+        | - heal   = cura / recuperação
+        |
+        | strength:
+        | - soft   = menos de 8% do máximo efetivo
+        | - medium = de 8% até menos de 20%
+        | - heavy  = 20% ou mais
+        |
+        | A intensidade é apenas visual. Nenhuma regra mecânica depende dela.
+        |--------------------------------------------------------------------------
+        */
+
+        resolveHpImpactStrength(
+            amount,
+            forcedStrength = null
+        ) {
+            if (
+                ['soft', 'medium', 'heavy']
+                    .includes(
+                        forcedStrength
+                    )
+            ) {
+                return forcedStrength;
+            }
+
+            const normalizedAmount =
+                Math.max(
+                    0,
+                    parseInt(
+                        amount
+                    ) || 0
+                );
+
+            const reference =
+                Math.max(
+                    1,
+                    this.effectiveMaxHp
+                );
+
+            const ratio =
+                normalizedAmount /
+                reference;
+
+            if (ratio >= .20) {
+                return 'heavy';
+            }
+
+            if (ratio >= .08) {
+                return 'medium';
+            }
+
+            return 'soft';
+        },
+
+
+        clearHpImpact() {
+            if (this.hpImpactTimer) {
+                window.clearTimeout(
+                    this.hpImpactTimer
+                );
+
+                this.hpImpactTimer =
+                    null;
+            }
+
+            this.hpImpactKind =
+                null;
+
+            this.hpImpactStrength =
+                'soft';
+
+            this.hpImpactDamageAmount =
+                0;
+
+            this.hpImpactShieldAmount =
+                0;
+
+            this.hpImpactBonusAmount =
+                0;
+
+            this.shakingRed =
+                false;
+
+            this.shakingBlue =
+                false;
+
+            this.flashingGreen =
+                false;
+        },
+
+
+        playHpImpact(
+            kind,
+            amount = 0,
+            secondaryAmount = 0,
+            forcedStrength = null,
+            bonusAmount = 0
+        ) {
+            const normalizedAmount =
+                Math.max(
+                    0,
+                    parseInt(
+                        amount
+                    ) || 0
+                );
+
+            const normalizedSecondary =
+                Math.max(
+                    0,
+                    parseInt(
+                        secondaryAmount
+                    ) || 0
+                );
+
+            const normalizedBonus =
+                Math.max(
+                    0,
+                    parseInt(
+                        bonusAmount
+                    ) || 0
+                );
+
+            const damageAmount =
+                (
+                    kind === 'damage'
+                    ||
+                    kind === 'mixed'
+                )
+                    ? normalizedAmount
+                    : 0;
+
+            const shieldAmount =
+                kind === 'shield'
+                    ? normalizedAmount
+                    : normalizedSecondary;
+
+            const effectiveBonusAmount =
+                kind === 'bonus'
+                    ? Math.max(
+                        normalizedAmount,
+                        normalizedBonus
+                    )
+                    : normalizedBonus;
+
+            if (
+                normalizedAmount < 1
+                &&
+                normalizedSecondary < 1
+                &&
+                normalizedBonus < 1
+                &&
+                kind !== 'heal'
+            ) {
+                return;
+            }
+
+            if (this.hpImpactTimer) {
+                window.clearTimeout(
+                    this.hpImpactTimer
+                );
+
+                this.hpImpactTimer =
+                    null;
+            }
+
+            /*
+             * Zera um frame antes para reiniciar corretamente a animação
+             * quando vários golpes chegam em sequência.
+             */
+            this.hpImpactKind =
+                null;
+
+            this.hpImpactDamageAmount =
+                0;
+
+            this.hpImpactShieldAmount =
+                0;
+
+            this.hpImpactBonusAmount =
+                0;
+
+            this.shakingRed =
+                false;
+
+            this.shakingBlue =
+                false;
+
+            this.flashingGreen =
+                false;
+
+            this.$nextTick(() => {
+                this.hpImpactKind =
+                    kind;
+
+                this.hpImpactDamageAmount =
+                    damageAmount;
+
+                this.hpImpactShieldAmount =
+                    shieldAmount;
+
+                this.hpImpactBonusAmount =
+                    effectiveBonusAmount;
+
+                this.hpImpactStrength =
+                    this.resolveHpImpactStrength(
+                        Math.max(
+                            normalizedAmount,
+                            normalizedSecondary,
+                            normalizedBonus
+                        ),
+                        forcedStrength
+                    );
+
+                this.shakingRed =
+                    damageAmount > 0;
+
+                this.shakingBlue =
+                    shieldAmount > 0;
+
+                this.flashingGreen =
+                    kind === 'heal';
+
+                const duration =
+                    this.hpImpactStrength === 'heavy'
+                        ? 820
+                        : (
+                            this.hpImpactStrength === 'medium'
+                                ? 640
+                                : 480
+                        );
+
+                this.hpImpactTimer =
+                    window.setTimeout(
+                        () => {
+                            this.clearHpImpact();
+                        },
+                        duration
+                    );
+            });
+        },
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | FEEDBACK VISUAL DE VIDA
+        |--------------------------------------------------------------------------
+        |
+        | kind:
+        | - damage = dano que realmente atingiu PV
+        | - shield = dano totalmente absorvido por PV temporários
+        | - heal   = cura efetivamente recebida
+        |
+        | secondaryAmount é usado para informar quanto do mesmo golpe foi
+        | absorvido pelos PV temporários quando também houve dano real.
+        |--------------------------------------------------------------------------
+        */
+
+        playHpFeedback(
+            kind,
+            amount,
+            secondaryAmount = 0
+        ) {
+            const normalizedAmount =
+                Math.max(
+                    0,
+                    parseInt(
+                        amount
+                    ) || 0
+                );
+
+            const normalizedSecondary =
+                Math.max(
+                    0,
+                    parseInt(
+                        secondaryAmount
+                    ) || 0
+                );
+
+            if (
+                normalizedAmount < 1
+                &&
+                normalizedSecondary < 1
+            ) {
+                return;
+            }
+
+            if (this.hpFeedbackTimer) {
+                window.clearTimeout(
+                    this.hpFeedbackTimer
+                );
+
+                this.hpFeedbackTimer =
+                    null;
+            }
+
+            /*
+             * Esconde antes de mostrar novamente para reiniciar a animação
+             * mesmo quando o usuário aperta +1/-1 em sequência rápida.
+             */
+            this.hpFeedbackVisible =
+                false;
+
+            this.$nextTick(() => {
+                this.hpFeedbackKind =
+                    kind;
+
+                this.hpFeedbackAmount =
+                    normalizedAmount;
+
+                this.hpFeedbackSecondaryAmount =
+                    normalizedSecondary;
+
+                this.hpFeedbackVisible =
+                    true;
+
+                this.hpFeedbackTimer =
+                    window.setTimeout(
+                        () => {
+                            this.hpFeedbackVisible =
+                                false;
+
+                            this.hpFeedbackTimer =
+                                null;
+                        },
+                        1150
+                    );
+            });
+        },
+
+
+        /*
+        |--------------------------------------------------------------------------
         | VIDA
         |--------------------------------------------------------------------------
         */
 
-        changeHp(amount) {
+        async changeHp(amount) {
 
             if (amount < 0) {
 
-                let damage =
+                const previousHp =
+                    this.currentHp;
+
+                const receivedDamage =
                     Math.abs(amount);
+
+                let damage =
+                    receivedDamage;
+
+                let absorbedByTemporaryHp =
+                    0;
+
+                /*
+                 * Quantidade de PV que, antes do golpe, estava acima da
+                 * Vida Máxima base. Essa é a faixa dourada.
+                 */
+                const bonusHpBeforeDamage =
+                    Math.max(
+                        0,
+                        previousHp -
+                        this.maxHp
+                    );
+
+                let damageToBonusHp =
+                    0;
+
+                let damageToBaseHp =
+                    0;
 
                 const wasAtZero =
                     this.currentHp <= 0;
@@ -3837,23 +6643,36 @@
                             damage
                         );
 
+                    absorbedByTemporaryHp =
+                        absorbed;
+
                     this.temporaryHp -= absorbed;
                     damage -= absorbed;
 
                     this.directTempHp =
                         this.temporaryHp;
 
-                    this.shakingBlue =
-                        true;
-
-
-                    setTimeout(() => {
-                        this.shakingBlue = false;
-                    }, 700);
                 }
 
 
                 if (damage > 0) {
+
+                    /*
+                     * O dano real atravessa primeiro a faixa dourada de Vida
+                     * Máxima Extra e só depois alcança os PV normais.
+                     */
+                    damageToBonusHp =
+                        Math.min(
+                            bonusHpBeforeDamage,
+                            damage
+                        );
+
+                    damageToBaseHp =
+                        Math.max(
+                            0,
+                            damage -
+                            damageToBonusHp
+                        );
 
                     const wasAlive =
                         this.currentHp > 0;
@@ -3871,13 +6690,6 @@
                         this.currentHp;
 
 
-                    this.shakingRed =
-                        true;
-
-
-                    setTimeout(() => {
-                        this.shakingRed = false;
-                    }, 700);
 
 
                     if (
@@ -3891,6 +6703,70 @@
                         this.deathDrawerOpen =
                             true;
                     }
+                }
+
+
+                /*
+                 * Impacto visual por camada:
+                 *
+                 * - shield: PV temporários absorveram tudo;
+                 * - bonus: o golpe ficou inteiramente na faixa dourada;
+                 * - damage: atingiu diretamente os PV normais;
+                 * - mixed: atravessou mais de uma camada.
+                 */
+                if (damageToBaseHp > 0) {
+                    this.playHpImpact(
+                        (
+                            absorbedByTemporaryHp > 0
+                            ||
+                            damageToBonusHp > 0
+                        )
+                            ? 'mixed'
+                            : 'damage',
+                        damageToBaseHp,
+                        absorbedByTemporaryHp,
+                        null,
+                        damageToBonusHp
+                    );
+                } else if (damageToBonusHp > 0) {
+                    this.playHpImpact(
+                        'bonus',
+                        damageToBonusHp,
+                        absorbedByTemporaryHp,
+                        null,
+                        damageToBonusHp
+                    );
+                } else if (
+                    absorbedByTemporaryHp > 0
+                ) {
+                    this.playHpImpact(
+                        'shield',
+                        absorbedByTemporaryHp
+                    );
+                }
+
+
+
+                /*
+                 * Feedback do golpe:
+                 *
+                 * - se algo atravessou o escudo, o valor principal é o dano
+                 *   real e o absorvido aparece como informação secundária;
+                 * - se tudo foi absorvido, o feedback é azul.
+                 */
+                if (damage > 0) {
+                    this.playHpFeedback(
+                        'damage',
+                        damage,
+                        absorbedByTemporaryHp
+                    );
+                } else if (
+                    absorbedByTemporaryHp > 0
+                ) {
+                    this.playHpFeedback(
+                        'shield',
+                        absorbedByTemporaryHp
+                    );
                 }
 
 
@@ -3916,19 +6792,31 @@
                 }
 
 
-                this.persistCombat({
-                    current_hp:
-                        this.currentHp,
+                const data =
+                    await this.persistCombat({
+                        current_hp:
+                            this.currentHp,
 
-                    temporary_hp:
-                        this.temporaryHp,
+                        temporary_hp:
+                            this.temporaryHp,
 
-                    death_save_successes:
-                        this.deathSaveSuccesses,
+                        death_save_successes:
+                            this.deathSaveSuccesses,
 
-                    death_save_failures:
-                        this.deathSaveFailures,
-                });
+                        death_save_failures:
+                            this.deathSaveFailures,
+                    });
+
+                if (data) {
+                    this.dispatchCharacterHpChanged(
+                        previousHp,
+                        this.currentHp
+                    );
+
+                    this.dispatchCharacterDamageApplied(
+                        receivedDamage
+                    );
+                }
 
 
                 return;
@@ -3937,11 +6825,21 @@
 
             if (amount > 0) {
 
+                const previousHp =
+                    this.currentHp;
+
                 this.currentHp =
                     Math.min(
                         this.effectiveMaxHp,
                         this.currentHp +
                         amount
+                    );
+
+                const healedAmount =
+                    Math.max(
+                        0,
+                        this.currentHp -
+                        previousHp
                     );
 
 
@@ -3962,16 +6860,20 @@
                 }
 
 
-                this.flashingGreen =
-                    true;
+                if (healedAmount > 0) {
+                    this.playHpImpact(
+                        'heal',
+                        healedAmount
+                    );
+
+                    this.playHpFeedback(
+                        'heal',
+                        healedAmount
+                    );
+                }
 
 
-                setTimeout(() => {
-                    this.flashingGreen = false;
-                }, 800);
-
-
-                this.persistCombat({
+                await this.persistCombat({
                     current_hp:
                         this.currentHp,
 
@@ -4029,32 +6931,45 @@
             }
 
 
+            const previousHp =
+                this.currentHp;
+
             const wasDowned =
                 this.isDowned;
 
 
-            if (
-                targetHp <
-                this.currentHp
-            ) {
+            const hpDifference =
+                targetHp -
+                this.currentHp;
 
-                this.shakingRed =
-                    true;
+            if (hpDifference < 0) {
 
+                const directDamage =
+                    Math.abs(
+                        hpDifference
+                    );
 
-                setTimeout(() => {
-                    this.shakingRed = false;
-                }, 700);
+                this.playHpImpact(
+                    'damage',
+                    directDamage
+                );
+
+                this.playHpFeedback(
+                    'damage',
+                    directDamage
+                );
 
             } else {
 
-                this.flashingGreen =
-                    true;
+                this.playHpImpact(
+                    'heal',
+                    hpDifference
+                );
 
-
-                setTimeout(() => {
-                    this.flashingGreen = false;
-                }, 800);
+                this.playHpFeedback(
+                    'heal',
+                    hpDifference
+                );
             }
 
 
@@ -4090,16 +7005,33 @@
             }
 
 
-            await this.persistCombat({
-                current_hp:
-                    this.currentHp,
+            const data =
+                await this.persistCombat({
+                    current_hp:
+                        this.currentHp,
 
-                death_save_successes:
-                    this.deathSaveSuccesses,
+                    death_save_successes:
+                        this.deathSaveSuccesses,
 
-                death_save_failures:
-                    this.deathSaveFailures
-            });
+                    death_save_failures:
+                        this.deathSaveFailures
+                });
+
+            if (data) {
+                this.dispatchCharacterHpChanged(
+                    previousHp,
+                    this.currentHp
+                );
+
+                if (
+                    this.currentHp < previousHp
+                ) {
+                    this.dispatchCharacterDamageApplied(
+                        previousHp
+                        - this.currentHp
+                    );
+                }
+            }
         },
 
 
@@ -4125,6 +7057,10 @@
             }
 
 
+            const previousTemporaryHp =
+                this.temporaryHp;
+
+
             this.temporaryHp =
                 Math.max(
                     0,
@@ -4138,13 +7074,23 @@
             });
 
 
-            this.shakingBlue =
-                true;
-
-
-            setTimeout(() => {
-                this.shakingBlue = false;
-            }, 700);
+            if (
+                this.temporaryHp !==
+                previousTemporaryHp
+            ) {
+                this.playHpImpact(
+                    'shield',
+                    Math.max(
+                        1,
+                        Math.abs(
+                            this.temporaryHp -
+                            previousTemporaryHp
+                        )
+                    ),
+                    0,
+                    'soft'
+                );
+            }
         },
 
 
@@ -4156,11 +7102,23 @@
 
         openHpSettings() {
 
+            this.hpQuickOpen =
+                false;
+
+            this.hpQuickDamage =
+                null;
+
+            this.hpQuickHeal =
+                null;
+
             this.directMaxHp =
                 this.maxHp;
 
             this.directTemporaryMaxHp =
                 this.temporaryMaxHp;
+
+            this.directMaxHpReduction =
+                this.maxHpReduction;
 
             this.hpSettingsStep =
                 'confirm';
@@ -4201,6 +7159,9 @@
 
             this.directTemporaryMaxHp =
                 this.temporaryMaxHp;
+
+            this.directMaxHpReduction =
+                this.maxHpReduction;
         },
 
 
@@ -4214,6 +7175,11 @@
             let newTemporaryMaxHp =
                 parseInt(
                     this.directTemporaryMaxHp
+                );
+
+            let newMaxHpReduction =
+                parseInt(
+                    this.directMaxHpReduction
                 );
 
 
@@ -4235,6 +7201,17 @@
             }
 
 
+            if (
+                Number.isNaN(
+                    newMaxHpReduction
+                )
+            ) {
+
+                newMaxHpReduction =
+                    this.maxHpReduction;
+            }
+
+
             newMaxHp =
                 Math.max(
                     1,
@@ -4249,6 +7226,24 @@
                 );
 
 
+            const newPotentialMaxHp =
+                Math.max(
+                    1,
+                    newMaxHp +
+                    newTemporaryMaxHp
+                );
+
+
+            newMaxHpReduction =
+                Math.max(
+                    0,
+                    Math.min(
+                        newPotentialMaxHp - 1,
+                        newMaxHpReduction
+                    )
+                );
+
+
             const extraHpDifference =
                 newTemporaryMaxHp -
                 this.temporaryMaxHp;
@@ -4260,6 +7255,9 @@
 
             this.temporaryMaxHp =
                 newTemporaryMaxHp;
+
+            this.maxHpReduction =
+                newMaxHpReduction;
 
 
             if (
@@ -4300,21 +7298,31 @@
                     this.temporaryMaxHp,
 
                 current_hp:
-                    this.currentHp
+                    this.currentHp,
+
+                overrides: {
+                    hp: {
+                        ...(
+                            this.combatOverrides?.hp
+                            || {}
+                        ),
+
+                        max_reduction:
+                            this.maxHpReduction
+                    }
+                }
             });
 
 
             if (
                 extraHpDifference > 0
             ) {
-
-                this.flashingGreen =
-                    true;
-
-
-                setTimeout(() => {
-                    this.flashingGreen = false;
-                }, 800);
+                this.playHpImpact(
+                    'heal',
+                    extraHpDifference,
+                    0,
+                    'soft'
+                );
             }
 
 
@@ -4903,13 +7911,34 @@
             $event.detail?.item
         )
     "
+    :data-health-state="healthState"
+    :data-impact-kind="hpImpactKind || 'none'"
+    :data-impact-strength="hpImpactStrength"
+    :data-impact-damage="
+        hpImpactDamageAmount > 0
+            ? 'true'
+            : 'false'
+    "
+    :data-impact-shield="
+        hpImpactShieldAmount > 0
+            ? 'true'
+            : 'false'
+    "
+    :data-impact-bonus="
+        hpImpactBonusAmount > 0
+            ? 'true'
+            : 'false'
+    "
+
     :class="{
-        'bloodied-card': isBloodied,
-        'critical-card': isCritical,
         'hero-hp-modal-open': hpSettingsOpen
     }"
 
     class="
+        hero-header-segment
+        hero-header-v18
+        hero-header-v21
+        hero-header-v22
         relative
         mb-6
         overflow-visible
@@ -4926,7 +7955,7 @@
          HEADER PRINCIPAL
     ============================================================= --}}
 
-    <div class="px-4 py-3 sm:px-5 sm:py-4">
+    <div class="hero-header-content px-4 py-3 sm:px-5 sm:py-4">
 
         <div
             class="
@@ -4947,6 +7976,7 @@
 
             <div
                 class="
+                    hero-header-identity-zone
                     relative
                     z-20
                     min-w-0
@@ -4959,7 +7989,10 @@
                 @include(
                     'characters.components.hero-data',
                     [
-                        'character' => $character,
+                        'character' => $identityCharacter,
+                        'mechanicalCharacter' => $character,
+                        'customizationClasses' => $identityClasses,
+                        'hideZeroExhaustion' => $hideZeroExhaustion,
                         'imageUrl' => $imageUrl,
                         'className' => $className,
                         'subclassName' => $subclassName,
@@ -4978,6 +8011,7 @@
 
             <div
                 class="
+                    hero-header-main-panel
                     relative
                     z-10
                     flex
@@ -5005,6 +8039,7 @@
 
                 <div
                     class="
+                        hero-header-main-frame
                         pointer-events-none
                         absolute
                         inset-[3px]
@@ -5024,6 +8059,7 @@
 
                 <div
                     class="
+                        hero-header-main-bridge
                         pointer-events-none
                         absolute
                         -left-3
@@ -5044,6 +8080,7 @@
 
                 <div
                     class="
+                        hero-header-armor-zone
                         relative
                         z-10
                         flex
@@ -5061,6 +8098,7 @@
 
                     <div
                         class="
+                            hero-header-armor-divider
                             pointer-events-none
                             absolute
                             bottom-3
@@ -5096,6 +8134,7 @@
 
                 <div
                     class="
+                        hero-header-vitals-zone
                         relative
                         z-10
                         flex
@@ -5123,12 +8162,13 @@
                              VIDA + HIT DICE
                         ========================================== --}}
 
-                        <div class="relative w-full pt-2.5">
+                        <div class="hero-header-life-zone relative w-full pt-2.5">
 
                             {{-- HIT DICE --}}
 
                             <div
                                 class="
+                                    hero-header-hit-dice-slot
                                     pointer-events-none
                                     relative
                                     z-30
@@ -5155,6 +8195,15 @@
                             {{-- BARRA DE VIDA --}}
 
                             <div
+                                :style="`
+                                    --hero-max-hp-reduction:${maxHpReductionPercent}%;
+                                `"
+                                :data-hp-reduction="maxHpReduction"
+                                :data-hp-reduction-active="
+                                    maxHpReduction > 0
+                                        ? 'true'
+                                        : 'false'
+                                "
                                 class="
                                     hero-life-modal-source
 
@@ -5185,6 +8234,7 @@
 
                         <div
                             class="
+                                hero-header-quick-stats-slot
                                 mt-auto
                                 pt-1.5
                             "
@@ -5194,7 +8244,7 @@
                                 'characters.components.hero-quick-stats',
                                 [
                                     'character' =>
-                                        $character,
+                                        $inventoryCharacter,
 
                                     'proficiencyBonus' =>
                                         $proficiencyBonus,
@@ -5213,7 +8263,8 @@
 
                         <div
                             class="
-                                mt-1.5
+                                hero-header-footer
+                                mt-1
                                 flex
                                 h-7
                                 items-center
@@ -5361,6 +8412,7 @@
                                 "
 
                                 class="
+                                    hero-header-rest-slot
                                     relative
                                     shrink-0
                                 "
@@ -5386,6 +8438,7 @@
                                     "
 
                                     class="
+                                        hero-header-rest-button
                                         group
                                         relative
 
@@ -5530,52 +8583,31 @@
 
                                         x-cloak
 
+                                        x-transition:enter="character-theme-modal-panel-enter"
+                                        x-transition:enter-start="character-theme-modal-panel-enter-start"
+                                        x-transition:enter-end="character-theme-modal-panel-enter-end"
+                                        x-transition:leave="character-theme-modal-panel-leave"
+                                        x-transition:leave-start="character-theme-modal-panel-leave-start"
+                                        x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                                         @click.stop
                                         @click.outside="
                                             restOpen = false
                                         "
 
-                                    x-transition:enter="
-                                        transition
-                                        ease-out
-                                        duration-150
-                                    "
-
-                                    x-transition:enter-start="
-                                        opacity-0
-                                        translate-y-1
-                                        scale-[.97]
-                                    "
-
-                                    x-transition:enter-end="
-                                        opacity-100
-                                        translate-y-0
-                                        scale-100
-                                    "
-
-                                    x-transition:leave="
-                                        transition
-                                        ease-in
-                                        duration-100
-                                    "
-
-                                    x-transition:leave-start="
-                                        opacity-100
-                                        translate-y-0
-                                        scale-100
-                                    "
-
-                                    x-transition:leave-end="
-                                        opacity-0
-                                        translate-y-1
-                                        scale-[.97]
-                                    "
-
                                         :style="
                                             restMenuStyle
                                         "
 
+                                        data-theme="{{ $characterTheme }}"
+
+                                        role="menu"
+                                        aria-label="Opções de descanso"
+
                                         class="
+                                            character-sheet-theme
+                                            hero-rest-popover
+
                                             fixed
                                             z-[500]
 
@@ -5596,6 +8628,7 @@
                                     {{-- HEADER QUENTE --}}
                                     <div
                                         class="
+                                            hero-rest-popover-header
                                             border-b
                                             border-[#a0774d]/25
 
@@ -5696,6 +8729,7 @@
 
                                     <div
                                         class="
+                                            hero-rest-popover-body
                                             space-y-2
 
                                             bg-[#fbf8f1]
@@ -5719,6 +8753,7 @@
                                             "
 
                                             class="
+                                                hero-rest-option
                                                 group/rest
                                                 flex
                                                 w-full
@@ -5930,6 +8965,7 @@
                                             "
 
                                             class="
+                                                hero-rest-option
                                                 group/rest
                                                 flex
                                                 w-full
@@ -6938,21 +9974,19 @@
         "
 
         class="
-            absolute
-            left-1/2
-            top-full
+            relative
             z-50
 
+            mx-auto
             w-full
             max-w-[40rem]
-
-            -translate-x-1/2
         "
     >
 
         <div
             class="
                 death-drawer-active
+                hero-death-drawer-panel
 
                 overflow-hidden
 
@@ -6972,6 +10006,7 @@
 
             <div
                 class="
+                    hero-death-drawer-band
                     relative
 
                     overflow-hidden
@@ -7547,7 +10582,10 @@
                     </div>
 
 
-                    {{-- D20 FACETADO --}}
+                    {{-- ============================================================
+                         D20 — SALVAMENTO CONTRA A MORTE
+                         Usa o componente central de dados do Spellbound.
+                    ============================================================= --}}
 
                     <div
                         class="
@@ -7570,6 +10608,29 @@
                             "
                         >
 
+                            {{-- Órbita discreta durante o suspense --}}
+                            <span
+                                x-show="
+                                    deathRolling
+                                "
+
+                                x-cloak
+
+                                class="
+                                    death-roll-orbit
+
+                                    pointer-events-none
+                                    absolute
+                                    inset-[2px]
+
+                                    rounded-full
+                                    border
+                                    border-dashed
+                                    border-[#8c6239]/35
+                                "
+                            ></span>
+
+
                             <button
                                 type="button"
 
@@ -7586,270 +10647,106 @@
                                     relative
 
                                     flex
-                                    h-[106px]
-                                    w-[106px]
+                                    h-[108px]
+                                    w-[108px]
                                     items-center
                                     justify-center
 
+                                    rounded-full
                                     bg-transparent
 
-                                    transition-transform
+                                    outline-none
+
+                                    transition
                                     duration-200
 
-                                    hover:-translate-y-1
+                                    hover:scale-[1.035]
+
+                                    focus-visible:ring-2
+                                    focus-visible:ring-[#7f261d]/30
+                                    focus-visible:ring-offset-2
 
                                     disabled:cursor-wait
                                 "
                             >
 
-                                <svg
+                                {{-- Halo de fundo --}}
+                                <span
                                     class="
+                                        pointer-events-none
                                         absolute
-                                        inset-0
+                                        inset-[5px]
 
-                                        h-full
-                                        w-full
+                                        rounded-full
+                                        border
+                                        border-[#cda979]/30
 
-                                        overflow-visible
+                                        bg-[#eadbc8]/20
 
-                                        drop-shadow-[0_7px_10px_rgba(69,50,36,.22)]
+                                        transition
+                                        duration-200
+
+                                        group-hover:border-[#a0523d]/35
+                                        group-hover:bg-[#eadbc8]/30
+                                    "
+                                ></span>
+
+
+                                {{-- D20 oficial --}}
+                                <div
+                                    class="
+                                        relative
+                                        z-10
+
+                                        flex
+                                        items-center
+                                        justify-center
+
+                                        transition
+                                        duration-200
                                     "
 
                                     :class="{
-                                        'death-d20-spin':
+                                        'scale-[1.045]':
                                             deathRolling,
 
                                         'death-d20-breathe':
                                             !deathRolling
                                     }"
-
-                                    viewBox="0 0 100 100"
-
-                                    aria-hidden="true"
                                 >
-                                    <defs>
-                                        <linearGradient
-                                            id="death-d20-face-a"
-                                            x1="0"
-                                            y1="0"
-                                            x2="1"
-                                            y2="1"
-                                        >
-                                            <stop offset="0%" stop-color="#8f694e" />
-                                            <stop offset="100%" stop-color="#76543d" />
-                                        </linearGradient>
-
-                                        <linearGradient
-                                            id="death-d20-face-b"
-                                            x1="0"
-                                            y1="0"
-                                            x2="1"
-                                            y2="1"
-                                        >
-                                            <stop offset="0%" stop-color="#d1a47f" />
-                                            <stop offset="100%" stop-color="#b97755" />
-                                        </linearGradient>
-
-                                        <linearGradient
-                                            id="death-d20-face-c"
-                                            x1="0"
-                                            y1="0"
-                                            x2="1"
-                                            y2="1"
-                                        >
-                                            <stop offset="0%" stop-color="#76513b" />
-                                            <stop offset="100%" stop-color="#54392b" />
-                                        </linearGradient>
-                                    </defs>
-
-
-                                    {{-- Fundo preto forma os sulcos grossos --}}
-                                    <path
-                                        d="
-                                            M50 4
-                                            L88 27
-                                            L88 73
-                                            L50 96
-                                            L12 73
-                                            L12 27
-                                            Z
-                                        "
-                                        fill="#2b211a"
-                                    />
-
-
-                                    {{-- Coroa superior --}}
-                                    <polygon
-                                        points="48,10 48,23 20,29 20,26"
-                                        fill="url(#death-d20-face-b)"
-                                    />
-
-                                    <polygon
-                                        points="52,10 80,26 80,29 52,23"
-                                        fill="#a97955"
-                                    />
-
-
-                                    {{-- Faces superiores laterais --}}
-                                    <polygon
-                                        points="16,31 45,26 27,63 14,37"
-                                        fill="#d5ad8a"
-                                    />
-
-                                    <polygon
-                                        points="84,31 55,26 73,63 86,37"
-                                        fill="#8c644b"
-                                    />
-
-
-                                    {{-- Triângulo central --}}
-                                    <polygon
-                                        points="50,26 70,65 30,65"
-                                        fill="url(#death-d20-face-a)"
-                                    />
-
-
-                                    {{-- Laterais --}}
-                                    <polygon
-                                        points="14,42 25,66 14,73"
-                                        fill="#a97859"
-                                    />
-
-                                    <polygon
-                                        points="86,42 75,66 86,73"
-                                        fill="#75503d"
-                                    />
-
-
-                                    {{-- Faces inferiores --}}
-                                    <polygon
-                                        points="16,76 28,68 43,89 24,79"
-                                        fill="#c98d68"
-                                    />
-
-                                    <polygon
-                                        points="84,76 72,68 57,89 76,79"
-                                        fill="#6d4937"
-                                    />
-
-                                    <polygon
-                                        points="31,69 69,69 50,92"
-                                        fill="url(#death-d20-face-c)"
-                                    />
-
-
-                                    {{-- Contorno --}}
-                                    <path
-                                        d="
-                                            M50 4
-                                            L88 27
-                                            L88 73
-                                            L50 96
-                                            L12 73
-                                            L12 27
-                                            Z
-                                        "
-                                        fill="none"
-                                        stroke="#2b211a"
-                                        stroke-width="4.8"
-                                        stroke-linejoin="round"
-                                    />
-
-
-                                    {{-- Sulcos, como no ícone enviado --}}
-                                    <g
-                                        fill="none"
-                                        stroke="#2b211a"
-                                        stroke-width="4.2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
+                                    <x-dice.polyhedral
+                                        :sides="20"
+                                        :size="96"
                                     >
-                                        <path d="M50 6 L50 24" />
-                                        <path d="M15 31 L48 24" />
-                                        <path d="M85 31 L52 24" />
+                                        <span
+                                            class="
+                                                tabular-nums
+                                            "
 
-                                        <path d="M49 25 L28 66" />
-                                        <path d="M51 25 L72 66" />
+                                            :class="
+                                                deathRollSettled
+                                                    ? 'death-roll-number-settled'
+                                                    : (
+                                                        deathRolling
+                                                            ? 'death-roll-number-active'
+                                                            : ''
+                                                    )
+                                            "
 
-                                        <path d="M28 67 L72 67" />
-
-                                        <path d="M27 67 L14 75" />
-                                        <path d="M73 67 L86 75" />
-
-                                        <path d="M29 68 L47 92" />
-                                        <path d="M71 68 L53 92" />
-                                    </g>
-                                </svg>
-
-
-                                {{-- O dado gira; o número continua legível --}}
-                                <span
-                                    class="
-                                        pointer-events-none
-                                        relative
-                                        z-10
-
-                                        flex
-                                        flex-col
-                                        items-center
-                                        justify-center
-
-                                        text-[#fffaf2]
-                                    "
-                                >
-
-                                    <span
-                                        class="
-                                            text-[7px]
-                                            font-black
-                                            uppercase
-                                            tracking-[0.16em]
-
-                                            text-[#efd9c7]
-                                        "
-                                    >
-                                        d20
-                                    </span>
-
-
-                                    <span
-                                        class="
-                                            mt-[-2px]
-
-                                            font-serif
-                                            text-[32px]
-                                            font-black
-                                            leading-none
-
-                                            tabular-nums
-
-                                            drop-shadow-[0_2px_2px_rgba(0,0,0,.30)]
-                                        "
-
-                                        :class="
-                                            deathRollSettled
-                                                ? 'death-roll-number-settled'
-                                                : (
-                                                    deathRolling
-                                                        ? 'death-roll-number-active'
-                                                        : ''
-                                                )
-                                        "
-
-                                        x-text="
-                                            deathRolling
-                                                ? (
-                                                    deathRollPreview
-                                                    ?? 20
-                                                )
-                                                : (
-                                                    deathRollResult
-                                                    ?? '?'
-                                                )
-                                        "
-                                    ></span>
-
-                                </span>
+                                            x-text="
+                                                deathRolling
+                                                    ? (
+                                                        deathRollPreview
+                                                        ?? 20
+                                                    )
+                                                    : (
+                                                        deathRollResult
+                                                        ?? '?'
+                                                    )
+                                            "
+                                        ></span>
+                                    </x-dice.polyhedral>
+                                </div>
 
                             </button>
 
@@ -8321,13 +11218,12 @@
 
         class="
             death-tab-enter
-            absolute
-            left-1/2
-            top-full
+            relative
             z-50
 
-            -mt-[14px]
-            -translate-x-1/2
+            mx-auto
+            mt-2
+            w-fit
         "
     >
 
@@ -8339,6 +11235,7 @@
             "
 
             class="
+                hero-death-tab-button
                 group
                 relative
 
@@ -8456,7 +11353,27 @@
         <div
             x-show="hpSettingsOpen"
             x-cloak
+
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
+            @keydown.escape.window="closeHpSettings()"
+
+            data-theme="{{ $characterTheme }}"
+
+            role="dialog"
+            aria-modal="true"
+            aria-label="Configurar pontos de vida"
+
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+                hero-hp-settings-layer
+
                 fixed
                 inset-0
                 z-[300]
@@ -8471,57 +11388,30 @@
         >
             {{-- BACKDROP --}}
             <div
-                x-show="hpSettingsOpen"
-                x-transition.opacity.duration.150ms
                 @click="closeHpSettings()"
                 class="
+                    character-theme-modal-backdrop
                     absolute
                     inset-0
-
-                    bg-black/90
-                "
-
-                style="
-                    background-color:
-                        rgba(8, 6, 5, 0.88);
                 "
             ></div>
 
             {{-- PAINEL --}}
             <section
                 x-show="hpSettingsOpen"
-                x-transition:enter="
-                    transition
-                    ease-out
-                    duration-150
-                "
-                x-transition:enter-start="
-                    opacity-0
-                    translate-y-2
-                    scale-[.985]
-                "
-                x-transition:enter-end="
-                    opacity-100
-                    translate-y-0
-                    scale-100
-                "
-                x-transition:leave="
-                    transition
-                    ease-in
-                    duration-100
-                "
-                x-transition:leave-start="
-                    opacity-100
-                    translate-y-0
-                    scale-100
-                "
-                x-transition:leave-end="
-                    opacity-0
-                    translate-y-1
-                    scale-[.99]
-                "
+
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+
                 @click.stop
                 class="
+                    character-theme-modal
+                    hero-hp-settings-modal
+
                     relative
                     z-10
 
@@ -8956,16 +11846,18 @@
                         <div class="min-h-0 flex-1 overflow-y-auto px-5 py-5">
                             <div
                                 class="
+                                    hero-hp-limit-grid
                                     grid
                                     grid-cols-1
                                     gap-3
 
-                                    sm:grid-cols-2
+                                    sm:grid-cols-3
                                 "
                             >
                                 {{-- VIDA MÁXIMA --}}
                                 <label
                                     class="
+                                        hero-hp-limit-card
                                         block
 
                                         rounded-xl
@@ -8979,6 +11871,7 @@
                                 >
                                     <span
                                         class="
+                                            hero-hp-limit-title
                                             block
                                             text-[11px]
                                             font-black
@@ -8992,6 +11885,7 @@
 
                                     <span
                                         class="
+                                            hero-hp-limit-copy
                                             mt-1
                                             block
                                             text-[11px]
@@ -9008,6 +11902,7 @@
                                         min="1"
                                         x-model.number="directMaxHp"
                                         class="
+                                            hero-hp-limit-input
                                             mt-3
                                             h-12
                                             w-full
@@ -9037,6 +11932,8 @@
                                 {{-- VIDA EXTRA --}}
                                 <label
                                     class="
+                                        hero-hp-limit-card
+                                        hero-hp-extra-card
                                         block
 
                                         rounded-xl
@@ -9050,6 +11947,7 @@
                                 >
                                     <span
                                         class="
+                                            hero-hp-limit-title
                                             block
                                             text-[11px]
                                             font-black
@@ -9063,6 +11961,7 @@
 
                                     <span
                                         class="
+                                            hero-hp-limit-copy
                                             mt-1
                                             block
                                             text-[11px]
@@ -9078,6 +11977,7 @@
                                         min="0"
                                         x-model.number="directTemporaryMaxHp"
                                         class="
+                                            hero-hp-limit-input
                                             mt-3
                                             h-12
                                             w-full
@@ -9103,11 +12003,96 @@
                                         "
                                     >
                                 </label>
+
+                                {{-- VIDA MÁXIMA REDUZIDA --}}
+                                <label
+                                    class="
+                                        hero-hp-limit-card
+                                        hero-hp-reduction-card
+                                        block
+
+                                        rounded-xl
+                                        border
+
+                                        p-3.5
+                                    "
+                                >
+                                    <span
+                                        class="
+                                            hero-hp-limit-title
+                                            hero-hp-reduction-label
+                                            block
+                                            text-[11px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.08em]
+                                        "
+                                    >
+                                        Vida Máxima Reduzida
+                                    </span>
+
+                                    <span
+                                        class="
+                                            hero-hp-limit-copy
+                                            mt-1
+                                            block
+                                            text-[11px]
+                                            leading-4
+                                            text-violet-800/75
+                                        "
+                                    >
+                                        Reduz o limite sem alterar a Vida Máxima base.
+                                    </span>
+
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        :max="
+                                            Math.max(
+                                                0,
+                                                (
+                                                    parseInt(
+                                                        directMaxHp
+                                                    ) || maxHp
+                                                )
+                                                +
+                                                Math.max(
+                                                    0,
+                                                    parseInt(
+                                                        directTemporaryMaxHp
+                                                    ) || 0
+                                                )
+                                                - 1
+                                            )
+                                        "
+                                        x-model.number="directMaxHpReduction"
+                                        class="
+                                            hero-hp-limit-input
+                                            mt-3
+                                            h-12
+                                            w-full
+
+                                            rounded-lg
+                                            border
+
+                                            bg-white
+
+                                            px-3
+
+                                            font-serif
+                                            text-[20px]
+                                            font-black
+
+                                            outline-none
+                                        "
+                                    >
+                                </label>
                             </div>
 
                             {{-- PREVIEW --}}
                             <div
                                 class="
+                                    hero-hp-preview-card
                                     mt-4
 
                                     rounded-xl
@@ -9149,7 +12134,7 @@
                                                 text-[#8c6239]/80
                                             "
                                         >
-                                            Base + vida máxima extra
+                                            Base + extra − redução
                                         </span>
                                     </div>
 
@@ -9165,35 +12150,51 @@
                                             x-text="
                                                 Math.max(
                                                     1,
-                                                    parseInt(
-                                                        directMaxHp
-                                                    ) || maxHp
+                                                    (
+                                                        Math.max(
+                                                            1,
+                                                            parseInt(
+                                                                directMaxHp
+                                                            ) || maxHp
+                                                        )
+                                                        +
+                                                        Math.max(
+                                                            0,
+                                                            parseInt(
+                                                                directTemporaryMaxHp
+                                                            ) || 0
+                                                        )
+                                                    )
+                                                    -
+                                                    Math.min(
+                                                        Math.max(
+                                                            0,
+                                                            parseInt(
+                                                                directMaxHpReduction
+                                                            ) || 0
+                                                        ),
+                                                        Math.max(
+                                                            0,
+                                                            (
+                                                                Math.max(
+                                                                    1,
+                                                                    parseInt(
+                                                                        directMaxHp
+                                                                    ) || maxHp
+                                                                )
+                                                                +
+                                                                Math.max(
+                                                                    0,
+                                                                    parseInt(
+                                                                        directTemporaryMaxHp
+                                                                    ) || 0
+                                                                )
+                                                            ) - 1
+                                                        )
+                                                    )
                                                 )
                                             "
                                         ></span>
-
-                                        <span
-                                            x-show="
-                                                (
-                                                    parseInt(
-                                                        directTemporaryMaxHp
-                                                    ) || 0
-                                                ) > 0
-                                            "
-                                            class="text-[#9a6f16]"
-                                        >
-                                            +
-                                            <span
-                                                x-text="
-                                                    Math.max(
-                                                        0,
-                                                        parseInt(
-                                                            directTemporaryMaxHp
-                                                        ) || 0
-                                                    )
-                                                "
-                                            ></span>
-                                        </span>
                                     </strong>
                                 </div>
 
@@ -9280,15 +12281,69 @@
                                             }%;
                                         `"
                                     ></div>
+
+                                    <div
+                                        class="
+                                            hero-hp-reduction-preview
+                                            absolute
+                                            inset-y-0
+                                            right-0
+                                        "
+                                        :style="`
+                                            width:${
+                                                (
+                                                    Math.min(
+                                                        Math.max(
+                                                            0,
+                                                            parseInt(
+                                                                directMaxHpReduction
+                                                            ) || 0
+                                                        ),
+                                                        Math.max(
+                                                            0,
+                                                            (
+                                                                Math.max(
+                                                                    1,
+                                                                    parseInt(
+                                                                        directMaxHp
+                                                                    ) || maxHp
+                                                                )
+                                                                +
+                                                                Math.max(
+                                                                    0,
+                                                                    parseInt(
+                                                                        directTemporaryMaxHp
+                                                                    ) || 0
+                                                                )
+                                                            ) - 1
+                                                        )
+                                                    )
+                                                    /
+                                                    (
+                                                        Math.max(
+                                                            1,
+                                                            parseInt(
+                                                                directMaxHp
+                                                            ) || maxHp
+                                                        )
+                                                        +
+                                                        Math.max(
+                                                            0,
+                                                            parseInt(
+                                                                directTemporaryMaxHp
+                                                            ) || 0
+                                                        )
+                                                    )
+                                                ) * 100
+                                            }%;
+                                        `"
+                                    ></div>
                                 </div>
 
                                 <div
                                     class="
+                                        hero-hp-limit-summary
                                         mt-3
-                                        flex
-                                        flex-wrap
-                                        gap-x-5
-                                        gap-y-1
 
                                         text-[11px]
                                         text-[#6f5544]
@@ -9319,6 +12374,47 @@
                                                         parseInt(
                                                             directTemporaryMaxHp
                                                         ) || 0
+                                                    )
+                                                "
+                                            ></span>
+                                        </strong>
+                                    </span>
+
+                                    <span>
+                                        Reduzida:
+                                        <strong
+                                            class="
+                                                hero-hp-reduction-value
+                                                font-black
+                                            "
+                                        >
+                                            −<span
+                                                x-text="
+                                                    Math.min(
+                                                        Math.max(
+                                                            0,
+                                                            parseInt(
+                                                                directMaxHpReduction
+                                                            ) || 0
+                                                        ),
+                                                        Math.max(
+                                                            0,
+                                                            (
+                                                                Math.max(
+                                                                    1,
+                                                                    parseInt(
+                                                                        directMaxHp
+                                                                    ) || maxHp
+                                                                )
+                                                                +
+                                                                Math.max(
+                                                                    0,
+                                                                    parseInt(
+                                                                        directTemporaryMaxHp
+                                                                    ) || 0
+                                                                )
+                                                            ) - 1
+                                                        )
                                                     )
                                                 "
                                             ></span>

@@ -20,7 +20,7 @@
         ['value' => 'bludgeoning', 'label' => 'Contundente'],
         ['value' => 'cold', 'label' => 'Frio'],
         ['value' => 'fire', 'label' => 'Fogo'],
-        ['value' => 'force', 'label' => 'Força'],
+        ['value' => 'force', 'label' => 'Energia'],
         ['value' => 'lightning', 'label' => 'Elétrico'],
         ['value' => 'necrotic', 'label' => 'Necrótico'],
         ['value' => 'piercing', 'label' => 'Perfurante'],
@@ -90,6 +90,34 @@
         $normalizeList(
             $combat?->damage_vulnerabilities
         );
+
+    /* Tema atual para componentes teleportados */
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme = strtolower(trim((string) data_get(
+        $sheetSettings,
+        'appearance.theme',
+        'spellbound'
+    )));
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
+
 @endphp
 
 
@@ -115,6 +143,418 @@
             .character-sheet-hero-defenses > * {
                 pointer-events: auto;
             }
+
+
+            /* ==============================================================
+               V22 — DEFESAS / PADRÃO VISUAL UNIFICADO
+            ============================================================== */
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-summary {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-module-background) !important;
+                box-shadow: var(--theme-module-shadow) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-header {
+                border-bottom-color: var(--theme-divider-strong, var(--theme-border)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-title {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-title:hover {
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-summary-grid {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+                box-shadow: var(--theme-module-shadow) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-summary-grid > div {
+                border-color: var(--theme-border-soft) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-summary-grid [class*="bg-[#eadbc8]"] {
+                background: var(--theme-band-background) !important;
+                color: var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 .character-defenses-summary-grid [class*="bg-[#fffdf8]/80"] {
+                background: var(--theme-surface-card) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal {
+                width: min(820px, calc(100vw - 28px)) !important;
+                max-height: min(92dvh, 880px) !important;
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 18px !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow: var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.30)) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme] .character-defenses-modal {
+                    max-height: min(92vh, 880px) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal-header,
+            .character-sheet-theme[data-theme] .character-defenses-modal-footer {
+                flex: 0 0 auto;
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal-body {
+                min-height: 0;
+                flex: 1 1 auto;
+                overflow-y: auto;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                scrollbar-width: thin;
+                scrollbar-color: color-mix(in srgb, var(--theme-label) 30%, transparent) transparent;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme] .character-defenses-modal [class*="text-[#6b1d14]"] {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme] .character-defenses-modal [class*="text-[#76553f]"],
+            .character-sheet-theme[data-theme] .character-defenses-modal [class*="text-[#7a583f]"] {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal-close {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-modal-close:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-tabs {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-tab {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-tab:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-tab[class*="border-[#6b1d14]"],
+            .character-sheet-theme[data-theme] .character-defenses-tab[class*="border-[#7b2a21]"] {
+                border-bottom-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-tab .character-defenses-tab-count {
+                border: 1px solid var(--theme-border-soft);
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-option {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-option:hover {
+                border-color: var(--theme-border-strong) !important;
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-option[class*="bg-[#7a2418]"],
+            .character-sheet-theme[data-theme] .character-defenses-option[class*="bg-[#6b1d14]"],
+            .character-sheet-theme[data-theme] .character-defenses-option[class*="bg-[#7b2a21]"] {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+                box-shadow: 0 3px 10px color-mix(in srgb, var(--theme-accent) 15%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-option span.rounded-full {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-input-bg) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-option[class*="bg-[#7a2418]"] span.rounded-full,
+            .character-sheet-theme[data-theme] .character-defenses-option[class*="bg-[#6b1d14]"] span.rounded-full,
+            .character-sheet-theme[data-theme] .character-defenses-option[class*="bg-[#7b2a21]"] span.rounded-full {
+                border-color: color-mix(in srgb, var(--theme-button-text) 58%, transparent) !important;
+                background: color-mix(in srgb, var(--theme-button-text) 10%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-custom-card {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-custom-card input {
+                border-color: var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-custom-card input::placeholder {
+                color: var(--theme-input-placeholder) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-custom-card input:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-input-focus) 15%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-add-custom {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-add-custom:hover {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-soft) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-custom-chip {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-custom-chip:hover {
+                border-color: rgba(185,28,28,.35) !important;
+                background: #fff1f2 !important;
+                color: #991b1b !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-secondary {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-secondary:hover {
+                background: var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-primary {
+                border: 1px solid var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+                box-shadow: var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-primary:hover {
+                background: var(--theme-button-hover-background) !important;
+            }
+
+            .character-sheet-theme[data-theme] .character-defenses-error {
+                border-color: rgba(185,28,28,.28) !important;
+                background: #fff1f2 !important;
+                color: #991b1b !important;
+            }
+
+            .character-sheet-theme:is([data-theme="midnight"],[data-theme="obsidian"]) .character-defenses-custom-chip:hover,
+            .character-sheet-theme:is([data-theme="midnight"],[data-theme="obsidian"]) .character-defenses-error {
+                background: rgba(127,29,29,.18) !important;
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V23 — RESUMO DE DEFESAS / LEITURA EM DUAS LINHAS
+            |--------------------------------------------------------------------------
+            |
+            | O resumo não força mais Resistências, Imunidades e
+            | Vulnerabilidades em uma única linha. Mantemos a seção compacta,
+            | mas cada valor pode ocupar até duas linhas antes do corte.
+            |
+            */
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary {
+                padding-top:
+                    10px !important;
+
+                padding-bottom:
+                    8px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-header {
+                min-height:
+                    30px !important;
+
+                padding-bottom:
+                    5px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary-grid {
+                margin-top:
+                    2px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary-label {
+                min-height:
+                    16px;
+
+                display:
+                    flex;
+
+                align-items:
+                    center;
+
+                padding-top:
+                    4px !important;
+
+                padding-bottom:
+                    4px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary-value {
+                display:
+                    flex;
+
+                min-height:
+                    32px;
+
+                align-items:
+                    center;
+
+                padding-top:
+                    4px !important;
+
+                padding-bottom:
+                    4px !important;
+
+                font-size:
+                    10px !important;
+
+                line-height:
+                    1.22 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary-text {
+                display:
+                    -webkit-box;
+
+                width:
+                    100%;
+
+                min-width:
+                    0;
+
+                overflow:
+                    hidden;
+
+                -webkit-box-orient:
+                    vertical;
+
+                -webkit-line-clamp:
+                    2;
+
+                white-space:
+                    normal;
+
+                overflow-wrap:
+                    anywhere;
+
+                text-overflow:
+                    ellipsis;
+            }
+
+            @media (max-width: 639px) {
+                .character-sheet-theme[data-theme]
+                .character-defenses-v22
+                .character-defenses-summary-text {
+                    -webkit-line-clamp:
+                        3;
+                }
+
+                .character-sheet-theme[data-theme]
+                .character-defenses-v22
+                .character-defenses-summary-value {
+                    min-height:
+                        38px;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V24 — CABEÇALHOS DO RESUMO MAIS LEGÍVEIS
+            |--------------------------------------------------------------------------
+            |
+            | Resistências / Imunidades / Vulnerabilidades passam a ter a mesma
+            | presença visual dos cabeçalhos de Ataques, sem aumentar demais
+            | a altura do módulo.
+            |
+            */
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary-label {
+                min-height:
+                    20px !important;
+
+                padding:
+                    5px 10px 4px !important;
+
+                font-size:
+                    9px !important;
+
+                font-weight:
+                    900 !important;
+
+                line-height:
+                    1 !important;
+
+                letter-spacing:
+                    .09em !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22
+            .character-defenses-summary-value {
+                min-height:
+                    34px !important;
+
+                padding-inline:
+                    10px !important;
+
+                font-size:
+                    10.5px !important;
+
+                line-height:
+                    1.24 !important;
+            }
+
         </style>
     @endpush
 @endonce
@@ -443,6 +883,10 @@
     }"
 
     class="
+                                        character-defenses-add-custom
+                                        character-defenses-add-custom
+                                        character-defenses-add-custom
+        character-defenses-v22
         relative
         min-w-0
         w-full
@@ -463,6 +907,7 @@
 
     <section
         class="
+            character-defenses-summary
             relative
             min-w-0
             overflow-hidden
@@ -495,6 +940,7 @@
 
             <div
                 class="
+                    character-defenses-header
                     flex
                     min-h-[40px]
                     min-w-0
@@ -514,6 +960,7 @@
                     @click="openEditor()"
 
                     class="
+                        character-defenses-title
                         inline-flex
                         min-w-0
                         items-center
@@ -556,6 +1003,7 @@
 
             <div
                 class="
+                    character-defenses-summary-grid
                     mt-[2px]
 
                     grid
@@ -590,6 +1038,7 @@
                 >
                     <div
                         class="
+                            character-defenses-summary-label
                             bg-[#eadbc8]
 
                             px-2.5
@@ -609,6 +1058,7 @@
 
                     <div
                         class="
+                            character-defenses-summary-value
                             min-w-0
 
                             bg-[#fffdf8]/80
@@ -626,9 +1076,9 @@
                     >
                         <span
                             class="
+                                character-defenses-summary-text
                                 block
                                 min-w-0
-                                truncate
                             "
 
                             x-text="formattedList(resistances)"
@@ -653,6 +1103,7 @@
                 >
                     <div
                         class="
+                            character-defenses-summary-label
                             bg-[#eadbc8]
 
                             px-2.5
@@ -672,6 +1123,7 @@
 
                     <div
                         class="
+                            character-defenses-summary-value
                             min-w-0
 
                             bg-[#fffdf8]/80
@@ -689,9 +1141,9 @@
                     >
                         <span
                             class="
+                                character-defenses-summary-text
                                 block
                                 min-w-0
-                                truncate
                             "
 
                             x-text="formattedList(immunities)"
@@ -706,6 +1158,7 @@
                 <div class="min-w-0">
                     <div
                         class="
+                            character-defenses-summary-label
                             bg-[#eadbc8]
 
                             px-2.5
@@ -725,6 +1178,7 @@
 
                     <div
                         class="
+                            character-defenses-summary-value
                             min-w-0
 
                             bg-[#fffdf8]/80
@@ -742,9 +1196,9 @@
                     >
                         <span
                             class="
+                                character-defenses-summary-text
                                 block
                                 min-w-0
-                                truncate
                             "
 
                             x-text="formattedList(vulnerabilities)"
@@ -767,17 +1221,21 @@
             x-show="open"
             x-cloak
 
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
+
             @keydown.escape.window="cancelEditor()"
 
-            x-transition:enter="transition ease-out duration-150"
-            x-transition:enter-start="opacity-0"
-            x-transition:enter-end="opacity-100"
-
-            x-transition:leave="transition ease-in duration-100"
-            x-transition:leave-start="opacity-100"
-            x-transition:leave-end="opacity-0"
+            data-theme="{{ $characterTheme }}"
 
             class="
+                character-sheet-theme
+                character-theme-modal-layer
+                character-defenses-modal-layer
                 fixed
                 inset-0
                 z-[180]
@@ -798,19 +1256,7 @@
             {{-- BACKDROP --}}
 
             <div
-                class="
-                    absolute
-                    inset-0
-                    bg-black/70
-                    backdrop-blur-[2px]
-                "
-
-                style="
-                    background-color:
-                        rgba(12, 8, 7, 0.72);
-                
-                "
-
+                class="character-theme-modal-backdrop absolute inset-0"
                 @click="cancelEditor()"
             ></div>
 
@@ -818,16 +1264,25 @@
             {{-- PAINEL CENTRAL --}}
 
             <div
+                x-show="open"
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
                 @click.stop
 
                 class="
+                    character-theme-modal
+                    character-defenses-modal
                     relative
                     z-10
 
                     flex
-                    max-h-[88vh]
+                    max-h-[92dvh]
                     w-full
-                    max-w-[860px]
+                    max-w-[820px]
                     flex-col
 
                     overflow-hidden
@@ -848,6 +1303,8 @@
 
                 <div
                     class="
+                        character-theme-modal-header
+                        character-defenses-modal-header
                         flex
                         shrink-0
                         items-center
@@ -868,41 +1325,6 @@
                 >
 
                     <div class="flex min-w-0 items-center gap-3">
-
-                        <div
-                            class="
-                                flex
-                                h-10
-                                w-10
-                                shrink-0
-                                items-center
-                                justify-center
-
-                                rounded-xl
-                                border
-                                border-[#cdbb9f]/75
-
-                                bg-[#fffdf9]/70
-
-                                text-[#6b1d14]
-
-                                shadow-[inset_0_0_0_3px_rgba(239,233,220,.55)]
-                            "
-                            aria-hidden="true"
-                        >
-                            <svg
-                                class="h-5 w-5"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="1.55"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                            >
-                                <path d="M12 3 5.5 5.8v5.1c0 4.4 2.5 7.6 6.5 10.1 4-2.5 6.5-5.7 6.5-10.1V5.8L12 3Z" />
-                                <path d="M9 12.1 11 14l4-4.2" />
-                            </svg>
-                        </div>
 
                         <div class="min-w-0">
 
@@ -956,9 +1378,10 @@
                         :disabled="saving"
 
                         class="
+                            character-defenses-modal-close
                             flex
-                            h-8
-                            w-8
+                            h-9
+                            w-9
                             shrink-0
                             items-center
                             justify-center
@@ -999,6 +1422,7 @@
 
                 <div
                     class="
+                        character-defenses-tabs
                         grid
                         shrink-0
                         grid-cols-3
@@ -1021,6 +1445,7 @@
                         @click="activeTab = 'resistances'"
 
                         class="
+                            character-defenses-tab
                             relative
 
                             flex
@@ -1053,6 +1478,7 @@
 
                         <span
                             class="
+                                character-defenses-tab-count
                                 inline-flex
                                 min-w-[20px]
                                 items-center
@@ -1085,6 +1511,7 @@
                         @click="activeTab = 'immunities'"
 
                         class="
+                            character-defenses-tab
                             relative
 
                             flex
@@ -1117,6 +1544,7 @@
 
                         <span
                             class="
+                                character-defenses-tab-count
                                 inline-flex
                                 min-w-[20px]
                                 items-center
@@ -1149,6 +1577,7 @@
                         @click="activeTab = 'vulnerabilities'"
 
                         class="
+                            character-defenses-tab
                             relative
 
                             flex
@@ -1181,6 +1610,7 @@
 
                         <span
                             class="
+                                character-defenses-tab-count
                                 inline-flex
                                 min-w-[20px]
                                 items-center
@@ -1213,6 +1643,7 @@
 
                 <div
                     class="
+                        character-defenses-modal-body
                         min-h-0
                         flex-1
                         overflow-y-auto
@@ -1289,6 +1720,7 @@
                                     @click="toggle(resistances, option.value)"
 
                                     class="
+                                        character-defenses-option
                                         flex
                                         min-h-[36px]
                                         min-w-0
@@ -1363,6 +1795,7 @@
 
                         <div
                             class="
+                                character-defenses-custom-card
                                 mt-4
 
                                 rounded-xl
@@ -1495,6 +1928,7 @@
                                         @click="removeValue(resistances, value)"
 
                                         class="
+                                            character-defenses-custom-chip
                                             inline-flex
                                             max-w-full
                                             items-center
@@ -1612,6 +2046,7 @@
                                     @click="toggle(immunities, option.value)"
 
                                     class="
+                                        character-defenses-option
                                         flex
                                         min-h-[36px]
                                         min-w-0
@@ -1686,6 +2121,7 @@
 
                         <div
                             class="
+                                character-defenses-custom-card
                                 mt-4
 
                                 rounded-xl
@@ -1818,6 +2254,7 @@
                                         @click="removeValue(immunities, value)"
 
                                         class="
+                                            character-defenses-custom-chip
                                             inline-flex
                                             max-w-full
                                             items-center
@@ -1935,6 +2372,7 @@
                                     @click="toggle(vulnerabilities, option.value)"
 
                                     class="
+                                        character-defenses-option
                                         flex
                                         min-h-[36px]
                                         min-w-0
@@ -2009,6 +2447,7 @@
 
                         <div
                             class="
+                                character-defenses-custom-card
                                 mt-4
 
                                 rounded-xl
@@ -2141,6 +2580,7 @@
                                         @click="removeValue(vulnerabilities, value)"
 
                                         class="
+                                            character-defenses-custom-chip
                                             inline-flex
                                             max-w-full
                                             items-center
@@ -2199,6 +2639,7 @@
                         x-cloak
 
                         class="
+                            character-defenses-error
                             mt-4
 
                             rounded-lg
@@ -2227,6 +2668,8 @@
 
                 <div
                     class="
+                        character-theme-modal-footer
+                        character-defenses-modal-footer
                         flex
                         shrink-0
                         items-center
@@ -2264,12 +2707,33 @@
 
                         <button
                             type="button"
+                            @click="cancelEditor()"
+                            :disabled="saving"
+                            class="
+                                character-defenses-secondary
+                                rounded-lg
+                                px-4
+                                py-2.5
+                                text-[11px]
+                                font-black
+                                uppercase
+                                tracking-wider
+                                transition
+                                disabled:opacity-50
+                            "
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            type="button"
 
                             @click="save()"
 
                             :disabled="saving"
 
                             class="
+                                character-defenses-primary
                                 min-w-[124px]
 
                                 rounded-lg

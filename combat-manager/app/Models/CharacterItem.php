@@ -9,88 +9,43 @@ class CharacterItem extends Model
 {
     protected $fillable = [
         'character_id',
-
         'name',
         'type',
         'description',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Imagem
-        |--------------------------------------------------------------------------
-        */
-
         'image_path',
-
         'quantity',
         'weight',
-
         'equipped',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Item mágico
-        |--------------------------------------------------------------------------
-        */
-
         'is_magical',
         'rarity',
-
         'requires_attunement',
         'attuned',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Maldição
-        |--------------------------------------------------------------------------
-        */
-
         'is_cursed',
+        'curse_name',
         'curse_description',
         'curse_revealed',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Combate
-        |--------------------------------------------------------------------------
-        */
-
         'armor_class',
         'damage',
         'attack_bonus',
         'damage_bonus',
-
-        /*
-        |--------------------------------------------------------------------------
-        | Dados estruturados
-        |--------------------------------------------------------------------------
-        */
-
         'ability_bonuses',
         'properties',
         'modifiers',
-
         'notes',
     ];
 
     protected $casts = [
         'quantity' => 'integer',
         'weight' => 'decimal:2',
-
         'equipped' => 'boolean',
-
         'is_magical' => 'boolean',
-
         'requires_attunement' => 'boolean',
         'attuned' => 'boolean',
-
         'is_cursed' => 'boolean',
         'curse_revealed' => 'boolean',
-
         'armor_class' => 'integer',
         'attack_bonus' => 'integer',
         'damage_bonus' => 'integer',
-
         'ability_bonuses' => 'array',
         'properties' => 'array',
         'modifiers' => 'array',
@@ -100,12 +55,6 @@ class CharacterItem extends Model
     {
         return $this->belongsTo(Character::class);
     }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
 
     public function getIsAttunableAttribute(): bool
     {
@@ -138,10 +87,7 @@ class CharacterItem extends Model
             'very_rare' => 'Muito Raro',
             'legendary' => 'Lendário',
             'artifact' => 'Artefato',
-
-            default => ucfirst(
-                str_replace('_', ' ', $this->rarity)
-            ),
+            default => ucfirst(str_replace('_', ' ', $this->rarity)),
         };
     }
 }

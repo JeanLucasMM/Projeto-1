@@ -365,6 +365,45 @@
             )
             : 0;
 
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | TEMA VISUAL
+    |--------------------------------------------------------------------------
+    |
+    | O editor de atributos usa x-teleport="body". Ao ser teleportado, ele
+    | deixa de herdar as variáveis CSS do wrapper principal da ficha. Por isso
+    | resolvemos o tema aqui e reaplicamos .character-sheet-theme + data-theme
+    | no portal do modal.
+    |
+    */
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $characterTheme =
+        trim(
+            (string) data_get(
+                $sheetSettings,
+                'appearance.theme',
+                'spellbound'
+            )
+        );
+
+    if ($characterTheme === '') {
+        $characterTheme = 'spellbound';
+    }
+
+    $characterTheme =
+        preg_replace(
+            '/[^a-z0-9_-]/i',
+            '',
+            $characterTheme
+        )
+        ?: 'spellbound';
+
 @endphp
 
 
@@ -2024,6 +2063,527 @@
                 }
             }
 
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V8 — CONTRATO VISUAL UNIFICADO / TEMAS
+            |--------------------------------------------------------------------------
+            |
+            | A ficha principal já herda --theme-* do show. O modal teleportado
+            | reaplica esse contexto no body e usa exatamente o mesmo contrato
+            | visual dos demais editores: papel neutro, faixa temática, texto
+            | neutro, controles temáticos e backdrop preto desfocado.
+            |
+            */
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2-backdrop,
+            .character-sheet-theme[data-theme]
+            .character-theme-modal-backdrop {
+                background:
+                    rgba(0, 0, 0, .88) !important;
+
+                -webkit-backdrop-filter:
+                    blur(8px) !important;
+
+                backdrop-filter:
+                    blur(8px) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 {
+                width:
+                    min(720px, calc(100vw - 28px)) !important;
+
+                max-width:
+                    720px !important;
+
+                max-height:
+                    min(90dvh, 820px) !important;
+
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+
+                box-shadow:
+                    var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.30)) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme]
+                .character-ability-modal-v2 {
+                    max-height:
+                        min(90vh, 820px) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2-header,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2-footer {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2-footer {
+                box-shadow:
+                    0 -8px 18px rgba(0,0,0,.035) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2-body {
+                min-height:
+                    0 !important;
+
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .character-modal-card {
+                border-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-card-background) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 72%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .character-modal-score {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                box-shadow:
+                    inset 0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 8%,
+                        transparent
+                    ),
+                    var(--theme-modal-control-shadow, 0 2px 7px rgba(0,0,0,.08)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .character-modal-tab {
+                color:
+                    var(--theme-text-secondary) !important;
+
+                border-bottom-color:
+                    transparent !important;
+
+                background:
+                    transparent !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .character-modal-tab:hover {
+                color:
+                    var(--theme-text-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .character-modal-tab.active {
+                color:
+                    var(--theme-text-strong) !important;
+
+                border-bottom-color:
+                    var(--theme-accent) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 input,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 select,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 textarea {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+
+                box-shadow:
+                    inset 0 1px 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-paper-strong) 60%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 input:focus,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 select:focus,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 textarea:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    var(--theme-input-focus-ring) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 input::placeholder,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 textarea::placeholder {
+                color:
+                    var(--theme-text-muted) !important;
+            }
+
+            /* Mapeia a antiga paleta vinho/bege para os tokens atuais. */
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="text-[#53150f]"],
+            .character-sheet-theme[data-theme]
+            .character-roll-toast [class*="text-[#53150f]"] {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="text-[#9a806d]"],
+            .character-sheet-theme[data-theme]
+            .character-roll-toast [class*="text-[#8c6239]"],
+            .character-sheet-theme[data-theme]
+            .character-roll-toast [class*="text-[#9a806d]"] {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="text-[#6b1d14]"] {
+                color:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="border-[#cdbb9f]"],
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="border-[#d8c7ab]"] {
+                border-color:
+                    var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#faf8f2\],
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#fffdf9\] {
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#efe9dc\]\/45,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#f4f1e8\]\/50,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#efe9dc\]\/65 {
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#6b1d14\] {
+                border-color:
+                    var(--theme-button-border) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+
+                box-shadow:
+                    var(--theme-button-shadow) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .hover\:bg-\[\#efe9dc\]:hover,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .hover\:bg-\[\#e8dfd1\]:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            /* Destaques explicativos permanecem sutis e coerentes com o tema. */
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#f8efd9\]\/70,
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 .bg-\[\#fffaf0\] {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 25%,
+                        var(--theme-border) 75%
+                    ) !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 6%,
+                        var(--theme-paper-strong) 94%
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="text-[#8a6418]"],
+            .character-sheet-theme[data-theme]
+            .character-ability-modal-v2 [class*="text-[#9a6f16]"] {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            /* Botões padronizados do footer. */
+            .character-sheet-theme[data-theme]
+            .character-theme-secondary-button {
+                min-height:
+                    34px;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                border-radius:
+                    9px;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                padding:
+                    0 13px;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                font-size:
+                    9px;
+
+                font-weight:
+                    900;
+
+                letter-spacing:
+                    .06em;
+
+                text-transform:
+                    uppercase;
+
+                transition:
+                    background .14s ease,
+                    border-color .14s ease,
+                    transform .14s ease;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-theme-secondary-button:hover:not(:disabled) {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                transform:
+                    translateY(-1px);
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-theme-primary-button {
+                min-height:
+                    34px;
+
+                border:
+                    1px solid
+                    var(--theme-button-border) !important;
+
+                border-radius:
+                    9px;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                padding:
+                    0 14px;
+
+                color:
+                    var(--theme-button-text) !important;
+
+                font-size:
+                    9px;
+
+                font-weight:
+                    900;
+
+                letter-spacing:
+                    .06em;
+
+                text-transform:
+                    uppercase;
+
+                box-shadow:
+                    var(--theme-button-shadow) !important;
+
+                transition:
+                    background .14s ease,
+                    box-shadow .14s ease,
+                    transform .14s ease;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-theme-primary-button:hover:not(:disabled) {
+                background:
+                    var(--theme-button-hover-background) !important;
+
+                box-shadow:
+                    var(--theme-button-hover-shadow) !important;
+
+                transform:
+                    translateY(-1px);
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-theme-primary-button:disabled,
+            .character-sheet-theme[data-theme]
+            .character-theme-secondary-button:disabled {
+                cursor:
+                    default;
+
+                opacity:
+                    .45;
+
+                transform:
+                    none;
+            }
+
+            /* Toast de rolagem — mesma superfície e hierarquia do tema. */
+            .character-sheet-theme[data-theme]
+            .character-roll-toast {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    0 18px 46px rgba(0,0,0,.16),
+                    0 3px 10px rgba(0,0,0,.06) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-roll-toast button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+
+            /* CHARACTER STATS V7 — SALVAMENTOS NO MIDNIGHT */
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row,
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row.is-proficient,
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row:hover,
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row.is-proficient:hover {
+                border-bottom-color: rgba(151,162,173,.17) !important;
+                background: #252c33 !important;
+                color: #d9dde1 !important;
+                box-shadow: none !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row::before,
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row.is-proficient::before {
+                background: #607f99 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v5
+            .character-stat-save-row span:nth-child(2),
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row span:nth-child(2) {
+                color: #d9dde1 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v5
+            .character-stat-save-row span:last-child,
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row span:last-child {
+                color: #91b1ca !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row .character-stat-training-dot {
+                border-color: #596b79 !important;
+                background: #1b2127 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row .character-stat-training-dot.proficient {
+                border-color: #7190a9 !important;
+                background: #5f7f99 !important;
+                box-shadow: inset 0 0 0 2px #252c33 !important;
+            }
+
+            .character-sheet-theme[data-theme="midnight"]
+            .character-stats-v6
+            .character-stat-save-row .character-stat-training-dot.expertise {
+                border-color: #7190a9 !important;
+                background: radial-gradient(circle,#7190a9 0 28%,#252c33 30% 49%,#7190a9 51% 100%) !important;
+            }
+
         </style>
     @endpush
 
@@ -2069,6 +2629,31 @@
                     lastRoll: null,
                     rollToastOpen: false,
                     rollToastTimer: null,
+
+                    /*
+                    |--------------------------------------------------------------------------
+                    | DADOS POLIGONAIS
+                    |--------------------------------------------------------------------------
+                    |
+                    | O resultado real continua vindo de /api/roll.
+                    | Estes campos existem somente para a animação visual:
+                    | durante a rolagem, números válidos passam rapidamente
+                    | pela face do dado até o resultado definitivo chegar.
+                    |
+                    */
+
+                    rollingSides: 20,
+                    rollingPreviewValue: null,
+                    rollingPreviewTimer: null,
+
+                    diceOptions: [
+                        4,
+                        6,
+                        8,
+                        10,
+                        12,
+                        20,
+                    ],
 
 
                     get exhaustionRollPenalty() {
@@ -2147,12 +2732,46 @@
                         return Math.max(1, parseInt(ability.score) || 10);
                     },
 
+                    /*
+                    |--------------------------------------------------------------------------
+                    | PREVIEW AO VIVO
+                    |--------------------------------------------------------------------------
+                    |
+                    | Não altera o HTML/CSS dos cards.
+                    | Enquanto um atributo está sendo editado, os getters usam
+                    | o draft daquele atributo. Se o modal for cancelado, a ficha
+                    | volta automaticamente aos dados persistidos.
+                    |
+                    */
+
+                    abilityForDisplay(abilityKey) {
+                        if (
+                            this.modalOpen
+                            &&
+                            this.activeAbility === abilityKey
+                            &&
+                            this.draft
+                        ) {
+                            return this.draft;
+                        }
+
+                        return this.abilities[abilityKey];
+                    },
+
                     currentScore(abilityKey) {
-                        return this.effectiveScoreFrom(this.abilities[abilityKey]);
+                        return this.effectiveScoreFrom(
+                            this.abilityForDisplay(
+                                abilityKey
+                            )
+                        );
                     },
 
                     modifier(abilityKey) {
-                        return this.modifierFromScore(this.currentScore(abilityKey));
+                        return this.modifierFromScore(
+                            this.currentScore(
+                                abilityKey
+                            )
+                        );
                     },
 
                     savingThrowTotalFrom(ability) {
@@ -2177,7 +2796,11 @@
                     },
 
                     savingThrowTotal(abilityKey) {
-                        return this.savingThrowTotalFrom(this.abilities[abilityKey]);
+                        return this.savingThrowTotalFrom(
+                            this.abilityForDisplay(
+                                abilityKey
+                            )
+                        );
                     },
 
                     skillTotalFrom(ability, skill) {
@@ -2209,10 +2832,20 @@
                     },
 
                     skillTotal(abilityKey, skillKey) {
-                        const ability = this.abilities[abilityKey];
-                        const skill = ability?.skills?.[skillKey];
+                        const ability =
+                            this.abilityForDisplay(
+                                abilityKey
+                            );
 
-                        return this.skillTotalFrom(ability, skill);
+                        const skill =
+                            ability?.skills?.[
+                                skillKey
+                            ];
+
+                        return this.skillTotalFrom(
+                            ability,
+                            skill
+                        );
                     },
 
                     trainingClass(skill) {
@@ -2285,116 +2918,470 @@
                         }
                     },
 
-                    async rollCheck(label, modifier) {
+                    randomDieValue(sides) {
+                        const normalizedSides =
+                            this.diceOptions.includes(
+                                parseInt(sides)
+                            )
+                                ? parseInt(sides)
+                                : 20;
+
+                        return (
+                            Math.floor(
+                                Math.random()
+                                *
+                                normalizedSides
+                            )
+                            +
+                            1
+                        );
+                    },
+
+
+                    get rollDisplayDie() {
+                        if (this.rolling) {
+                            return (
+                                this.rollingPreviewValue
+                                ?? '—'
+                            );
+                        }
+
+                        return (
+                            this.lastRoll?.die
+                            ?? '—'
+                        );
+                    },
+
+
+                    get rollDisplayTotal() {
+                        if (
+                            this.rolling
+                            &&
+                            this.lastRoll
+                        ) {
+                            return (
+                                (
+                                    parseInt(
+                                        this.rollingPreviewValue
+                                    )
+                                    ||
+                                    0
+                                )
+                                +
+                                (
+                                    parseInt(
+                                        this.lastRoll
+                                            ?.effectiveModifier
+                                    )
+                                    ||
+                                    0
+                                )
+                            );
+                        }
+
+                        return (
+                            this.lastRoll?.total
+                            ?? '—'
+                        );
+                    },
+
+
+                    startRollingPreview(sides) {
+                        this.stopRollingPreview();
+
+                        this.rollingSides =
+                            this.diceOptions.includes(
+                                parseInt(sides)
+                            )
+                                ? parseInt(sides)
+                                : 20;
+
+                        this.rollingPreviewValue =
+                            this.randomDieValue(
+                                this.rollingSides
+                            );
+
+                        /*
+                        | 70 ms deixa a leitura rápida o suficiente para parecer
+                        | um dado girando, sem usar reticências.
+                        */
+                        this.rollingPreviewTimer =
+                            window.setInterval(
+                                () => {
+                                    this.rollingPreviewValue =
+                                        this.randomDieValue(
+                                            this.rollingSides
+                                        );
+                                },
+                                70
+                            );
+                    },
+
+
+                    stopRollingPreview(
+                        finalValue = null
+                    ) {
+                        if (
+                            this.rollingPreviewTimer
+                        ) {
+                            window.clearInterval(
+                                this.rollingPreviewTimer
+                            );
+                        }
+
+                        this.rollingPreviewTimer =
+                            null;
+
+                        if (
+                            finalValue
+                            !==
+                            null
+                        ) {
+                            this.rollingPreviewValue =
+                                finalValue;
+                        }
+                    },
+
+
+                    async wait(milliseconds) {
+                        await new Promise(
+                            resolve =>
+                                window.setTimeout(
+                                    resolve,
+                                    milliseconds
+                                )
+                        );
+                    },
+
+
+                    async performPolyhedralRoll({
+                        label,
+                        sides,
+                        modifier = 0,
+                        exhaustionPenalty = 0,
+                    }) {
                         if (this.rolling) {
                             return;
                         }
 
-                        const bonus =
-                            parseInt(modifier) || 0;
+                        const normalizedSides =
+                            this.diceOptions.includes(
+                                parseInt(sides)
+                            )
+                                ? parseInt(sides)
+                                : 20;
 
-                        const exhaustionPenalty =
-                            this.exhaustionRollPenalty;
+                        const bonus =
+                            parseInt(modifier)
+                            ||
+                            0;
+
+                        const penalty =
+                            parseInt(
+                                exhaustionPenalty
+                            )
+                            ||
+                            0;
 
                         const effectiveBonus =
                             bonus
-                            - exhaustionPenalty;
+                            -
+                            penalty;
 
                         const expression =
                             effectiveBonus > 0
-                                ? `1d20+${effectiveBonus}`
+                                ? `1d${normalizedSides}+${effectiveBonus}`
                                 : (
                                     effectiveBonus < 0
-                                        ? `1d20${effectiveBonus}`
-                                        : '1d20'
+                                        ? `1d${normalizedSides}${effectiveBonus}`
+                                        : `1d${normalizedSides}`
                                 );
 
-                        this.rolling = true;
-
-                        let total = null;
-                        let die = null;
-                        let formatted = null;
-
-                        try {
-                            const response = await fetch(this.diceRollUrl, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN':
-                                        document
-                                            .querySelector('meta[name="csrf-token"]')
-                                            ?.getAttribute('content')
-                                        ?? '{{ csrf_token() }}',
-                                    'X-Requested-With': 'XMLHttpRequest',
-                                },
-                                body: JSON.stringify({ expression }),
-                            });
-
-                            const data = await response.json().catch(() => ({}));
-
-                            if (!response.ok) {
-                                throw new Error(
-                                    data?.message ?? 'Não foi possível rolar.'
-                                );
-                            }
-
-                            total = parseInt(
-                                data?.data?.total
-                                ?? data?.data?.result
-                                ?? data?.data?.value
-                                ?? data?.data?.sum
-                                ?? data?.total
-                                ?? data?.result
-                            );
-
-                            formatted = data?.formatted ?? null;
-
-                            if (Number.isNaN(total)) {
-                                total = null;
-                            }
-
-                            if (total !== null) {
-                                die = total - effectiveBonus;
-                            }
-                        } catch (error) {
-                            console.error('Erro ao rolar dado:', error);
-
-                            die = Math.floor(Math.random() * 20) + 1;
-                            total = die + effectiveBonus;
-                        } finally {
-                            this.rolling = false;
-                        }
+                        this.rolling =
+                            true;
 
                         this.lastRoll = {
                             label,
+                            sides:
+                                normalizedSides,
+
                             modifier:
                                 bonus,
+
                             exhaustionPenalty:
-                                exhaustionPenalty,
+                                penalty,
+
                             effectiveModifier:
                                 effectiveBonus,
+
+                            die:
+                                null,
+
+                            total:
+                                null,
+
+                            formatted:
+                                null,
+                        };
+
+                        /*
+                        | Abre imediatamente: a pessoa vê o dado "rolando".
+                        */
+                        this.rollToastOpen =
+                            true;
+
+                        if (
+                            this.rollToastTimer
+                        ) {
+                            window.clearTimeout(
+                                this.rollToastTimer
+                            );
+                        }
+
+                        this.startRollingPreview(
+                            normalizedSides
+                        );
+
+                        const startedAt =
+                            Date.now();
+
+                        let total =
+                            null;
+
+                        let die =
+                            null;
+
+                        let formatted =
+                            null;
+
+                        try {
+                            const response =
+                                await fetch(
+                                    this.diceRollUrl,
+                                    {
+                                        method:
+                                            'POST',
+
+                                        headers: {
+                                            'Content-Type':
+                                                'application/json',
+
+                                            'Accept':
+                                                'application/json',
+
+                                            'X-CSRF-TOKEN':
+                                                document
+                                                    .querySelector(
+                                                        'meta[name="csrf-token"]'
+                                                    )
+                                                    ?.getAttribute(
+                                                        'content'
+                                                    )
+                                                ?? '{{ csrf_token() }}',
+
+                                            'X-Requested-With':
+                                                'XMLHttpRequest',
+                                        },
+
+                                        body:
+                                            JSON.stringify({
+                                                expression,
+                                            }),
+                                    }
+                                );
+
+                            const data =
+                                await response
+                                    .json()
+                                    .catch(
+                                        () => ({})
+                                    );
+
+                            if (!response.ok) {
+                                throw new Error(
+                                    data?.message
+                                    ??
+                                    'Não foi possível rolar.'
+                                );
+                            }
+
+                            total =
+                                parseInt(
+                                    data?.data?.total
+                                    ??
+                                    data?.data?.result
+                                    ??
+                                    data?.data?.value
+                                    ??
+                                    data?.data?.sum
+                                    ??
+                                    data?.total
+                                    ??
+                                    data?.result
+                                );
+
+                            formatted =
+                                data?.formatted
+                                ??
+                                null;
+
+                            if (
+                                Number.isNaN(
+                                    total
+                                )
+                            ) {
+                                total =
+                                    null;
+                            }
+
+                            if (
+                                total
+                                !==
+                                null
+                            ) {
+                                die =
+                                    total
+                                    -
+                                    effectiveBonus;
+                            }
+
+                            /*
+                            | Se uma resposta inesperada da API não permitir
+                            | recuperar a face do dado, preservamos um resultado
+                            | válido e coerente para a interface.
+                            */
+                            if (
+                                die === null
+                                ||
+                                die < 1
+                                ||
+                                die > normalizedSides
+                            ) {
+                                die =
+                                    this.randomDieValue(
+                                        normalizedSides
+                                    );
+
+                                total =
+                                    die
+                                    +
+                                    effectiveBonus;
+                            }
+
+                        } catch (error) {
+                            console.error(
+                                'Erro ao rolar dado:',
+                                error
+                            );
+
+                            die =
+                                this.randomDieValue(
+                                    normalizedSides
+                                );
+
+                            total =
+                                die
+                                +
+                                effectiveBonus;
+                        }
+
+                        /*
+                        | Antes a resposta aparecia quase instantaneamente.
+                        | Agora a animação dura no mínimo 1,35 s.
+                        */
+                        const elapsed =
+                            Date.now()
+                            -
+                            startedAt;
+
+                        const minimumAnimation =
+                            1350;
+
+                        if (
+                            elapsed
+                            <
+                            minimumAnimation
+                        ) {
+                            await this.wait(
+                                minimumAnimation
+                                -
+                                elapsed
+                            );
+                        }
+
+                        this.stopRollingPreview(
+                            die
+                        );
+
+                        this.lastRoll = {
+                            label,
+                            sides:
+                                normalizedSides,
+
+                            modifier:
+                                bonus,
+
+                            exhaustionPenalty:
+                                penalty,
+
+                            effectiveModifier:
+                                effectiveBonus,
+
                             die,
                             total,
                             formatted,
                         };
 
-                        this.rollToastOpen = true;
+                        this.rolling =
+                            false;
 
                         window.dispatchEvent(
-                            new CustomEvent('character-dice-rolled', {
-                                detail: this.lastRoll,
-                            })
+                            new CustomEvent(
+                                'character-dice-rolled',
+                                {
+                                    detail:
+                                        this.lastRoll,
+                                }
+                            )
                         );
 
-                        if (this.rollToastTimer) {
-                            clearTimeout(this.rollToastTimer);
-                        }
-
-                        this.rollToastTimer = setTimeout(() => {
-                            this.rollToastOpen = false;
-                        }, 4200);
+                        /*
+                        | Mantemos o resultado visível por alguns segundos
+                        | para permitir uma leitura confortável.
+                        */
+                        this.rollToastTimer =
+                            window.setTimeout(
+                                () => {
+                                    this.rollToastOpen =
+                                        false;
+                                },
+                                5600
+                            );
                     },
+
+
+                    async rollCheck(
+                        label,
+                        modifier
+                    ) {
+                        await this.performPolyhedralRoll({
+                            label,
+                            sides:
+                                20,
+
+                            modifier:
+                                parseInt(
+                                    modifier
+                                )
+                                ||
+                                0,
+
+                            exhaustionPenalty:
+                                this.exhaustionRollPenalty,
+                        });
+                    },
+
+
 
                     requestSave() {
                         if (!this.draft || this.saving) {
@@ -2519,6 +3506,29 @@
                                 JSON.parse(JSON.stringify(this.draft));
 
                             /*
+                            | Outros componentes da ficha podem reagir sem
+                            | reload quando um atributo for salvo.
+                            */
+                            window.dispatchEvent(
+                                new CustomEvent(
+                                    'character-ability-updated',
+                                    {
+                                        detail: {
+                                            abilityKey,
+                                            ability:
+                                                JSON.parse(
+                                                    JSON.stringify(
+                                                        this.abilities[
+                                                            abilityKey
+                                                        ]
+                                                    )
+                                                ),
+                                        },
+                                    }
+                                )
+                            );
+
+                            /*
                              * Fechamento manual porque closeModal()
                              * bloqueia enquanto saving === true.
                              */
@@ -2577,6 +3587,7 @@
         )
     "
     class="
+        character-sheet-theme
         character-stats-sheet
         character-stats-v2
         character-stats-v5
@@ -2585,6 +3596,7 @@
         relative
         xl:-mt-[72px]
     "
+    data-theme="{{ $characterTheme }}"
 >
     {{-- ============================================================
          TÍTULO
@@ -2917,11 +3929,15 @@
 
 
     {{-- ============================================================
-         TOAST DE ROLAGEM
+         TOAST DE ROLAGEM — DADOS POLIGONAIS
     ============================================================= --}}
 
     <div
-        x-show="rollToastOpen && lastRoll"
+        x-show="
+            rollToastOpen
+            &&
+            lastRoll
+        "
         x-cloak
         x-transition
         class="
@@ -2930,7 +3946,7 @@
             bottom-5
             left-1/2
             z-[190]
-            w-[min(92vw,340px)]
+            w-[min(94vw,390px)]
             -translate-x-1/2
             overflow-hidden
             rounded-xl
@@ -2939,101 +3955,261 @@
             bg-[#faf8f2]
         "
     >
-        <div class="flex items-center gap-3 px-3.5 py-3">
+        {{-- RESULTADO PRINCIPAL --}}
+        <div
+            class="
+                flex
+                items-center
+                gap-3
+                px-4
+                pb-3
+                pt-3.5
+            "
+        >
             <div
                 class="
                     flex
-                    h-11
-                    w-11
+                    h-[74px]
+                    w-[74px]
                     shrink-0
                     items-center
                     justify-center
-                    rounded-lg
-                    bg-[#53150f]
-                    font-serif
-                    text-xl
-                    font-black
-                    text-[#f4f1e8]
-                "
-                x-text="lastRoll?.total ?? '—'"
-            ></div>
-
-            <div class="min-w-0 flex-1">
-                <p
-                    class="
-                        truncate
-                        text-[10px]
-                        font-black
-                        text-[#53150f]
-                    "
-                    x-text="lastRoll?.label ?? ''"
-                ></p>
-
-                <p
-                    class="
-                        mt-0.5
-                        text-[8px]
-                        font-bold
-                        text-[#8c6239]
-                    "
-                >
-                    <span x-text="lastRoll?.die ?? '—'"></span>
-                    <span> no d20</span>
-
-                    <span x-show="lastRoll?.modifier !== 0">
-                        ·
-                        <span
-                            x-text="
-                                signed(
-                                    lastRoll?.modifier ?? 0
-                                )
-                            "
-                        ></span>
-                        modificador
-                    </span>
-
-                    <span
-                        x-show="
-                            (lastRoll?.exhaustionPenalty ?? 0) > 0
-                        "
-                    >
-                        ·
-                        <span
-                            class="
-                                font-black
-                                text-[#8b1e16]
-                            "
-
-                            x-text="
-                                '-' + (
-                                    lastRoll?.exhaustionPenalty
-                                    ?? 0
-                                )
-                            "
-                        ></span>
-                        exaustão
-                    </span>
-                </p>
-            </div>
-
-            <button
-                type="button"
-                @click="rollToastOpen = false"
-                class="
-                    flex
-                    h-7
-                    w-7
-                    shrink-0
-                    items-center
-                    justify-center
-                    rounded-md
-                    text-[#8c6239]
-                    hover:bg-[#efe9dc]
                 "
             >
-                ×
-            </button>
+                @foreach([4, 6, 8, 10, 12, 20] as $diceSides)
+                    <div
+                        x-show="
+                            (
+                                lastRoll?.sides
+                                ??
+                                20
+                            )
+                            ===
+                            {{ $diceSides }}
+                        "
+                        x-cloak
+                    >
+                        <x-dice.polyhedral
+                            :sides="$diceSides"
+                            :size="70"
+                        >
+                            <span
+                                x-text="
+                                    rollDisplayDie
+                                "
+                            ></span>
+                        </x-dice.polyhedral>
+                    </div>
+                @endforeach
+            </div>
+
+
+            <div
+                class="
+                    min-w-0
+                    flex-1
+                "
+            >
+                <div
+                    class="
+                        flex
+                        items-start
+                        justify-between
+                        gap-2
+                    "
+                >
+                    <div
+                        class="
+                            min-w-0
+                        "
+                    >
+                        <p
+                            class="
+                                truncate
+                                text-[11px]
+                                font-black
+                                text-[#53150f]
+                            "
+                            x-text="
+                                lastRoll?.label
+                                ??
+                                ''
+                            "
+                        ></p>
+
+                        <p
+                            class="
+                                mt-0.5
+                                text-[9px]
+                                font-bold
+                                text-[#8c6239]
+                            "
+                        >
+                            <span
+                                x-show="
+                                    rolling
+                                "
+                            >
+                                Rolando d<span
+                                    x-text="
+                                        lastRoll?.sides
+                                        ??
+                                        20
+                                    "
+                                ></span>...
+                            </span>
+
+                            <span
+                                x-show="
+                                    !rolling
+                                "
+                                x-cloak
+                            >
+                                <span
+                                    x-text="
+                                        lastRoll?.die
+                                        ??
+                                        '—'
+                                    "
+                                ></span>
+
+                                <span>
+                                    no d
+                                </span>
+
+                                <span
+                                    x-text="
+                                        lastRoll?.sides
+                                        ??
+                                        20
+                                    "
+                                ></span>
+                            </span>
+
+                            <span
+                                x-show="
+                                    (
+                                        lastRoll?.modifier
+                                        ??
+                                        0
+                                    )
+                                    !==
+                                    0
+                                "
+                            >
+                                ·
+
+                                <span
+                                    x-text="
+                                        signed(
+                                            lastRoll?.modifier
+                                            ??
+                                            0
+                                        )
+                                    "
+                                ></span>
+
+                                modificador
+                            </span>
+
+                            <span
+                                x-show="
+                                    (
+                                        lastRoll
+                                            ?.exhaustionPenalty
+                                        ??
+                                        0
+                                    )
+                                    >
+                                    0
+                                "
+                            >
+                                ·
+
+                                <span
+                                    class="
+                                        font-black
+                                        text-[#8b1e16]
+                                    "
+                                    x-text="
+                                        '-'
+                                        +
+                                        (
+                                            lastRoll
+                                                ?.exhaustionPenalty
+                                            ??
+                                            0
+                                        )
+                                    "
+                                ></span>
+
+                                exaustão
+                            </span>
+                        </p>
+                    </div>
+
+
+                    <button
+                        type="button"
+                        @click="
+                            rollToastOpen =
+                                false
+                        "
+                        class="
+                            flex
+                            h-7
+                            w-7
+                            shrink-0
+                            items-center
+                            justify-center
+                            rounded-md
+                            text-[#8c6239]
+                            transition
+                            hover:bg-[#efe9dc]
+                        "
+                    >
+                        ×
+                    </button>
+                </div>
+
+
+                <div
+                    class="
+                        mt-2
+                        flex
+                        items-baseline
+                        gap-2
+                    "
+                >
+                    <span
+                        class="
+                            text-[7px]
+                            font-black
+                            uppercase
+                            tracking-[0.11em]
+                            text-[#9a806d]
+                        "
+                    >
+                        Total
+                    </span>
+
+                    <strong
+                        class="
+                            font-serif
+                            text-[25px]
+                            font-black
+                            leading-none
+                            text-[#53150f]
+                        "
+                        x-text="
+                            rollDisplayTotal
+                        "
+                    ></strong>
+                </div>
+            </div>
         </div>
+
+
     </div>
 
 
@@ -3046,6 +4222,7 @@
             x-show="modalOpen"
             x-cloak
             class="
+                character-sheet-theme
                 fixed
                 inset-0
                 z-[170]
@@ -3054,10 +4231,12 @@
                 justify-center
                 p-4
             "
+            data-theme="{{ $characterTheme }}"
         >
             <div
                 class="
                     character-ability-modal-v2-backdrop
+                    character-theme-modal-backdrop
                     absolute
                     inset-0
                 "
@@ -3070,6 +4249,7 @@
                 @click.stop
                 class="
                     character-ability-modal-v2
+                    character-theme-modal
                     relative
                     z-10
                     flex
@@ -3084,6 +4264,7 @@
                 <div
                     class="
                         character-ability-modal-v2-header
+                        character-theme-modal-header
                         shrink-0
                         border-b
                     "
@@ -4104,26 +5285,20 @@
                     </p>
 
                     <div class="ml-auto flex items-center gap-2">
-
+                        <button
+                            type="button"
+                            @click="closeModal()"
+                            :disabled="saving"
+                            class="character-theme-secondary-button"
+                        >
+                            Cancelar
+                        </button>
 
                         <button
                             type="button"
                             @click="requestSave()"
                             :disabled="saving"
-                            class="
-                                rounded-lg
-                                bg-[#6b1d14]
-                                px-4
-                                py-2
-                                text-[9px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#f4f1e8]
-                                transition
-                                hover:bg-[#53150f]
-                                disabled:opacity-50
-                            "
+                            class="character-theme-primary-button"
                         >
                             <span x-show="!saving">Salvar</span>
                             <span x-show="saving" x-cloak>Salvando...</span>
@@ -4139,6 +5314,8 @@
                     x-cloak
 
                     class="
+                        character-ability-modal-v2-backdrop
+                        character-theme-modal-backdrop
                         absolute
                         inset-0
                         z-30
@@ -4147,36 +5324,24 @@
                         items-center
                         justify-center
 
-                        bg-black/90
-
                         p-4
-
-                        backdrop-blur-[2px]
-                    "
-
-                    style="
-                        background-color:
-                            rgba(8, 6, 5, 0.90);
                     "
                 >
                     <div
                         @click.stop
                         class="
+                            character-theme-modal
                             w-full
                             max-w-sm
                             overflow-hidden
                             rounded-2xl
                             border
-                            border-[#cdbb9f]
-                            bg-[#faf8f2]
-                            shadow-2xl
                         "
                     >
                         <div
                             class="
+                                character-theme-modal-header
                                 border-b
-                                border-[#d8c7ab]/60
-                                bg-[#efe9dc]/65
                                 px-4
                                 py-3
                             "
@@ -4266,12 +5431,11 @@
 
                         <div
                             class="
+                                character-ability-modal-v2-footer
                                 flex
                                 justify-end
                                 gap-2
                                 border-t
-                                border-[#d8c7ab]/60
-                                bg-[#efe9dc]/45
                                 px-4
                                 py-3
                             "
@@ -4279,17 +5443,7 @@
                             <button
                                 type="button"
                                 @click="confirmScoreChange = false"
-                                class="
-                                    rounded-lg
-                                    px-3
-                                    py-2
-                                    text-[9px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                    hover:bg-[#e8dfd1]
-                                "
+                                class="character-theme-secondary-button"
                             >
                                 Voltar
                             </button>
@@ -4297,18 +5451,7 @@
                             <button
                                 type="button"
                                 @click="confirmPermanentScoreChange()"
-                                class="
-                                    rounded-lg
-                                    bg-[#6b1d14]
-                                    px-4
-                                    py-2
-                                    text-[9px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#f4f1e8]
-                                    hover:bg-[#53150f]
-                                "
+                                class="character-theme-primary-button"
                             >
                                 Sim, alterar
                             </button>

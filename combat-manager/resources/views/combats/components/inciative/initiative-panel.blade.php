@@ -212,11 +212,6 @@
                 this.playerHpSyncing
                 ||
                 document.hidden
-                ||
-                Object.keys(
-                    this.playerStates
-                    ?? {}
-                ).length === 0
             ) {
                 return;
             }
@@ -275,6 +270,25 @@
                     const nextStates =
                         data.players;
 
+                    const previousKeys =
+                        Object.keys(
+                            previousStates
+                        )
+                            .sort()
+                            .join(',');
+
+                    const nextKeys =
+                        Object.keys(
+                            nextStates
+                        )
+                            .sort()
+                            .join(',');
+
+                    const rosterChanged =
+                        previousKeys
+                        !==
+                        nextKeys;
+
                     const initiativeChanged =
                         Object.entries(
                             nextStates
@@ -289,7 +303,7 @@
                                     ];
 
                                 if (!previous) {
-                                    return false;
+                                    return true;
                                 }
 
                                 return (
@@ -310,6 +324,8 @@
                         nextStates;
 
                     if (
+                        rosterChanged
+                        ||
                         initiativeChanged
                     ) {
                         await this.refreshInitiativePanel();
@@ -402,14 +418,21 @@
                 |
                 */
 
+                /*
+                 * NÃO reinicialize o root Alpine aqui.
+                 *
+                 * O próprio currentPanel é o elemento que possui x-data.
+                 * Reinicializá-lo após cada atualização parcial zera
+                 * playerStates para o snapshot do HTML recém-buscado e pode
+                 * fazer o próximo polling detectar a mesma iniciativa como
+                 * a mesma mudança novamente, criando um ciclo de atualização.
+                 *
+                 * Alpine observa mutações no DOM e inicializa normalmente os
+                 * novos nós inseridos no innerHTML. O estado do root precisa
+                 * permanecer vivo.
+                 */
                 currentPanel.innerHTML =
                     updatedPanel.innerHTML;
-
-                if (window.Alpine) {
-                    Alpine.initTree(
-                        currentPanel
-                    );
-                }
 
             } catch (error) {
                 console.error(

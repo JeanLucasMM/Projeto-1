@@ -45,6 +45,37 @@
             ];
         })
         ->values();
+
+    /*
+     * Os modais usam x-teleport="body", então deixam de herdar as
+     * variáveis visuais da ficha. Reaplicamos o tema nos portais.
+     */
+    $sheetSettings =
+        is_array($character->sheet_settings ?? null)
+            ? $character->sheet_settings
+            : [];
+
+    $allowedThemes = [
+        'spellbound',
+        'emerald',
+        'rose',
+        'sapphire',
+        'arcane',
+        'midnight',
+        'obsidian',
+        'aurora',
+    ];
+
+    $characterTheme = strtolower(trim((string) data_get(
+        $sheetSettings,
+        'appearance.theme',
+        'spellbound'
+    )));
+
+    if (!in_array($characterTheme, $allowedThemes, true)) {
+        $characterTheme = 'spellbound';
+    }
+
 @endphp
 
 @once
@@ -3391,6 +3422,1325 @@
                 }
             }
 
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V12 — ALTURA MÁXIMA / SCROLL INTERNO
+            |--------------------------------------------------------------------------
+            |
+            | Mantém o cabeçalho e a faixa Esquerda / Direita sempre visíveis.
+            | Somente o corpo das habilidades rola no desktop.
+            | No mobile, evitamos nested scroll e deixamos a página crescer.
+            |
+            */
+
+            .character-features-v12 .character-features-v11-table-wrap {
+                border-radius: 10px;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.72),
+                    0 2px 8px rgba(83,21,15,.025);
+            }
+
+            .character-features-v12 .character-features-v10-column-bar {
+                min-height: 29px;
+                background:
+                    linear-gradient(
+                        180deg,
+                        #eadbc8 0%,
+                        #e5d2ba 100%
+                    );
+            }
+
+            .character-features-v12-scroll {
+                position: relative;
+            }
+
+            .character-features-v12 .character-feature-v9-card {
+                transition:
+                    background .14s ease,
+                    box-shadow .14s ease;
+            }
+
+            .character-features-v12 .character-feature-v9-card:hover,
+            .character-features-v12 .character-feature-v9-card:focus-within {
+                background: #fffaf3;
+                box-shadow:
+                    inset 3px 0 0 rgba(107,29,20,.62);
+            }
+
+            .character-features-v12 .character-feature-v9-quick,
+            .character-features-v12 .character-feature-v9-quick-empty {
+                border-radius: 0 5px 5px 0;
+                background:
+                    rgba(234,219,200,.62);
+            }
+
+            @media (min-width: 900px) {
+                .character-features-v12-scroll {
+                    max-height: 400px;
+                    overflow-x: hidden;
+                    overflow-y: auto;
+
+                    overscroll-behavior: contain;
+                    scrollbar-gutter: stable;
+                    scrollbar-width: thin;
+                    scrollbar-color:
+                        rgba(140,98,57,.46)
+                        rgba(234,219,200,.20);
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar {
+                    width: 8px;
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar-track {
+                    background:
+                        rgba(234,219,200,.20);
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar-thumb {
+                    border:
+                        2px solid
+                        rgba(251,248,241,.92);
+
+                    border-radius: 999px;
+                    background:
+                        rgba(140,98,57,.46);
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar-thumb:hover {
+                    background:
+                        rgba(107,29,20,.56);
+                }
+            }
+
+            @media (max-width: 899px) {
+                .character-features-v12-scroll {
+                    max-height: none;
+                    overflow: visible;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V13 — LEGIBILIDADE / CONTRASTE
+            |--------------------------------------------------------------------------
+            |
+            | Mantém a paleta Spellbound, mas separa melhor papel, texto e faixas.
+            | Informação rápida inexistente não produz placeholder nem caixa vazia.
+            |
+            */
+
+            .character-features-v12 .character-features-v9-title-text {
+                color: #48150f;
+            }
+
+            .character-features-v12 .character-features-v3-count {
+                background: #e8d6c0;
+                color: #694328;
+            }
+
+            .character-features-v12 .character-features-v10-column-bar {
+                border-bottom-color: rgba(130, 87, 52, .34);
+                background:
+                    linear-gradient(
+                        180deg,
+                        #ead7bf 0%,
+                        #e3ccb1 100%
+                    );
+            }
+
+            .character-features-v12 .character-features-v10-column-label {
+                font-size: 9px;
+                font-weight: 900;
+                color: #5b3522;
+            }
+
+            .character-features-v12 .character-feature-v9-card {
+                background: #fffdf8;
+            }
+
+            .character-features-v12
+            .character-features-v9-column
+            .character-feature-v9-card:nth-of-type(even) {
+                background: #fbf6ee;
+            }
+
+            .character-features-v12 .character-feature-v9-card:hover,
+            .character-features-v12 .character-feature-v9-card:focus-within {
+                background: #fff9ef;
+            }
+
+            .character-features-v12 .character-feature-v9-name {
+                font-size: 15px;
+                line-height: 1.16;
+                color: #45140f;
+            }
+
+            .character-features-v12 .character-feature-v9-meta {
+                margin-top: 4px;
+            }
+
+            .character-features-v12 .character-feature-v9-meta-item {
+                font-size: 9.25px;
+                font-weight: 800;
+                line-height: 1.18;
+                color: #6e4d39;
+            }
+
+            .character-features-v12
+            .character-feature-v9-meta-item
+            + .character-feature-v9-meta-item::before {
+                color: rgba(111, 71, 47, .48);
+            }
+
+            .character-features-v12 .character-feature-v9-quick-wrap {
+                padding-bottom: 9px;
+            }
+
+            .character-features-v12 .character-feature-v9-quick {
+                min-height: 35px;
+                border-left-color: rgba(116, 73, 43, .66);
+                border-radius: 0 5px 5px 0;
+                background: #f1e3d0;
+                padding: 6px 9px;
+                font-size: 11.5px;
+                font-weight: 500;
+                line-height: 1.4;
+                color: #4a3427;
+            }
+
+            .character-features-v12 .character-feature-v9-tracker {
+                border-color: rgba(143, 99, 59, .46);
+                background: #f7efe4;
+            }
+
+            .character-features-v12
+            .character-feature-v9-tracker
+            strong {
+                font-size: 12.5px;
+                color: #45140f;
+            }
+
+            .character-features-v12
+            .character-feature-v9-tracker
+            button {
+                color: #7a5234;
+            }
+
+            @media (max-width: 899px) {
+                .character-features-v12 .character-feature-v9-name {
+                    font-size: 15px;
+                }
+
+                .character-features-v12 .character-feature-v9-meta-item {
+                    font-size: 9px;
+                }
+
+                .character-features-v12 .character-feature-v9-quick {
+                    font-size: 11.25px;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V14 — MESMA PALETA DE TRAÇOS / TALENTOS
+            |--------------------------------------------------------------------------
+            |
+            | Mantém toda a geometria e comportamento de Features.
+            | Apenas aproxima as superfícies, textos e interações da paleta
+            | usada em Traços de Espécie + Talentos.
+            |
+            */
+
+            .character-features-v12 .character-features-v11-table-wrap {
+                border-color: rgba(154, 111, 69, .42);
+                background: #f3e7d8;
+                box-shadow:
+                    inset 0 1px 0 rgba(255,255,255,.88),
+                    0 2px 5px rgba(83,21,15,.035);
+            }
+
+            .character-features-v12 .character-features-v9-title-text {
+                color: #48160f;
+            }
+
+            .character-features-v12 .character-features-v3-count {
+                border-color: rgba(135, 91, 50, .24);
+                background: #fffaf2;
+                color: #6b3f25;
+            }
+
+            .character-features-v12 .character-features-v10-column-bar {
+                border-bottom-color: rgba(143, 96, 53, .44);
+                background:
+                    linear-gradient(
+                        180deg,
+                        #ead8c1 0%,
+                        #e2cdb3 100%
+                    );
+            }
+
+            .character-features-v12 .character-features-v10-column-label {
+                color: #5b3522;
+            }
+
+            .character-features-v12
+            .character-features-v9-column
+            + .character-features-v9-column {
+                border-left-color: rgba(143, 96, 53, .30);
+            }
+
+            .character-features-v12 .character-feature-v9-card {
+                border-bottom-color: rgba(169, 128, 83, .28);
+                background: #fffdf8;
+            }
+
+            .character-features-v12
+            .character-features-v9-column
+            .character-feature-v9-card:nth-of-type(even) {
+                background: #f8f0e6;
+            }
+
+            .character-features-v12 .character-feature-v9-card:hover,
+            .character-features-v12 .character-feature-v9-card:focus-within {
+                background: #f1dfcc;
+                box-shadow:
+                    inset 3px 0 0 #7f261d;
+            }
+
+            .character-features-v12 .character-feature-v9-name {
+                color: #49170f;
+            }
+
+            .character-features-v12 .character-feature-v9-meta-item {
+                color: #674936;
+            }
+
+            .character-features-v12
+            .character-feature-v9-meta-item
+            + .character-feature-v9-meta-item::before {
+                color: rgba(103, 73, 54, .42);
+            }
+
+            .character-features-v12 .character-feature-v9-quick {
+                border-left-color: #93623d;
+                background: #eadbc8;
+                color: #462e22;
+            }
+
+            .character-features-v12 .character-feature-v9-tracker {
+                border-color: rgba(155, 111, 68, .38);
+                background: #fffaf2;
+            }
+
+            .character-features-v12
+            .character-feature-v9-tracker
+            strong {
+                border-color: rgba(155, 111, 68, .28);
+                background: #fffdf8;
+                color: #49170f;
+            }
+
+            .character-features-v12
+            .character-feature-v9-tracker
+            button {
+                color: #754625;
+            }
+
+            .character-features-v12
+            .character-feature-v9-tracker
+            button:hover:not(:disabled) {
+                background: #eadbc8;
+                color: #53150f;
+            }
+
+            .character-features-v12 .character-features-v9-empty {
+                background: rgba(255,253,248,.52);
+                color: #745846;
+            }
+
+            @media (min-width: 900px) {
+                .character-features-v12-scroll {
+                    scrollbar-color:
+                        rgba(126, 83, 47, .42)
+                        rgba(234, 216, 194, .36);
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar-track {
+                    background: rgba(234, 216, 194, .32);
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar-thumb {
+                    border: 2px solid transparent;
+                    background: rgba(126, 83, 47, .42);
+                    background-clip: padding-box;
+                }
+
+                .character-features-v12-scroll::-webkit-scrollbar-thumb:hover {
+                    background: rgba(107, 29, 20, .52);
+                    background-clip: padding-box;
+                }
+            }
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | V15 — THEME CORE / PADRÃO VISUAL UNIFICADO
+            |--------------------------------------------------------------------------
+            |
+            | Esta camada final não altera a regra das habilidades.
+            | Ela consolida a apresentação usando o mesmo contrato visual
+            | de Ataques, Transformações e demais editores da ficha.
+            |
+            */
+
+            /* ==============================================================
+               MÓDULO PRINCIPAL
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15 {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0 !important;
+                margin-inline: 0 !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-header {
+                min-height: 42px;
+
+                margin-bottom: 4px !important;
+
+                border-bottom-color:
+                    var(
+                        --theme-divider-strong,
+                        var(--theme-border)
+                    ) !important;
+
+                padding:
+                    2px 5px 9px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-title {
+                border-radius: 8px;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-title:hover {
+                background:
+                    var(--theme-accent-softer) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-title-text {
+                font-size: 18px !important;
+                line-height: 1 !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v3-count {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               TABELA / DUAS COLUNAS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v11-table-wrap {
+                overflow: hidden;
+
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                box-shadow:
+                    var(--theme-module-shadow) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v10-column-bar {
+                min-height: 29px !important;
+
+                border-bottom-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-band-background) !important;
+
+                box-shadow:
+                    none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v10-column-label {
+                font-size: 9px !important;
+                font-weight: 900;
+                letter-spacing: .11em;
+
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v10-column-label
+            + .character-features-v10-column-label {
+                border-left-color:
+                    var(--theme-border) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-column
+            + .character-features-v9-column {
+                border-left-color:
+                    var(--theme-border) !important;
+            }
+
+
+            /* ==============================================================
+               CARDS / LINHAS
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-card,
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-column
+            .character-feature-v9-card:nth-of-type(even) {
+                border-bottom-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-card-background) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                box-shadow:
+                    none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-card:hover,
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-card:focus-within {
+                background:
+                    var(--theme-card-hover) !important;
+
+                box-shadow:
+                    inset 3px 0 0
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 72%,
+                        transparent
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-name {
+                font-size: 14.5px !important;
+                line-height: 1.17 !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-meta-item {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-meta-item
+            + .character-feature-v9-meta-item::before {
+                color:
+                    var(--theme-divider-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-quick {
+                border-left-color:
+                    var(--theme-accent) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-quick-empty {
+                border-left-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+
+            /* ==============================================================
+               TRACKER
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-tracker,
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v3-tracker {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-tracker strong,
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v3-tracker strong {
+                border-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-surface-card) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-tracker button,
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v3-tracker button {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v9-tracker
+            button:hover:not(:disabled),
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-feature-v3-tracker
+            button:hover:not(:disabled) {
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               ESTADO VAZIO / SCROLL
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .character-features-v15
+            .character-features-v9-empty {
+                border-color:
+                    var(--theme-border-soft) !important;
+
+                background:
+                    var(--theme-surface-card-alt) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            @media (min-width: 900px) {
+                .character-sheet-theme[data-theme]
+                .character-features-v15
+                .character-features-v12-scroll {
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
+
+                    scrollbar-width: none !important;
+                    -ms-overflow-style: none !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .character-features-v15
+                .character-features-v12-scroll::-webkit-scrollbar {
+                    width: 0 !important;
+                    height: 0 !important;
+                    display: none !important;
+                }
+            }
+
+
+            /* ==============================================================
+               MODAIS — CONTRATO GLOBAL
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-backdrop {
+                background:
+                    var(
+                        --theme-modal-backdrop,
+                        rgba(0,0,0,.82)
+                    ) !important;
+
+                -webkit-backdrop-filter:
+                    blur(8px) !important;
+
+                backdrop-filter:
+                    blur(8px) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal {
+                width:
+                    min(
+                        780px,
+                        calc(100vw - 28px)
+                    ) !important;
+
+                max-height:
+                    min(
+                        92dvh,
+                        900px
+                    ) !important;
+
+                border-color:
+                    var(
+                        --theme-modal-border,
+                        var(--theme-border)
+                    ) !important;
+
+                border-radius:
+                    18px !important;
+
+                background:
+                    var(
+                        --theme-modal-surface,
+                        var(--theme-paper-strong)
+                    ) !important;
+
+                color:
+                    var(
+                        --theme-modal-text,
+                        var(--theme-text-primary)
+                    ) !important;
+
+                box-shadow:
+                    var(
+                        --theme-modal-shadow,
+                        0 28px 80px rgba(0,0,0,.30)
+                    ) !important;
+            }
+
+            @supports not (height: 1dvh) {
+                .character-sheet-theme[data-theme]
+                .feature-v3-modal {
+                    max-height:
+                        min(
+                            92vh,
+                            900px
+                        ) !important;
+                }
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal-header,
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-footer,
+            .character-sheet-theme[data-theme]
+            .feature-v3-footer {
+                border-color:
+                    var(
+                        --theme-modal-border,
+                        var(--theme-border)
+                    ) !important;
+
+                background:
+                    var(
+                        --theme-modal-header-background,
+                        var(--theme-band-background)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal-header {
+                padding:
+                    17px 19px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal-kicker {
+                margin-bottom:
+                    4px !important;
+
+                font-size:
+                    9.5px !important;
+
+                letter-spacing:
+                    .14em !important;
+
+                color:
+                    var(
+                        --theme-modal-label,
+                        var(--theme-label)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal-title {
+                font-size:
+                    24px !important;
+
+                line-height:
+                    1.12 !important;
+
+                color:
+                    var(
+                        --theme-modal-title,
+                        var(--theme-text-strong)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal-close {
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    var(
+                        --theme-modal-control-shadow,
+                        0 2px 7px rgba(0,0,0,.08)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-modal-close:hover {
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+
+            /* ==============================================================
+               MODAL — LEITURA
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-body,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-body {
+                min-height:
+                    0 !important;
+
+                background:
+                    var(
+                        --theme-modal-surface,
+                        var(--theme-paper-strong)
+                    ) !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+
+                scrollbar-width:
+                    thin;
+
+                scrollbar-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-label) 35%,
+                        transparent
+                    )
+                    transparent;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-body {
+                padding:
+                    20px 21px 22px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-pill {
+                min-height:
+                    29px !important;
+
+                border:
+                    1px solid
+                    var(--theme-border-soft);
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                font-size:
+                    11px !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-quick {
+                border-left-color:
+                    var(--theme-accent) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-description {
+                font-size:
+                    14px !important;
+
+                line-height:
+                    1.72 !important;
+
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-tracker {
+                border-top-color:
+                    var(--theme-divider) !important;
+            }
+
+
+            /* ==============================================================
+               MODAL — EDITOR
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-body {
+                padding:
+                    18px 20px 21px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-section
+            + .feature-editor-v3-section {
+                margin-top:
+                    19px !important;
+
+                border-top-color:
+                    var(--theme-divider) !important;
+
+                padding-top:
+                    18px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-label {
+                margin-bottom:
+                    7px !important;
+
+                font-size:
+                    11.5px !important;
+
+                font-weight:
+                    900 !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-help {
+                font-size:
+                    11.5px !important;
+
+                line-height:
+                    1.5 !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-input,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-select,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-textarea {
+                border-color:
+                    var(--theme-input-border) !important;
+
+                background:
+                    var(--theme-input-bg) !important;
+
+                color:
+                    var(--theme-input-text) !important;
+
+                box-shadow:
+                    none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-input,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-select {
+                min-height:
+                    43px !important;
+
+                font-size:
+                    14px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-textarea {
+                min-height:
+                    142px !important;
+
+                font-size:
+                    14px !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-input::placeholder,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-textarea::placeholder {
+                color:
+                    var(--theme-input-placeholder) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-input:focus,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-select:focus,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-textarea:focus {
+                border-color:
+                    var(--theme-input-focus) !important;
+
+                box-shadow:
+                    0 0 0 3px
+                    color-mix(
+                        in srgb,
+                        var(--theme-input-focus) 15%,
+                        transparent
+                    ) !important;
+            }
+
+
+            /* ==============================================================
+               ESCOLHAS / POSIÇÃO / RASTREADOR
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-choice,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-position button,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-mode button {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-choice:hover,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-position button:hover,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-mode button:hover {
+                background:
+                    var(--theme-card-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-choice.active {
+                border-color:
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+
+                box-shadow:
+                    0 3px 10px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 15%,
+                        transparent
+                    );
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-position button.active,
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-mode button.active {
+                border-color:
+                    var(--theme-accent) !important;
+
+                background:
+                    var(--theme-accent-softer) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-position strong {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-position span {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-editor-v3-counter {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-inset) !important;
+            }
+
+
+            /* ==============================================================
+               FOOTER / BOTÕES
+            ============================================================== */
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-detail-footer,
+            .character-sheet-theme[data-theme]
+            .feature-v3-footer {
+                position:
+                    relative;
+
+                flex-shrink:
+                    0;
+
+                padding:
+                    12px 18px !important;
+
+                box-shadow:
+                    0 -8px 22px
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent-deep) 4%,
+                        transparent
+                    );
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-primary {
+                border:
+                    1px solid
+                    var(--theme-accent-strong) !important;
+
+                background:
+                    var(--theme-button-background) !important;
+
+                color:
+                    var(--theme-button-text) !important;
+
+                box-shadow:
+                    var(
+                        --theme-modal-control-shadow,
+                        0 2px 7px rgba(0,0,0,.08)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-primary:hover {
+                background:
+                    var(--theme-button-hover-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-secondary {
+                border-color:
+                    var(--theme-border) !important;
+
+                background:
+                    var(--theme-surface-raised) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-secondary:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-danger {
+                color:
+                    #991b1b !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-danger:hover {
+                background:
+                    #fff1f2 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .feature-v3-error {
+                border-left-color:
+                    #991b1b !important;
+
+                background:
+                    #fff1f2 !important;
+
+                color:
+                    #991b1b !important;
+            }
+
+
+            /* ==============================================================
+               DARK THEMES
+            ============================================================== */
+
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            )
+            .feature-v3-danger:hover,
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            )
+            .feature-v3-error {
+                background:
+                    rgba(127,29,29,.18) !important;
+            }
+
+
+            /* ==============================================================
+               RESPONSIVO
+            ============================================================== */
+
+            @media (max-width: 640px) {
+                .character-sheet-theme[data-theme]
+                .feature-v3-modal {
+                    width:
+                        calc(100vw - 20px) !important;
+
+                    max-height:
+                        94dvh !important;
+
+                    border-radius:
+                        15px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .feature-v3-modal-header {
+                    padding:
+                        14px 15px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .feature-v3-detail-body,
+                .character-sheet-theme[data-theme]
+                .feature-editor-v3-body {
+                    padding:
+                        15px !important;
+                }
+
+                .character-sheet-theme[data-theme]
+                .feature-v3-footer {
+                    align-items:
+                        flex-end;
+
+                    flex-direction:
+                        column;
+
+                    gap:
+                        10px;
+                }
+
+                .character-sheet-theme[data-theme]
+                .feature-v3-footer-right {
+                    width:
+                        100%;
+
+                    justify-content:
+                        flex-end;
+                }
+            }
+
         </style>
     @endpush
 @endonce
@@ -4274,7 +5624,7 @@
         }
     "
 
-    class="character-features-v3 character-features-v4 character-features-v6 character-features-v8 character-features-v9 character-features-v10 character-features-v11"
+    class="character-features-v3 character-features-v4 character-features-v6 character-features-v8 character-features-v9 character-features-v10 character-features-v11 character-features-v12 character-features-v15"
 >
     <div class="character-features-v3-header character-features-v9-header">
         <button
@@ -4287,10 +5637,6 @@
                 Habilidades
             </span>
 
-            <span
-                class="character-features-v3-count"
-                x-text="features.length"
-            ></span>
         </button>
     </div>
 
@@ -4311,7 +5657,8 @@
         </span>
     </div>
 
-    <div class="character-features-v3-columns character-features-v9-columns">
+    <div class="character-features-v12-scroll">
+        <div class="character-features-v3-columns character-features-v9-columns">
         {{-- ESQUERDA --}}
         <div class="character-features-v3-column character-features-v9-column">
             <template
@@ -4401,21 +5748,15 @@
                         </template>
                     </div>
 
-                    <div class="character-feature-v9-quick-wrap">
+                    <div
+                        x-show="feature.data?.quick_text"
+                        x-cloak
+                        class="character-feature-v9-quick-wrap"
+                    >
                         <p
-                            x-show="feature.data?.quick_text"
-                            x-cloak
                             class="character-feature-v9-quick"
                             x-text="feature.data.quick_text"
                         ></p>
-
-                        <p
-                            x-show="!feature.data?.quick_text"
-                            x-cloak
-                            class="character-feature-v9-quick-empty"
-                        >
-                            Sem informação rápida.
-                        </p>
                     </div>
                 </article>
             </template>
@@ -4518,21 +5859,15 @@
                         </template>
                     </div>
 
-                    <div class="character-feature-v9-quick-wrap">
+                    <div
+                        x-show="feature.data?.quick_text"
+                        x-cloak
+                        class="character-feature-v9-quick-wrap"
+                    >
                         <p
-                            x-show="feature.data?.quick_text"
-                            x-cloak
                             class="character-feature-v9-quick"
                             x-text="feature.data.quick_text"
                         ></p>
-
-                        <p
-                            x-show="!feature.data?.quick_text"
-                            x-cloak
-                            class="character-feature-v9-quick-empty"
-                        >
-                            Sem informação rápida.
-                        </p>
                     </div>
                 </article>
             </template>
@@ -4545,6 +5880,7 @@
                 Nenhuma habilidade nesta coluna.
             </div>
         </div>
+        </div>
     </div>
     </div>
 
@@ -4555,7 +5891,16 @@
         <div
             x-show="detailOpen"
             x-cloak
+            data-theme="{{ $characterTheme }}"
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
             class="
+                character-sheet-theme
+                character-theme-modal-layer
                 fixed
                 inset-0
                 z-[255]
@@ -4568,24 +5913,29 @@
             "
         >
             <div
-                class="feature-v3-backdrop"
+                class="feature-v3-backdrop character-theme-modal-backdrop"
                 @click="closeDetail()"
             ></div>
 
             <section
                 x-show="detailOpen"
-                x-transition.opacity.duration.120ms
-                class="feature-v3-modal"
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+                class="feature-v3-modal character-theme-modal"
                 @click.stop
             >
-                <header class="feature-v3-modal-header">
+                <header class="feature-v3-modal-header character-theme-modal-header">
                     <div>
                         <span class="feature-v3-modal-kicker">
                             Habilidade
                         </span>
 
                         <h3
-                            class="feature-v3-modal-title"
+                            class="feature-v3-modal-title character-theme-modal-title"
                             x-text="
                                 detailFeature?.name
                                 || 'Habilidade'
@@ -4761,7 +6111,16 @@
         <div
             x-show="editorOpen"
             x-cloak
+            data-theme="{{ $characterTheme }}"
+            x-transition:enter="character-theme-modal-layer-enter"
+            x-transition:enter-start="character-theme-modal-layer-enter-start"
+            x-transition:enter-end="character-theme-modal-layer-enter-end"
+            x-transition:leave="character-theme-modal-layer-leave"
+            x-transition:leave-start="character-theme-modal-layer-leave-start"
+            x-transition:leave-end="character-theme-modal-layer-leave-end"
             class="
+                character-sheet-theme
+                character-theme-modal-layer
                 fixed
                 inset-0
                 z-[260]
@@ -4774,17 +6133,22 @@
             "
         >
             <div
-                class="feature-v3-backdrop"
+                class="feature-v3-backdrop character-theme-modal-backdrop"
                 @click="closeEditor()"
             ></div>
 
             <section
                 x-show="editorOpen"
-                x-transition.opacity.duration.120ms
-                class="feature-v3-modal"
+                x-transition:enter="character-theme-modal-panel-enter"
+                x-transition:enter-start="character-theme-modal-panel-enter-start"
+                x-transition:enter-end="character-theme-modal-panel-enter-end"
+                x-transition:leave="character-theme-modal-panel-leave"
+                x-transition:leave-start="character-theme-modal-panel-leave-start"
+                x-transition:leave-end="character-theme-modal-panel-leave-end"
+                class="feature-v3-modal character-theme-modal"
                 @click.stop
             >
-                <header class="feature-v3-modal-header">
+                <header class="feature-v3-modal-header character-theme-modal-header">
                     <div>
                         <span
                             class="feature-v3-modal-kicker"
@@ -4796,7 +6160,7 @@
                         ></span>
 
                         <h3
-                            class="feature-v3-modal-title"
+                            class="feature-v3-modal-title character-theme-modal-title"
                             x-text="
                                 form?.name
                                 || 'Habilidade'

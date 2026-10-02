@@ -133,6 +133,11 @@ class CharacterPartyController extends Controller
             $campaign
         );
 
+        $this->assertPartyMemberVisible(
+            $member,
+            $campaign
+        );
+
         abort_if(
             (int) $member->id === (int) $character->id,
             404
@@ -223,6 +228,11 @@ class CharacterPartyController extends Controller
                 'string',
                 'max:80',
             ],
+            'pages.*.title' => [
+                'nullable',
+                'string',
+                'max:120',
+            ],
             'pages.*.content' => [
                 'nullable',
                 'string',
@@ -231,8 +241,14 @@ class CharacterPartyController extends Controller
         ]);
 
         $pages = collect($validated['pages'])
-            ->map(fn (array $page) => [
+            ->map(fn (array $page, int $index) => [
                 'id' => trim((string) $page['id']),
+                'title' => trim(
+                    (string) (
+                        $page['title']
+                        ?? ('Página ' . ($index + 1))
+                    )
+                ),
                 'content' => (string) ($page['content'] ?? ''),
             ])
             ->values()
@@ -319,6 +335,23 @@ class CharacterPartyController extends Controller
         }
 
         $this->assertCharacterInCampaign(
+            $recipient,
+            $campaign
+        );
+
+        if (
+            $this->isCharacterHiddenFromParty(
+                $character,
+                $campaign
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'recipient_character_id' =>
+                    'Enquanto sua ficha estiver oculta da Party, interações com outros jogadores ficam indisponíveis.',
+            ]);
+        }
+
+        $this->assertPartyMemberVisible(
             $recipient,
             $campaign
         );
@@ -500,6 +533,30 @@ class CharacterPartyController extends Controller
                             continue;
                         }
 
+                        $senderCharacterId =
+                            (int) (
+                                $poke[
+                                    'from_character_id'
+                                ]
+                                ?? 0
+                            );
+
+                        if (
+                            $senderCharacterId > 0
+                            &&
+                            $this->isCharacterHiddenFromParty(
+                                $senderCharacterId,
+                                (int) $note->campaign_id
+                            )
+                        ) {
+                            /*
+                            | O poke continua pendente enquanto o remetente
+                            | estiver escondido. Se o Mestre revelar o Player
+                            | depois, a interação poderá ser entregue.
+                            */
+                            continue;
+                        }
+
                         $delivered[] = [
                             'id' =>
                                 (string) (
@@ -619,6 +676,23 @@ class CharacterPartyController extends Controller
         }
 
         $this->assertCharacterInCampaign($recipient, $campaign);
+
+        if (
+            $this->isCharacterHiddenFromParty(
+                $character,
+                $campaign
+            )
+        ) {
+            throw ValidationException::withMessages([
+                'recipient_character_id' =>
+                    'Enquanto sua ficha estiver oculta da Party, transferências para outros jogadores ficam indisponíveis.',
+            ]);
+        }
+
+        $this->assertPartyMemberVisible(
+            $recipient,
+            $campaign
+        );
 
         $item = CharacterItem::query()
             ->where('character_id', $character->id)
@@ -768,13 +842,51 @@ class CharacterPartyController extends Controller
         Campaign $campaign,
         Character $character
     ): array {
-        $members = $campaign
-            ->characters()
-            ->wherePivot('is_active', true)
-            ->where('characters.id', '!=', $character->id)
-            ->with(['combat', 'classes', 'user'])
-            ->orderBy('characters.name')
-            ->get();
+        $hiddenUserIds =
+            DB::table('campaign_members')
+                ->where(
+                    'campaign_id',
+                    $campaign->id
+                )
+                ->where(
+                    'hidden_from_party',
+                    true
+                )
+                ->pluck(
+                    'user_id'
+                );
+
+        $query =
+            $campaign
+                ->characters()
+                ->wherePivot(
+                    'is_active',
+                    true
+                )
+                ->where(
+                    'characters.id',
+                    '!=',
+                    $character->id
+                );
+
+        if ($hiddenUserIds->isNotEmpty()) {
+            $query->whereNotIn(
+                'characters.user_id',
+                $hiddenUserIds
+            );
+        }
+
+        $members =
+            $query
+                ->with([
+                    'combat',
+                    'classes',
+                    'user',
+                ])
+                ->orderBy(
+                    'characters.name'
+                )
+                ->get();
 
         return $members
             ->map(
@@ -788,6 +900,7 @@ class CharacterPartyController extends Controller
             ->values()
             ->all();
     }
+
 
     private function memberPayload(
         Campaign $campaign,
@@ -937,6 +1050,7 @@ class CharacterPartyController extends Controller
             return [
                 [
                     'id' => 'page-1',
+                    'title' => 'Página 1',
                     'content' => '',
                 ],
             ];
@@ -954,10 +1068,17 @@ class CharacterPartyController extends Controller
         ) {
             $pages = collect($decoded['pages'])
                 ->filter(fn ($page) => is_array($page))
-                ->map(fn (array $page) => [
+                ->values()
+                ->map(fn (array $page, int $index) => [
                     'id' => trim(
                         (string) ($page['id'] ?? '')
                     ) ?: ('page-' . uniqid()),
+                    'title' => trim(
+                        (string) (
+                            $page['title']
+                            ?? ('Página ' . ($index + 1))
+                        )
+                    ),
                     'content' => (string) ($page['content'] ?? ''),
                 ])
                 ->take(50)
@@ -972,9 +1093,71 @@ class CharacterPartyController extends Controller
         return [
             [
                 'id' => 'legacy-page-1',
+                'title' => 'Página 1',
                 'content' => $raw,
             ],
         ];
+    }
+
+
+    private function assertPartyMemberVisible(
+        Character $member,
+        Campaign $campaign
+    ): void {
+        abort_if(
+            $this->isCharacterHiddenFromParty(
+                $member,
+                $campaign
+            ),
+            404
+        );
+    }
+
+
+    private function isCharacterHiddenFromParty(
+        Character|int $character,
+        Campaign|int $campaign
+    ): bool {
+        $characterId =
+            $character instanceof Character
+                ? (int) $character->id
+                : (int) $character;
+
+        $campaignId =
+            $campaign instanceof Campaign
+                ? (int) $campaign->id
+                : (int) $campaign;
+
+        if (
+            $characterId <= 0
+            ||
+            $campaignId <= 0
+        ) {
+            return false;
+        }
+
+        return DB::table(
+            'campaign_members'
+        )
+            ->join(
+                'characters',
+                'characters.user_id',
+                '=',
+                'campaign_members.user_id'
+            )
+            ->where(
+                'campaign_members.campaign_id',
+                $campaignId
+            )
+            ->where(
+                'characters.id',
+                $characterId
+            )
+            ->where(
+                'campaign_members.hidden_from_party',
+                true
+            )
+            ->exists();
     }
 
 
@@ -991,7 +1174,7 @@ class CharacterPartyController extends Controller
                 'Tô falando com você!',
                 'Acorda pra vida!',
                 'Tem alguém tentando chamar sua atenção.',
-                'Acorda Samurai, temos uma cidade pra queimar.',
+                'Alô? Tem aventureiro em casa?',
             ],
 
             '👀' => [
@@ -1004,7 +1187,7 @@ class CharacterPartyController extends Controller
                 'Hmm... interessante 👀',
                 'Eu tô vendo tudo.',
                 'Suspeito. Muito suspeito.',
-                'Averiguando Resenha.',
+                'Dois olhos. Zero confiança.',
             ],
 
             '💩' => [
@@ -1014,12 +1197,12 @@ class CharacterPartyController extends Controller
                 'Bosta.',
                 'Badalhoca.',
                 'Isso fede.',
-                'Merdão',
+                'Quem deixou isso aqui?',
                 'Que situação de merda.',
                 'Parabéns, virou adubo.',
                 'Cheiro de problema.',
-                'Ossa que Bosta.',
-                'Cagaro.',
+                'Isso aí tá uma porcaria.',
+                'Alguém pisa nisso, por favor.',
                 'Que belo monte de 💩.',
                 'O ambiente ficou insalubre.',
             ],
@@ -1035,9 +1218,9 @@ class CharacterPartyController extends Controller
                 'Foi de base?',
                 'Alguém chama o clérigo.',
                 'Seu inventário já tem herdeiro?',
-                'Já pode arrastar pra cima ?.',
+                'Essa caveira tá chegando cedo.',
                 'Começa a separar o loot.',
-                'Você tá com cara de defunto.',
+                'Você tá com uma cara meio póstuma.',
                 'Se cair, eu pego seus itens.',
             ],
 
@@ -1071,7 +1254,7 @@ class CharacterPartyController extends Controller
                 'Cinema.',
                 'Brabo demais.',
                 'Isso foi criminosamente bonito.',
-                'Comprou o dado viciado ?.',
+                'O dado veio possuído.',
                 'Alguém apaga esse incêndio!',
             ],
         ];

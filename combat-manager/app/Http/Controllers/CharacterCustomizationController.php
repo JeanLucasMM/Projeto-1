@@ -79,6 +79,17 @@ class CharacterCustomizationController extends Controller
                 'boolean',
             ],
 
+            'sheet_settings.appearance' => [
+                'nullable',
+                'array',
+            ],
+
+            'sheet_settings.appearance.theme' => [
+                'nullable',
+                'string',
+                'in:spellbound,emerald,rose,sapphire,arcane,midnight,obsidian,aurora',
+            ],
+
             'sheet_settings.optional_rules' => [
                 'nullable',
                 'array',
@@ -90,6 +101,11 @@ class CharacterCustomizationController extends Controller
             ],
 
             'sheet_settings.optional_rules.exhaustion' => [
+                'nullable',
+                'boolean',
+            ],
+
+            'sheet_settings.optional_rules.transformations' => [
                 'nullable',
                 'boolean',
             ],
@@ -163,6 +179,14 @@ class CharacterCustomizationController extends Controller
             ],
 
             /*
+             * Aparência persistente da ficha do Player.
+             */
+            'appearance' => [
+                'theme' =>
+                    'spellbound',
+            ],
+
+            /*
              * Regras especiais/opcionais da ficha.
              *
              * A interface separa essas regras das simples opções visuais.
@@ -170,6 +194,7 @@ class CharacterCustomizationController extends Controller
             'optional_rules' => [
                 'morquen' => false,
                 'exhaustion' => false,
+                'transformations' => false,
             ],
         ];
 

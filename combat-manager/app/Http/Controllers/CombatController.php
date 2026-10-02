@@ -17,6 +17,7 @@ use App\Models\Combat;
 use App\Models\CombatNpc;
 use App\Models\Campaign;
 use App\Models\Character;
+use App\Models\CombatParticipationRequest;
 
 
 
@@ -332,43 +333,57 @@ class CombatController extends Controller
     }
 
     /**
-     * Inicia o combate ativo e gera o evento inicial.
+     * Inicia o combate e chama os personagens ativos da campanha.
      */
     public function start(int $combatId)
     {
         $combat = $this->combatService->findById($combatId);
 
-        abort_if(!$combat || $combat->user_id !== Auth::id(), 404);
-
-        /*
-        | Garante que as últimas rolagens dos Players estejam gravadas
-        | antes de congelar a ordem inicial do combate.
-        */
-        $this->syncLinkedPlayerInitiatives(
-            $combat
+        abort_if(
+            !$combat || (int) $combat->user_id !== (int) Auth::id(),
+            404
         );
 
+        $this->syncLinkedPlayerInitiatives($combat);
         $this->combatService->startCombat($combat);
+        $combat->refresh();
 
-        // Registro do evento de início de combate
+        $invited = $this->openCampaignParticipationRequests($combat);
+
         $this->logCombatEvent($combat->id, 1, 0, 'O combate foi iniciado!');
 
-        return back()->with('success', 'O combate começou!');
+        return back()->with(
+            'success',
+            $invited > 0
+                ? "O combate começou! {$invited} jogador(es) receberam o chamado."
+                : 'O combate começou!'
+        );
     }
 
     /**
-     * Reseta o progresso do combate e limpa o histórico de eventos se necessário.
+     * Reseta o progresso do combate.
      */
     public function reset(int $combatId)
     {
         $combat = $this->combatService->findById($combatId);
 
-        abort_if(!$combat || $combat->user_id !== Auth::id(), 404);
+        abort_if(
+            !$combat || (int) $combat->user_id !== (int) Auth::id(),
+            404
+        );
 
         $this->combatService->resetCombat($combat);
 
-        // Registro do evento de reset do combate
-        $this->logCombatEvent($combat->id, 1, 0, 'O progresso do combate foi reiniciado.');
+        CombatParticipationRequest::query()
+            ->where('combat_id', $combat->id)
+            ->delete();
+
+        $this->logCombatEvent(
+            $combat->id,
+            1,
+            0,
+            'O progresso do combate foi reiniciado.'
+        );
 
         return back()->with('success', 'Combate reiniciado.');
     }
@@ -619,13 +634,19 @@ class CombatController extends Controller
         );
 
         /*
-        | O painel consulta este endpoint a cada segundo.
-        | Aproveitamos a mesma chamada para consumir a iniciativa que o
-        | Player rolou na própria ficha.
+        | O polling do Mestre também expira chamados sem resposta.
         */
-        $this->syncLinkedPlayerInitiatives(
-            $combat
-        );
+        CombatParticipationRequest::query()
+            ->where('combat_id', $combat->id)
+            ->where('status', 'pending')
+            ->where('expires_at', '<=', now())
+            ->update([
+                'status' => 'declined',
+                'responded_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+        $this->syncLinkedPlayerInitiatives($combat);
 
         $players =
             $combat
@@ -1008,6 +1029,98 @@ class CombatController extends Controller
 
         return back();
     }
+
+    /*
+    |--------------------------------------------------------------------------
+    | CHAMADO DE PARTICIPAÇÃO DA CAMPANHA
+    |--------------------------------------------------------------------------
+    */
+
+    private function openCampaignParticipationRequests(Combat $combat): int
+    {
+        if ($combat->campaign_id === null) {
+            return 0;
+        }
+
+        $campaign = Campaign::query()
+            ->whereKey($combat->campaign_id)
+            ->where('owner_user_id', Auth::id())
+            ->first();
+
+        if (!$campaign) {
+            return 0;
+        }
+
+        $alreadyInCombat = $combat
+            ->players()
+            ->whereNotNull('character_id')
+            ->pluck('character_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $characters = $campaign
+            ->characters()
+            ->wherePivot('is_active', true)
+            ->where('characters.user_id', '!=', Auth::id())
+            ->with(['combat'])
+            ->orderBy('characters.id')
+            ->get()
+            ->unique('user_id')
+            ->values();
+
+        $invited = 0;
+
+        foreach ($characters as $character) {
+            if (in_array((int) $character->id, $alreadyInCombat, true)) {
+                continue;
+            }
+
+            $this->clearCharacterCombatInitiative($character);
+
+            CombatParticipationRequest::query()->updateOrCreate(
+                [
+                    'combat_id' => $combat->id,
+                    'character_id' => $character->id,
+                ],
+                [
+                    'status' => 'pending',
+                    'initiative' => null,
+                    'expires_at' => now()->addMinute(),
+                    'responded_at' => null,
+                ]
+            );
+
+            $invited++;
+        }
+
+        return $invited;
+    }
+
+
+    private function clearCharacterCombatInitiative(Character $character): void
+    {
+        $characterCombat = $character->combat;
+
+        if (!$characterCombat) {
+            return;
+        }
+
+        $overrides = $characterCombat->overrides ?? [];
+
+        if (is_string($overrides)) {
+            $decoded = json_decode($overrides, true);
+            $overrides = is_array($decoded) ? $decoded : [];
+        }
+
+        if (!is_array($overrides)) {
+            $overrides = [];
+        }
+
+        data_set($overrides, 'quick_stats.initiative.combat_value', null);
+        $characterCombat->overrides = $overrides;
+        $characterCombat->save();
+    }
+
 
     /*
     |--------------------------------------------------------------------------

@@ -159,6 +159,55 @@
             };
     @endphp
 
+    <style>
+        /* ============================================================
+           SCROLLBARS — PALETA GLOBAL DA CAMPANHA
+           ============================================================ */
+        html,
+        body,
+        body * {
+            scrollbar-width: thin;
+            scrollbar-color: #a98569 #ece2d5;
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        body *::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+
+        html::-webkit-scrollbar-track,
+        body::-webkit-scrollbar-track,
+        body *::-webkit-scrollbar-track {
+            border-radius: 999px;
+            background: #ece2d5;
+            box-shadow: inset 0 0 0 1px rgba(205,187,159,.35);
+        }
+
+        html::-webkit-scrollbar-thumb,
+        body::-webkit-scrollbar-thumb,
+        body *::-webkit-scrollbar-thumb {
+            min-height: 38px;
+            border: 2px solid #ece2d5;
+            border-radius: 999px;
+            background: linear-gradient(180deg,#b48d70 0%,#987056 100%);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.24);
+        }
+
+        html::-webkit-scrollbar-thumb:hover,
+        body::-webkit-scrollbar-thumb:hover,
+        body *::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg,#9b6f53 0%,#7e513d 100%);
+        }
+
+        html::-webkit-scrollbar-corner,
+        body::-webkit-scrollbar-corner,
+        body *::-webkit-scrollbar-corner {
+            background: #ece2d5;
+        }
+    </style>
+
 
     <div
         x-data="{
@@ -175,163 +224,35 @@
                 'overview',
         }"
         class="
-            min-h-screen
+            sb-campaign-scroll-theme
             bg-[#eee7dc]
-            px-4
-            py-7
-            sm:px-6
-            lg:px-8
+            px-3
+            sm:px-5
+            lg:px-6
+
+            {{
+                $isOwner
+                    ? 'h-[100dvh] overflow-hidden py-2'
+                    : 'min-h-screen py-3'
+            }}
         "
     >
         <div
             class="
                 mx-auto
                 max-w-[1480px]
+
+                {{
+                    $isOwner
+                        ? 'flex h-full min-h-0 flex-col'
+                        : ''
+                }}
             "
         >
-            <div
-                class="
-                    mb-5
-                    flex
-                    items-center
-                    justify-between
-                    gap-4
-                "
-            >
-                <a
-                    href="{{ route('campaigns.index') }}"
-                    class="
-                        inline-flex
-                        items-center
-                        gap-2
-                        text-xs
-                        font-black
-                        text-[#6b1d14]
-                        transition
-                        hover:text-[#53150f]
-                    "
-                >
-                    ← Campanhas
-                </a>
-
-                @if($isOwner)
-                    <div
-                        class="
-                            relative
-                        "
-                        x-on:click.outside="
-                            optionsOpen = false
-                        "
-                    >
-                        <button
-                            type="button"
-                            x-on:click="
-                                optionsOpen =
-                                    !optionsOpen
-                            "
-                            class="
-                                flex
-                                h-9
-                                w-9
-                                items-center
-                                justify-center
-                                rounded-full
-                                text-[#8c6239]
-                                transition
-                                hover:bg-[#eadbc8]
-                                hover:text-[#53150f]
-                            "
-                            title="Opções da campanha"
-                        >
-                            <svg
-                                class="
-                                    h-5
-                                    w-5
-                                "
-                                viewBox="0 0 24 24"
-                                fill="currentColor"
-                                aria-hidden="true"
-                            >
-                                <circle
-                                    cx="5"
-                                    cy="12"
-                                    r="1.6"
-                                />
-                                <circle
-                                    cx="12"
-                                    cy="12"
-                                    r="1.6"
-                                />
-                                <circle
-                                    cx="19"
-                                    cy="12"
-                                    r="1.6"
-                                />
-                            </svg>
-                        </button>
-
-                        <div
-                            x-show="
-                                optionsOpen
-                            "
-                            x-cloak
-                            x-transition
-                            class="
-                                absolute
-                                right-0
-                                top-11
-                                z-30
-                                w-48
-                                overflow-hidden
-                                rounded-xl
-                                border
-                                border-[#cdbb9f]
-                                bg-[#fffdf8]
-                                py-1
-                                shadow-xl
-                            "
-                        >
-                            <form
-                                method="POST"
-                                action="{{ route('campaigns.destroy', $campaign) }}"
-                                onsubmit="
-                                    return confirm(
-                                        'Excluir esta campanha?'
-                                    )
-                                "
-                            >
-                                @csrf
-                                @method('DELETE')
-
-                                <button
-                                    type="submit"
-                                    class="
-                                        w-full
-                                        px-3
-                                        py-2.5
-                                        text-left
-                                        text-[9px]
-                                        font-black
-                                        uppercase
-                                        tracking-wider
-                                        text-red-700
-                                        transition
-                                        hover:bg-red-50
-                                    "
-                                >
-                                    Excluir campanha
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @endif
-            </div>
-
-
             @if(session('success'))
                 <div
                     class="
-                        mb-5
+                        mb-2
                         rounded-xl
                         border
                         border-[#cdbb9f]/70
@@ -351,7 +272,7 @@
             @if($errors->any())
                 <div
                     class="
-                        mb-5
+                        mb-2
                         rounded-xl
                         border
                         border-[#b46a62]/45
@@ -368,162 +289,86 @@
 
 
             {{-- ============================================================
-                 CABEÇALHO DA CAMPANHA
+                 CAMPANHA — BARRA MÍNIMA
             ============================================================= --}}
             <section
                 class="
-                    relative
-                    overflow-hidden
-                    rounded-[26px]
-                    border
-                    border-[#b08c62]/40
-                    bg-[#fffdf8]
-                    shadow-[0_10px_35px_rgba(83,21,15,.06)]
+                    flex
+                    h-10
+                    shrink-0
+                    items-center
+                    gap-2
+                    border-b
+                    border-[#cdbb9f]/45
+                    px-0.5
                 "
             >
-                <div
+                <a
+                    href="{{ route('campaigns.index') }}"
                     class="
-                        bg-[linear-gradient(135deg,#eadbc8_0%,#f3e7da_62%,#fffdf8_100%)]
-                        px-6
-                        py-6
-                        sm:px-8
-                        lg:px-10
-                        lg:py-8
+                        flex
+                        h-7
+                        w-7
+                        shrink-0
+                        items-center
+                        justify-center
+                        rounded-lg
+                        border
+                        border-[#cdbb9f]/55
+                        bg-[#fffdf8]
+                        text-[11px]
+                        font-black
+                        text-[#6b1d14]
+                        transition
+                        hover:bg-[#eadbc8]
+                    "
+                    title="Voltar para Campanhas"
+                >
+                    ←
+                </a>
+
+                <h1
+                    class="
+                        min-w-0
+                        flex-1
+                        truncate
+                        font-serif
+                        text-[15px]
+                        font-black
+                        leading-none
+                        text-[#53150f]
                     "
                 >
-                    <div
+                    {{ $campaign->name }}
+                </h1>
+
+                @if($isOwner)
+                    <button
+                        type="button"
+                        x-on:click="
+                            inviteOpen =
+                                true
+                        "
                         class="
-                            flex
-                            flex-col
-                            gap-5
-                            lg:flex-row
-                            lg:items-end
-                            lg:justify-between
+                            inline-flex
+                            h-7
+                            shrink-0
+                            items-center
+                            rounded-lg
+                            bg-[#6b1d14]
+                            px-2.5
+                            text-[7px]
+                            font-black
+                            uppercase
+                            tracking-[0.07em]
+                            text-[#fffaf2]
+                            transition
+                            hover:bg-[#53150f]
                         "
                     >
-                        <div
-                            class="
-                                min-w-0
-                            "
-                        >
-                            <p
-                                class="
-                                    text-[9px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.18em]
-                                    text-[#8c6239]
-                                "
-                            >
-                                {{
-                                    $isOwner
-                                        ? 'Mesa do Mestre'
-                                        : 'Campanha'
-                                }}
-                            </p>
-
-                            <h1
-                                class="
-                                    mt-2
-                                    font-serif
-                                    text-3xl
-                                    font-black
-                                    leading-tight
-                                    text-[#53150f]
-                                    sm:text-4xl
-                                "
-                            >
-                                {{ $campaign->name }}
-                            </h1>
-
-                            @if($campaign->description)
-                                <p
-                                    class="
-                                        mt-3
-                                        max-w-3xl
-                                        text-sm
-                                        leading-6
-                                        text-[#76553f]
-                                    "
-                                >
-                                    {{ $campaign->description }}
-                                </p>
-                            @endif
-                        </div>
-
-                        <div
-                            class="
-                                flex
-                                flex-wrap
-                                gap-2
-                            "
-                        >
-                            <div
-                                class="
-                                    min-w-[130px]
-                                    rounded-xl
-                                    border
-                                    border-[#cdbb9f]/70
-                                    bg-[#fffdf8]/60
-                                    px-4
-                                    py-3
-                                "
-                            >
-                                <p
-                                    class="
-                                        text-[8px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.14em]
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Mestre
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-1
-                                        truncate
-                                        font-serif
-                                        text-sm
-                                        font-black
-                                        text-[#53150f]
-                                    "
-                                >
-                                    {{ $campaign->owner->name }}
-                                </p>
-                            </div>
-
-                            @if($isOwner)
-                                <button
-                                    type="button"
-                                    x-on:click="
-                                        inviteOpen = true
-                                    "
-                                    class="
-                                        inline-flex
-                                        min-h-[58px]
-                                        items-center
-                                        justify-center
-                                        rounded-xl
-                                        bg-[#6b1d14]
-                                        px-5
-                                        text-[9px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.12em]
-                                        text-[#fffaf2]
-                                        transition
-                                        hover:bg-[#53150f]
-                                    "
-                                >
-                                    + Convidar jogador
-                                </button>
-                            @endif
-                        </div>
-                    </div>
-                </div>
+                        + Convidar
+                    </button>
+                @endif
             </section>
 
 
@@ -537,6 +382,7 @@
                     [
                         'campaign' => $campaign,
                         'campaignCombats' => $campaignCombats,
+                        'masterShieldInitial' => $masterShieldInitial,
                     ]
                 )
 
@@ -1656,6 +1502,34 @@
                     </form>
                 </section>
             </div>
+        @endif
+
+        @if($isOwner)
+            <section
+                class="
+                    mt-10
+                    border-t
+                    border-[#cdbb9f]/45
+                    pt-5
+                    text-right
+                "
+            >
+                <a
+                    href="{{ route('campaigns.destroy.confirm', $campaign) }}"
+                    class="
+                        text-[8px]
+                        font-black
+                        uppercase
+                        tracking-[0.12em]
+                        text-red-700
+                        transition
+                        hover:text-red-900
+                        hover:underline
+                    "
+                >
+                    Excluir campanha
+                </a>
+            </section>
         @endif
     </div>
 
