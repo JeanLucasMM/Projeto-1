@@ -226,6 +226,21 @@
             }
 
 
+            /* PV TEMPORÁRIOS — mesmos tokens do painel de dano/cura. */
+            .character-sheet-theme[data-theme] .hero-temp-hp-apply {
+                border-color: var(--theme-border-strong, var(--theme-border)) !important;
+                background: var(--theme-button-background, var(--theme-accent)) !important;
+                color: var(--theme-button-text, #fff) !important;
+            }
+
+            .character-sheet-theme[data-theme] .hero-temp-hp-apply:hover:not(:disabled) {
+                background: var(--theme-button-hover-background, var(--theme-accent-strong)) !important;
+            }
+
+            .character-sheet-theme[data-theme] .hero-hp-quick-panel label {
+                color: var(--theme-text-strong) !important;
+            }
+
             /* FEEDBACK */
 
             .hero-hp-feedback {
@@ -1298,105 +1313,39 @@
 
 
 
-            {{-- VIDA TEMPORÁRIA --}}
-
-            <template x-if="!editingTempHp">
-
-                <button
-
-                    type="button"
-
-                    @click="
-
+            {{-- VIDA TEMPORÁRIA: abre um único painel, sem input dentro da barra. --}}
+            <button
+                type="button"
+                @click.stop="
+                    if (editingTempHp) {
+                        editingTempHp = false;
                         directTempHp = temporaryHp;
-
+                    } else {
+                        directTempHp = temporaryHp;
+                        if (hpQuickOpen) closeHpQuick();
                         editingTempHp = true;
-
                         $nextTick(() => {
-
                             $refs.tempHp.focus();
-
                             $refs.tempHp.select();
-
                         });
-
-                    "
-
-                    :class="
-
-                        temporaryHp > 0
-
-                            ? 'border-sky-300/70 bg-sky-100/90 text-sky-800 hover:bg-sky-100'
-
-                            : 'border-white/15 bg-black/20 text-white/55 hover:bg-black/30 hover:text-white/75'
-
-                    "
-
-                    class="inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-bold transition-colors"
-
-                    title="Vida Temporária"
-
-                >
-
-                    <svg
-
-                        class="h-3 w-3 shrink-0"
-
-                        viewBox="0 0 24 24"
-
-                        fill="none"
-
-                        stroke="currentColor"
-
-                        stroke-width="1.8"
-
-                        stroke-linecap="round"
-
-                        stroke-linejoin="round"
-
-                        aria-hidden="true"
-
-                    >
-
-                        <path d="M12 3.5 19 6v5.2c0 4.3-2.7 7.7-7 9.3-4.3-1.6-7-5-7-9.3V6l7-2.5Z" />
-
-                    </svg>
-
-                    <span x-text="temporaryHp"></span>
-
-                </button>
-
-            </template>
-
-            <input
-
-                x-ref="tempHp"
-
-                x-show="editingTempHp"
-
-                x-cloak
-
-                type="number"
-
-                min="0"
-
-                x-model.number="directTempHp"
-
-                @keydown.enter="$el.blur()"
-
-                @keydown.escape="
-
-                    editingTempHp = false;
-
-                    directTempHp = temporaryHp;
-
+                    }
                 "
-
-                @blur="handleTemporaryHp()"
-
-                class="h-6 w-14 rounded border border-sky-400/50 bg-sky-900 text-center text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-sky-300"
-
+                :aria-expanded="editingTempHp ? 'true' : 'false'"
+                :class="temporaryHp > 0
+                    ? 'border-sky-300/70 bg-sky-100/90 text-sky-800 hover:bg-sky-100'
+                    : 'border-white/20 bg-black/25 text-white/75 hover:bg-black/40 hover:text-white'"
+                class="inline-flex h-6 min-w-[48px] items-center justify-center gap-1 rounded-md border px-2 text-[10px] font-black tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
+                title="Definir pontos de vida temporários"
+                aria-label="Abrir editor de pontos de vida temporários"
+                aria-controls="hero-temp-hp-panel-{{ $character->id }}"
             >
+                <svg class="h-3 w-3 shrink-0" viewBox="0 0 24 24"
+                    fill="none" stroke="currentColor" stroke-width="1.8"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3.5 19 6v5.2c0 4.3-2.7 7.7-7 9.3-4.3-1.6-7-5-7-9.3V6l7-2.5Z" />
+                </svg>
+                <span x-text="temporaryHp"></span>
+            </button>
 
         </div>
 
@@ -1441,6 +1390,68 @@
     </div>
 
 
+
+    {{-- PV TEMPORÁRIOS — painel independente; salvar somente ao confirmar. --}}
+    <div
+        id="hero-temp-hp-panel-{{ $character->id }}"
+        x-show="editingTempHp"
+        x-cloak
+        x-transition:enter="transition duration-150 ease-out"
+        x-transition:enter-start="opacity-0 -translate-y-1 scale-[.98]"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition duration-100 ease-in"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 -translate-y-1 scale-[.98]"
+        @keydown.escape.stop="editingTempHp = false; directTempHp = temporaryHp"
+        @click.stop
+        @click.outside="if (editingTempHp) { editingTempHp = false; directTempHp = temporaryHp; }"
+        class="hero-hp-quick-panel absolute left-1/2 top-full z-[116] mt-2 w-[min(285px,calc(100vw-2rem))] -translate-x-1/2 rounded-xl border p-3"
+        role="group"
+        aria-label="Definir pontos de vida temporários"
+    >
+        <span class="hero-hp-quick-pointer absolute -top-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-l border-t" aria-hidden="true"></span>
+
+        <div class="relative flex items-center gap-2.5">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-sky-500/25 bg-sky-400/10 text-sky-500" aria-hidden="true">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3.5 19 6v5.2c0 4.3-2.7 7.7-7 9.3-4.3-1.6-7-5-7-9.3V6l7-2.5Z" />
+                </svg>
+            </span>
+            <div class="min-w-0 flex-1">
+                <label for="hero-temp-hp-value-{{ $character->id }}" class="block text-[10px] font-black uppercase tracking-[.08em]">
+                    PV temporários
+                </label>
+                <p class="hero-hp-quick-footer mt-0.5 text-[9px]">Defina o valor total.</p>
+            </div>
+        </div>
+
+        <div class="mt-3 flex items-center gap-2">
+            <input
+                id="hero-temp-hp-value-{{ $character->id }}"
+                x-ref="tempHp"
+                type="number"
+                min="0"
+                step="1"
+                inputmode="numeric"
+                x-model.number="directTempHp"
+                @keydown.enter.prevent="if (Number.isInteger(Number(directTempHp)) && Number(directTempHp) >= 0 && directTempHp !== '') handleTemporaryHp()"
+                class="hero-hp-quick-input h-9 min-w-0 flex-1 rounded-lg border px-3 text-center font-serif text-sm font-black focus:outline-none"
+                aria-label="Valor de PV temporários"
+            >
+            <button
+                type="button"
+                @click="handleTemporaryHp()"
+                :disabled="directTempHp === '' || !Number.isInteger(Number(directTempHp)) || Number(directTempHp) < 0"
+                class="hero-temp-hp-apply inline-flex h-9 shrink-0 items-center justify-center rounded-lg border px-3 text-[10px] font-black transition disabled:cursor-not-allowed disabled:opacity-40"
+            >
+                Aplicar
+            </button>
+        </div>
+        <div class="hero-hp-quick-footer mt-2 flex items-center justify-between gap-2 text-[9px]">
+            <span>Use 0 para remover.</span>
+            <button type="button" @click="editingTempHp = false; directTempHp = temporaryHp" class="text-[9px] font-bold">Fechar</button>
+        </div>
+    </div>
 
     {{-- ================================================================
 
@@ -1704,7 +1715,7 @@
 
                         @click="
 
-                            applyHpQuick(*'damage')*
+                            applyHpQuick('damage')
 
                         "
 
@@ -1915,7 +1926,7 @@
 
                         @click="
 
-                            applyHpQuick(*'heal')*
+                            applyHpQuick('heal')
 
                         "
 
@@ -2428,4 +2439,4 @@
 
     </div>
 
-</div>  
+</div>

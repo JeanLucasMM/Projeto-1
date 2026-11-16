@@ -7,6 +7,8 @@ use InvalidArgumentException;
 
 class FiveEToolsSpellNormalizer
 {
+    private const NORMALIZER_VERSION = 'spellbound-spell-normalizer-v4';
+
     private const SCHOOL_NAMES = [
         'A' => 'Abjuration',
         'C' => 'Conjuration',
@@ -38,6 +40,7 @@ class FiveEToolsSpellNormalizer
 
         $descriptionData = $spell['entries'] ?? [];
         $higherLevelData = $spell['entriesHigherLevel'] ?? null;
+        $scalingLevelDice = $spell['scalingLevelDice'] ?? null;
 
         $damageTypes = $this->stringList($spell['damageInflict'] ?? []);
         $savingThrows = $this->stringList($spell['savingThrow'] ?? []);
@@ -68,9 +71,7 @@ class FiveEToolsSpellNormalizer
             'saving_throw' => $savingThrows
                 ? strtoupper(implode(', ', $savingThrows))
                 : null,
-            'attack_type' => $this->formatAttackType(
-                $spell['spellAttack'] ?? []
-            ),
+            'attack_type' => $this->formatAttackType($spell['spellAttack'] ?? []),
             'upcast' => $higherLevelData,
             'source' => $source,
             'slug' => Str::slug($name).'-'.Str::lower($source),
@@ -79,18 +80,23 @@ class FiveEToolsSpellNormalizer
             'provider' => $provider,
             'external_key' => $this->externalKey($name, $source),
             'rules_version' => $this->rulesVersion($spell),
-            'page' => isset($spell['page'])
-                ? (int) $spell['page']
-                : null,
-
+            'page' => isset($spell['page']) ? (int) $spell['page'] : null,
             'other_sources' => $spell['otherSources'] ?? null,
 
             'casting_time_data' => $spell['time'] ?? null,
             'range_data' => $spell['range'] ?? null,
             'duration_data' => $spell['duration'] ?? null,
-
             'description_data' => $descriptionData ?: null,
             'higher_level_data' => $higherLevelData,
+            'higher_level_text' =>
+                $this->normalizeHigherLevelText(
+                    $this->textFormatter
+                        ->entriesToText(
+                            $higherLevelData
+                        )
+                ),
+            'scaling_level_dice' => $scalingLevelDice,
+            'reprinted_as' => $spell['reprintedAs'] ?? null,
 
             'damage_types' => $damageTypes ?: null,
             'saving_throws' => $savingThrows ?: null,
@@ -101,6 +107,42 @@ class FiveEToolsSpellNormalizer
             'upstream_hash' => $this->hash($spell),
             'upstream_missing' => false,
         ];
+    }
+
+    private function normalizeHigherLevelText(
+        ?string $text
+    ): ?string {
+        $text = trim(
+            (string) $text
+        );
+
+        if ($text === '') {
+            return null;
+        }
+
+        $text = preg_replace(
+            '/(^|\R)\s*(?:At Higher Levels|Cantrip Upgrade)\.?\s*(?=\R|$)/iu',
+            '$1',
+            $text
+        ) ?? $text;
+
+        $text = preg_replace(
+            '/^(?:At Higher Levels|Cantrip Upgrade)\.?\s+/iu',
+            '',
+            $text
+        ) ?? $text;
+
+        $text = preg_replace(
+            '/\R{3,}/u',
+            "\n\n",
+            $text
+        ) ?? $text;
+
+        $text = trim($text);
+
+        return $text !== ''
+            ? $text
+            : null;
     }
 
     private function externalKey(string $name, string $source): string
@@ -162,9 +204,7 @@ class FiveEToolsSpellNormalizer
             $result[] = $text;
         }
 
-        return $result !== []
-            ? implode(' / ', $result)
-            : 'Special';
+        return $result !== [] ? implode(' / ', $result) : 'Special';
     }
 
     private function formatRange(mixed $range): string
@@ -283,9 +323,7 @@ class FiveEToolsSpellNormalizer
             $result[] = Str::headline($type);
         }
 
-        return $result !== []
-            ? implode(' / ', $result)
-            : 'Special';
+        return $result !== [] ? implode(' / ', $result) : 'Special';
     }
 
     private function hasConcentration(mixed $durations): bool
@@ -348,9 +386,6 @@ class FiveEToolsSpellNormalizer
         return null;
     }
 
-    /**
-     * @return array<int, string>
-     */
     private function stringList(mixed $value): array
     {
         if (! is_array($value)) {
@@ -372,12 +407,14 @@ class FiveEToolsSpellNormalizer
 
         return hash(
             'sha256',
-            json_encode(
-                $canonical,
-                JSON_UNESCAPED_UNICODE
-                | JSON_UNESCAPED_SLASHES
-                | JSON_PRESERVE_ZERO_FRACTION
-            ) ?: ''
+            self::NORMALIZER_VERSION.'|'.(
+                json_encode(
+                    $canonical,
+                    JSON_UNESCAPED_UNICODE
+                    | JSON_UNESCAPED_SLASHES
+                    | JSON_PRESERVE_ZERO_FRACTION
+                ) ?: ''
+            )
         );
     }
 

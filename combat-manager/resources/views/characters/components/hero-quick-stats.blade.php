@@ -247,6 +247,23 @@
             ?? 0
         );
 
+    // Deslocamentos especiais são opcionais e vivem em overrides.quick_stats.
+    // 0 significa que o personagem não possui aquele deslocamento.
+    $movementTypes = is_array($movementConfig['types'] ?? null)
+        ? $movementConfig['types']
+        : [];
+
+    $movementTypeSpeeds = [];
+    foreach (['climb', 'swim', 'fly', 'burrow'] as $movementType) {
+        $movementTypeSpeeds[$movementType] = max(
+            0,
+            min(999, (int) ($movementTypes[$movementType] ?? 0))
+        );
+    }
+
+    $movementHover = (bool) ($movementConfig['hover'] ?? false);
+
+
     $jumpEnabled =
         (bool) (
             $movementConfig['jump_enabled']
@@ -626,6 +643,60 @@
                     var(--theme-modal-header-background, var(--theme-band-background)) !important;
             }
 
+            /* Sem o reflexo branco superior nos modais de Quick Stats. */
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal
+            > div:first-child {
+                box-shadow: none !important;
+                background-image: none !important;
+            }
+
+            /* Controles extras de deslocamento vinculados aos tokens do tema. */
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-card {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-muted {
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-switch {
+                border-color: var(--theme-border-strong) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-switch.is-active {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-input {
+                border: 1px solid var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-input:focus {
+                outline: none !important;
+                border-color: var(--theme-input-focus) !important;
+                box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-input-focus) 12%, transparent) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-heading {
+                color: var(--theme-text-strong) !important;
+            }
+
+
             .character-sheet-theme[data-theme]
             .hero-quick-stats-modal
             > div:not(:first-child) {
@@ -839,6 +910,249 @@
                     transition-duration: 1ms !important;
                 }
             }
+
+            /* V32 — Conteúdo rolável e rodapé independente. O rodapé nunca
+               cobre Pairar nem Saltos, inclusive em resoluções baixas. */
+            .character-sheet-theme[data-theme] .hero-quick-movement-modal {
+                width: min(540px, calc(100vw - 24px)) !important;
+                max-width: 540px !important;
+                max-height: min(90dvh, 735px) !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal > .hero-quick-movement-scroll {
+                min-height: 0 !important;
+                flex: 1 1 auto !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                overscroll-behavior: contain;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                scrollbar-width: thin;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal > .hero-quick-movement-footer {
+                position: relative !important;
+                bottom: auto !important;
+                margin: 0 !important;
+                flex: 0 0 auto !important;
+                min-height: auto !important;
+                overflow: visible !important;
+                padding: 12px 16px !important;
+                box-shadow: none !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-movement-option {
+                border-color: var(--theme-border-soft) !important;
+                background: var(--theme-surface-raised) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-movement-modal .hero-quick-movement-switch {
+                min-height: 32px;
+                cursor: pointer;
+            }
+            @media (max-height: 600px) {
+                .character-sheet-theme[data-theme] .hero-quick-movement-modal {
+                    max-height: calc(100dvh - 18px) !important;
+                }
+            }
+
+            /* V33 — Superfície leve: menos caixas, espaçamento consistente. */
+            .character-sheet-theme[data-theme] .hero-quick-movement-modal {
+                width: min(520px, calc(100vw - 24px)) !important;
+                max-width: 520px !important;
+                height: auto !important;
+                min-height: 0 !important;
+                max-height: min(90dvh, 710px) !important;
+                padding: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal > .hero-quick-movement-scroll {
+                width: 100%;
+                min-height: 0 !important;
+                flex: 1 1 auto !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-section {
+                border-color: var(--theme-border-soft, var(--theme-border)) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-speed-row:hover {
+                background: var(--theme-card-hover, var(--theme-surface-raised)) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-speed-label {
+                color: var(--theme-text-primary) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-speed-dot {
+                border-color: var(--theme-border-strong, var(--theme-border)) !important;
+                color: var(--theme-label) !important;
+                background: var(--theme-surface-raised) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-speed-dot.is-on {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-quiet-toggle {
+                border-color: var(--theme-border) !important;
+                color: var(--theme-text-secondary) !important;
+                background: transparent !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-quiet-toggle.is-on {
+                border-color: var(--theme-accent) !important;
+                color: var(--theme-text-strong) !important;
+                background: var(--theme-accent-softer) !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-adjust {
+                color: var(--theme-label) !important;
+                border: 0 !important;
+                background: none !important;
+                padding: 6px !important;
+            }
+            .character-sheet-theme[data-theme]
+            .hero-quick-movement-modal .hero-movement-adjust:hover {
+                color: var(--theme-text-strong) !important;
+            }
+            /* Anula a regra legada sticky do footer e o scroll herdado
+               pelo seletor genérico > div:not(:first-child). */
+            .character-sheet-theme[data-theme]
+            .hero-quick-stats-modal.hero-quick-movement-modal > .hero-quick-stats-modal-footer.hero-quick-movement-footer {
+                position: relative !important;
+                inset: auto !important;
+                flex: 0 0 auto !important;
+                width: 100% !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                padding: 11px 16px 12px !important;
+                overflow: visible !important;
+                border-top: 1px solid var(--theme-modal-border, var(--theme-border)) !important;
+                border-bottom: 0 !important;
+                border-radius: 0 !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+                box-shadow: none !important;
+            }
+            @media (max-width: 520px) {
+                .character-sheet-theme[data-theme]
+                .hero-quick-movement-modal .hero-movement-section {
+                    min-width: 0;
+                }
+            }
+
+            /* V34 — Iniciativa e Percepção: mesma linguagem limpa de Movimento. */
+            .character-sheet-theme[data-theme] .hero-quick-editor-modal {
+                width: min(500px, calc(100vw - 24px)) !important;
+                max-width: 500px !important;
+                max-height: min(90dvh, 710px) !important;
+                min-height: 0 !important;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-modal > .hero-quick-editor-header {
+                flex: 0 0 auto;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+                border-bottom: 1px solid var(--theme-modal-border, var(--theme-border)) !important;
+                box-shadow: none !important;
+                background-image: none !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-modal > .hero-quick-editor-scroll {
+                flex: 1 1 auto !important;
+                min-height: 0 !important;
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                padding: 16px 20px !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-modal .hero-quick-editor-section + .hero-quick-editor-section {
+                border-top: 1px solid var(--theme-border-soft, var(--theme-border));
+                margin-top: 14px;
+                padding-top: 14px;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-heading {
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-muted {
+                color: var(--theme-text-secondary) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-label {
+                color: var(--theme-label) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-input {
+                background: var(--theme-input-bg) !important;
+                border: 1px solid var(--theme-input-border) !important;
+                color: var(--theme-input-text) !important;
+                outline: 0;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-input:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-input-focus) 13%, transparent) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-segments {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-segment {
+                color: var(--theme-text-secondary) !important;
+                background: transparent !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-segment + .hero-quick-editor-segment {
+                border-left: 1px solid var(--theme-border-soft, var(--theme-border));
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-segment[aria-pressed="true"] {
+                color: var(--theme-button-text) !important;
+                background: var(--theme-button-background) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-button {
+                color: var(--theme-text-strong) !important;
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-button:hover:not(:disabled) {
+                background: var(--theme-card-hover) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-primary {
+                color: var(--theme-button-text) !important;
+                background: var(--theme-button-background) !important;
+                border: 1px solid var(--theme-accent-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-editor-primary:hover:not(:disabled) {
+                background: var(--theme-button-hover-background, var(--theme-button-background)) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-stats-modal.hero-quick-editor-modal > .hero-quick-stats-modal-footer.hero-quick-editor-footer {
+                flex: 0 0 auto !important;
+                position: relative !important;
+                inset: auto !important;
+                min-height: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 12px 18px !important;
+                border: 0 !important;
+                border-top: 1px solid var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-quick-movement-caption {
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+                overflow: hidden;
+                white-space: normal;
+                overflow-wrap: anywhere;
+            }
+
         </style>
     @endpush
 @endonce
@@ -948,6 +1262,7 @@
 
                         initiativeOpen: false,
                         movementOpen: false,
+                        jumpDetailsOpen: false,
                         perceptionOpen: false,
 
                         saving: false,
@@ -980,15 +1295,28 @@
                         movementBase:
                             Math.max(
                                 0,
-                                parseInt(
-                                    initialConfig?.movement?.base
-                                ) || 30
+                                Number.isFinite(Number(initialConfig?.movement?.base))
+                                && initialConfig?.movement?.base !== null
+                                && initialConfig?.movement?.base !== undefined
+                                && initialConfig?.movement?.base !== ''
+                                    ? Math.trunc(Number(initialConfig.movement.base))
+                                    : 30
                             ),
 
                         movementBonus:
                             parseInt(
                                 initialConfig?.movement?.bonus
                             ) || 0,
+
+                        movementTypes: {
+                            climb: Math.max(0, Number(initialConfig?.movement?.types?.climb) || 0),
+                            swim: Math.max(0, Number(initialConfig?.movement?.types?.swim) || 0),
+                            fly: Math.max(0, Number(initialConfig?.movement?.types?.fly) || 0),
+                            burrow: Math.max(0, Number(initialConfig?.movement?.types?.burrow) || 0),
+                        },
+
+                        movementHover: !!initialConfig?.movement?.hover,
+
 
                         jumpEnabled:
                             initialConfig
@@ -1144,6 +1472,72 @@
                             );
                         },
 
+                        movementTypeTotal(type) {
+                            const speed = Math.max(0, parseInt(this.movementTypes?.[type]) || 0);
+                            return speed > 0
+                                ? Math.max(0, speed - this.exhaustionSpeedPenalty)
+                                : 0;
+                        },
+
+                        toggleMovementType(type) {
+                            if (!['climb', 'swim', 'fly', 'burrow'].includes(type)) {
+                                return;
+                            }
+
+                            const previous = parseInt(this.movementTypes?.[type]) || 0;
+                            this.movementTypes[type] = previous > 0
+                                ? 0
+                                : Math.max(5, this.movementBase || 30);
+
+                            if (type === 'fly' && this.movementTypes.fly === 0) {
+                                this.movementHover = false;
+                            }
+                        },
+
+                        get movementOtherSummary() {
+                            // Exibe os tipos com velocidade. Pairar pertence ao Voo,
+                            // não é um quinto tipo de deslocamento independente.
+                            const types = [
+                                ['climb', 'Escalada'],
+                                ['swim', 'Natação'],
+                                ['fly', 'Voo'],
+                                ['burrow', 'Escavação'],
+                            ];
+
+                            return types
+                                .filter(([key]) => Number(this.movementTypes?.[key]) > 0)
+                                .map(([key, label]) => {
+                                    const speed = this.movementTypeTotal(key);
+                                    const hover = key === 'fly' && this.movementHover
+                                        ? ' (Pairar)'
+                                        : '';
+                                    return `${label} ${speed} ft${hover}`;
+                                })
+                                .join(' · ');
+                        },
+
+                        get movementHeaderSummary() {
+                            // Preserva a leitura da Quick Stat quando há muitos modos.
+                            // O modal e o title exibem a lista integral.
+                            const visibleTypes = [
+                                ['fly', 'Voo'],
+                                ['climb', 'Escalada'],
+                                ['swim', 'Natação'],
+                                ['burrow', 'Escavação'],
+                            ]
+                                .filter(([key]) => Number(this.movementTypes?.[key]) > 0)
+                                .map(([key, label]) => {
+                                    const hover = key === 'fly' && this.movementHover ? ' (Pairar)' : '';
+                                    return `${label} ${this.movementTypeTotal(key)} ft${hover}`;
+                                });
+
+                            if (visibleTypes.length <= 2) {
+                                return visibleTypes.join(' · ');
+                            }
+
+                            return `${visibleTypes[0]} · +${visibleTypes.length - 1} tipos`;
+                        },
+
                         /*
                         |--------------------------------------------------------------------------
                         | SALTOS
@@ -1245,6 +1639,15 @@
                                         parseInt(
                                             this.movementBonus
                                         ) || 0,
+
+                                    types: {
+                                        climb: Math.max(0, Math.min(999, parseInt(this.movementTypes.climb) || 0)),
+                                        swim: Math.max(0, Math.min(999, parseInt(this.movementTypes.swim) || 0)),
+                                        fly: Math.max(0, Math.min(999, parseInt(this.movementTypes.fly) || 0)),
+                                        burrow: Math.max(0, Math.min(999, parseInt(this.movementTypes.burrow) || 0)),
+                                    },
+
+                                    hover: !!this.movementHover && Number(this.movementTypes.fly) > 0,
 
                                     jump_enabled:
                                         !!this.jumpEnabled,
@@ -2159,6 +2562,9 @@
                 'bonus' =>
                     $movementBonus,
 
+                'types' => $movementTypeSpeeds,
+                'hover' => $movementHover,
+
                 'jump_enabled' =>
                     $jumpEnabled,
 
@@ -2305,7 +2711,7 @@
                 hover:bg-[#f4f1e8]/70
             "
 
-            title="Deslocamento e saltos"
+            :title="movementOtherSummary ? 'Deslocamentos: ' + movementOtherSummary : 'Deslocamento e saltos'"
         >
             <span
                 class="
@@ -2349,7 +2755,7 @@
 
             <span
                 x-show="
-                    jumpEnabled
+                    jumpEnabled && !movementOtherSummary
                 "
 
                 x-cloak
@@ -2406,6 +2812,13 @@
                     (vert.)
                 </span>
             </span>
+            <span
+                x-show="movementOtherSummary"
+                x-cloak
+                class="hero-quick-movement-muted hero-quick-movement-caption mt-1 max-w-full text-center text-[8px] font-semibold leading-[1.25]"
+                x-text="movementHeaderSummary"
+                :title="movementOtherSummary"
+            ></span>
         </button>
 
 
@@ -3155,763 +3568,103 @@
          MODAL — INICIATIVA
     ============================================================= --}}
 
-    <template x-teleport="body">
-        <div
-                role="dialog"
-                aria-modal="true"
-
-            x-show="
-                initiativeOpen
-            "
-
-            x-cloak
-
+        <template x-teleport="body">
+        <div role="dialog" aria-modal="true" aria-label="Editar iniciativa"
+            x-show="initiativeOpen" x-cloak
             x-transition:enter="character-theme-modal-layer-enter"
             x-transition:enter-start="character-theme-modal-layer-enter-start"
             x-transition:enter-end="character-theme-modal-layer-enter-end"
             x-transition:leave="character-theme-modal-layer-leave"
             x-transition:leave-start="character-theme-modal-layer-leave-start"
             x-transition:leave-end="character-theme-modal-layer-leave-end"
-
             data-theme="{{ $characterTheme }}"
-
-
-            class="
-                character-sheet-theme
-                character-theme-modal-layer
-                hero-quick-stats-modal-layer
-                fixed
-                inset-0
-                z-[160]
-                flex
-                items-center
-                justify-center
-                p-4
-            "
-        >
-            <div
-                class="
-                    character-theme-modal-backdrop
-                    absolute
-                    inset-0
-
-                "
-
-                @click="
-                    initiativeOpen = false
-                "
-            ></div>
-
-            <div
+            class="character-sheet-theme character-theme-modal-layer hero-quick-stats-modal-layer fixed inset-0 z-[160] flex items-center justify-center p-4">
+            <div class="character-theme-modal-backdrop absolute inset-0" @click="initiativeOpen = false"></div>
+            <div @click.stop
                 x-transition:enter="character-theme-modal-panel-enter"
                 x-transition:enter-start="character-theme-modal-panel-enter-start"
                 x-transition:enter-end="character-theme-modal-panel-enter-end"
                 x-transition:leave="character-theme-modal-panel-leave"
                 x-transition:leave-start="character-theme-modal-panel-leave-start"
                 x-transition:leave-end="character-theme-modal-panel-leave-end"
-
-                @click.stop
-
-                class="
-                    character-theme-modal
-                    hero-quick-stats-modal
-                    relative
-                    z-10
-                    w-full
-                    max-w-sm
-                    overflow-hidden
-                    rounded-2xl
-                    border
-                    border-[#cdbb9f]
-                    bg-[#faf8f2]
-                    shadow-2xl
-                "
-            >
-                <div
-                    class="
-                        flex
-                        items-center
-                        justify-between
-                        border-b
-                        border-[#a0774d]/30
-
-                        bg-[#eadbc8]
-
-                        px-4
-                        py-3
-
-                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
-                    "
-                >
+                class="character-theme-modal hero-quick-stats-modal hero-quick-editor-modal relative z-10 w-full overflow-hidden rounded-2xl border">
+                <header class="hero-quick-editor-header flex items-center justify-between gap-3 px-4 py-3">
                     <div>
-                        <p
-                            class="
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-[0.2em]
-                                text-[#8c6239]
-                            "
-                        >
-                            Combate
-                        </p>
-
-                        <h3
-                            class="
-                                font-serif
-                                text-xl
-                                font-black
-                                text-[#53150f]
-                            "
-                        >
-                            Iniciativa
-                        </h3>
+                        <p class="hero-quick-editor-label text-[9px] font-black uppercase tracking-[.16em]">Combate</p>
+                        <h3 class="hero-quick-editor-heading font-serif text-xl font-black">Iniciativa</h3>
                     </div>
-
-                    <div
-                        class="
-                            flex
-                            items-center
-                            gap-2
-                        "
-                    >
-                        <div
-                            class="
-                                rounded-lg
-                                border
-                                border-[#cdbb9f]
-                                bg-white
-                                px-2.5
-                                py-1
-                                font-serif
-                                text-xl
-                                font-black
-                                text-[#53150f]
-                            "
-
-                            x-text="
-                                initiativeModifierLabel
-                            "
-                        ></div>
-
-                        <button
-                            type="button"
-
-                            @click="
-                                initiativeOpen = false
-                            "
-
-                            class="
-                            hero-quick-stats-close
-                                flex
-                                h-8
-                                w-8
-                                items-center
-                                justify-center
-                                rounded-lg
-                                text-[#8c6239]
-                                transition
-                                hover:bg-[#fffdf8]/55
-                                hover:text-[#53150f]
-                            "
-                        >
-                            ×
-                        </button>
+                    <div class="flex items-center gap-2">
+                        <strong class="hero-quick-editor-heading font-serif text-xl tabular-nums" x-text="initiativeModifierLabel"></strong>
+                        <button type="button" class="hero-quick-stats-close flex h-8 w-8 items-center justify-center rounded-lg" @click="initiativeOpen = false" aria-label="Fechar">×</button>
                     </div>
+                </header>
+    
+                <div class="hero-quick-editor-scroll">
+                    <section class="hero-quick-editor-section">
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div>
+                                <span class="hero-quick-editor-label block text-[9px] font-black uppercase tracking-wide">DES</span>
+                                <strong class="hero-quick-editor-heading font-serif text-lg" x-text="dexterityModifier >= 0 ? '+' + dexterityModifier : dexterityModifier"></strong>
+                            </div>
+                            <div>
+                                <span class="hero-quick-editor-label block text-[9px] font-black uppercase tracking-wide">Prof.</span>
+                                <strong class="hero-quick-editor-heading font-serif text-lg" x-text="initiativeProficiencyBonus >= 0 ? '+' + initiativeProficiencyBonus : initiativeProficiencyBonus"></strong>
+                            </div>
+                            <div>
+                                <span class="hero-quick-editor-label block text-[9px] font-black uppercase tracking-wide">Extra</span>
+                                <strong class="hero-quick-editor-heading font-serif text-lg" x-text="Number(initiativeBonus) >= 0 ? '+' + (parseInt(initiativeBonus) || 0) : (parseInt(initiativeBonus) || 0)"></strong>
+                            </div>
+                        </div>
+                    </section>
+    
+                    <section class="hero-quick-editor-section">
+                        <p class="hero-quick-editor-label mb-2 text-[9px] font-black uppercase tracking-[.08em]">Proficiência na iniciativa</p>
+                        <div class="hero-quick-editor-segments grid grid-cols-3 overflow-hidden rounded-lg">
+                            <button type="button" class="hero-quick-editor-segment py-2 text-[10px] font-bold transition" :aria-pressed="initiativeMode === 'none'" @click="initiativeMode = 'none'">Nenhuma</button>
+                            <button type="button" class="hero-quick-editor-segment py-2 text-[10px] font-bold transition" :aria-pressed="initiativeMode === 'proficient'" @click="initiativeMode = 'proficient'">Proficiência</button>
+                            <button type="button" class="hero-quick-editor-segment py-2 text-[10px] font-bold transition" :aria-pressed="initiativeMode === 'expertise'" @click="initiativeMode = 'expertise'">Expertise</button>
+                        </div>
+                        <label class="mt-3 flex items-center justify-between gap-3">
+                            <span class="hero-quick-editor-muted text-[11px] font-medium">Bônus adicional</span>
+                            <input type="number" x-model.number="initiativeBonus" aria-label="Bônus adicional de iniciativa"
+                                class="hero-quick-editor-input h-9 w-24 rounded-lg px-2 text-center text-[12px] font-bold tabular-nums">
+                        </label>
+                    </section>
+    
+                    <section class="hero-quick-editor-section">
+                        <div class="flex items-center justify-between gap-3">
+                            <div>
+                                <p class="hero-quick-editor-heading text-[11px] font-bold">Iniciativa do combate</p>
+                                <p class="hero-quick-editor-muted text-[9px]">Role ou informe o total.</p>
+                            </div>
+                            <input type="number" x-model.number="combatInitiative" placeholder="—" aria-label="Total da iniciativa de combate"
+                                class="hero-quick-editor-input h-10 w-24 rounded-lg px-2 text-center font-serif text-lg font-black tabular-nums">
+                        </div>
+                        <div class="mt-2.5 grid grid-cols-2 gap-2">
+                            <button type="button" class="hero-quick-editor-primary rounded-lg px-2 py-2.5 text-[10px] font-bold transition disabled:opacity-50"
+                                @click="rollInitiative()" :disabled="rollingInitiative || saving"
+                                x-text="rollingInitiative ? 'Rolando...' : 'Rolar iniciativa'"></button>
+                            <button type="button" class="hero-quick-editor-button rounded-lg px-2 py-2.5 text-[10px] font-bold transition disabled:opacity-50"
+                                @click="saveManualInitiative()" :disabled="saving">Usar valor</button>
+                        </div>
+                        <p x-show="lastInitiativeRoll !== null" x-cloak
+                            class="hero-quick-editor-muted mt-2 text-center text-[10px]"
+                            x-text="'d20 (' + lastInitiativeRoll + ') ' + (initiativeModifier >= 0 ? '+' : '') + initiativeModifier + ' = ' + combatInitiative"></p>
+                        <button type="button" x-show="combatInitiative !== null" x-cloak
+                            class="hero-quick-editor-muted mt-2 block w-full py-1 text-center text-[9px] underline underline-offset-2"
+                            @click="clearCombatInitiative()">Limpar resultado</button>
+                    </section>
                 </div>
-
-                <div class="space-y-4 p-4">
-                    {{-- CÁLCULO --}}
-                    <div
-                        class="
-                            rounded-xl
-                            border
-                            border-[#d8c7ab]/60
-                            bg-[#f4f1e8]/60
-                            p-3
-                        "
-                    >
-                        <div
-                            class="
-                                grid
-                                grid-cols-3
-                                gap-2
-                                text-center
-                            "
-                        >
-                            <div>
-                                <span
-                                    class="
-                                        block
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    DES
-                                </span>
-
-                                <strong
-                                    class="
-                                        font-serif
-                                        text-base
-                                        text-[#53150f]
-                                    "
-                                >
-                                    {{ $dexterityModifier >= 0 ? '+' : '' }}{{ $dexterityModifier }}
-                                </strong>
-                            </div>
-
-                            <div>
-                                <span
-                                    class="
-                                        block
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Prof.
-                                </span>
-
-                                <strong
-                                    class="
-                                        font-serif
-                                        text-base
-                                        text-[#53150f]
-                                    "
-
-                                    x-text="
-                                        (
-                                            initiativeProficiencyBonus >= 0
-                                                ? '+'
-                                                : ''
-                                        )
-                                        +
-                                        initiativeProficiencyBonus
-                                    "
-                                ></strong>
-                            </div>
-
-                            <div>
-                                <span
-                                    class="
-                                        block
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Bônus
-                                </span>
-
-                                <strong
-                                    class="
-                                        font-serif
-                                        text-base
-                                        text-[#53150f]
-                                    "
-
-                                    x-text="
-                                        (
-                                            initiativeBonus >= 0
-                                                ? '+'
-                                                : ''
-                                        )
-                                        +
-                                        (
-                                            parseInt(
-                                                initiativeBonus
-                                            ) || 0
-                                        )
-                                    "
-                                ></strong>
-                            </div>
-                        </div>
-                    </div>
-
-
-                    {{-- PROFICIÊNCIA --}}
-                    <div>
-                        <p
-                            class="
-                                mb-1.5
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c6239]
-                            "
-                        >
-                            Somar proficiência
-                        </p>
-
-                        <div
-                            class="
-                                grid
-                                grid-cols-3
-                                overflow-hidden
-                                rounded-lg
-                                border
-                                border-[#cdbb9f]/70
-                                bg-white
-                            "
-                        >
-                            <button
-                                type="button"
-
-                                @click="
-                                    initiativeMode =
-                                        'none'
-                                "
-
-                                class="
-                                    px-2
-                                    py-2
-                                    text-[10px]
-                                    font-black
-                                    uppercase
-                                    tracking-wide
-                                    transition
-                                "
-
-                                :class="
-                                    initiativeMode ===
-                                    'none'
-                                        ? 'bg-[#6b1d14] text-[#f4f1e8]'
-                                        : 'text-[#8c6239] hover:bg-[#efe9dc]'
-                                "
-                            >
-                                Nenhuma
-                            </button>
-
-                            <button
-                                type="button"
-
-                                @click="
-                                    initiativeMode =
-                                        'proficient'
-                                "
-
-                                class="
-                                    border-x
-                                    border-[#cdbb9f]/50
-                                    px-2
-                                    py-2
-                                    text-[10px]
-                                    font-black
-                                    uppercase
-                                    tracking-wide
-                                    transition
-                                "
-
-                                :class="
-                                    initiativeMode ===
-                                    'proficient'
-                                        ? 'bg-[#6b1d14] text-[#f4f1e8]'
-                                        : 'text-[#8c6239] hover:bg-[#efe9dc]'
-                                "
-                            >
-                                Proficiência
-                            </button>
-
-                            <button
-                                type="button"
-
-                                @click="
-                                    initiativeMode =
-                                        'expertise'
-                                "
-
-                                class="
-                                    px-2
-                                    py-2
-                                    text-[10px]
-                                    font-black
-                                    uppercase
-                                    tracking-wide
-                                    transition
-                                "
-
-                                :class="
-                                    initiativeMode ===
-                                    'expertise'
-                                        ? 'bg-[#6b1d14] text-[#f4f1e8]'
-                                        : 'text-[#8c6239] hover:bg-[#efe9dc]'
-                                "
-                            >
-                                Expertise
-                            </button>
-                        </div>
-                    </div>
-
-
-                    {{-- BÔNUS --}}
-                    <label class="block">
-                        <span
-                            class="
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c6239]
-                            "
-                        >
-                            Bônus adicional
-                        </span>
-
-                        <input
-                            type="number"
-
-                            x-model.number="
-                                initiativeBonus
-                            "
-
-                            class="
-                                mt-1.5
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#cdbb9f]
-                                bg-white
-                                px-3
-                                py-2
-                                font-serif
-                                text-base
-                                font-black
-                                text-[#53150f]
-                                outline-none
-                                focus:border-[#6b1d14]
-                            "
-                        >
-                    </label>
-
-
-                    {{-- INICIATIVA DE COMBATE --}}
-                    <div
-                        class="
-                            rounded-xl
-                            border
-                            border-[#d8c7ab]/70
-                            bg-[#f4f1e8]/60
-                            p-3
-                        "
-                    >
-                        <div
-                            class="
-                                flex
-                                items-center
-                                justify-between
-                                gap-3
-                            "
-                        >
-                            <div>
-                                <p
-                                    class="
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Iniciativa do combate
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-0.5
-                                        text-[10px]
-                                        leading-4
-                                        text-[#8c6239]/70
-                                    "
-                                >
-                                    Role ou informe o resultado manualmente.
-                                </p>
-                            </div>
-
-                            <input
-                                type="number"
-
-                                x-model.number="
-                                    combatInitiative
-                                "
-
-                                placeholder="—"
-
-                                class="
-                                    w-20
-                                    rounded-lg
-                                    border
-                                    border-[#cdbb9f]
-                                    bg-white
-                                    px-2
-                                    py-2
-                                    text-center
-                                    font-serif
-                                    text-xl
-                                    font-black
-                                    text-[#53150f]
-                                    outline-none
-                                    focus:border-[#6b1d14]
-                                "
-                            >
-                        </div>
-
-                        <div
-                            class="
-                                mt-2
-                                grid
-                                grid-cols-2
-                                gap-2
-                            "
-                        >
-                            <button
-                                type="button"
-
-                                @click="
-                                    rollInitiative()
-                                "
-
-                                :disabled="
-                                    rollingInitiative
-                                    ||
-                                    saving
-                                "
-
-                                class="
-                                    rounded-lg
-                                    bg-[#6b1d14]
-                                    px-3
-                                    py-2
-                                    text-[10px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#f4f1e8]
-                                    transition
-                                    hover:bg-[#53150f]
-                                    disabled:opacity-50
-                                "
-                            >
-                                <span
-                                    x-show="
-                                        !rollingInitiative
-                                    "
-                                >
-                                    Rolar iniciativa
-                                </span>
-
-                                <span
-                                    x-show="
-                                        rollingInitiative
-                                    "
-
-                                    x-cloak
-                                >
-                                    Rolando...
-                                </span>
-                            </button>
-
-                            <button
-                                type="button"
-
-                                @click="
-                                    saveManualInitiative()
-                                "
-
-                                :disabled="
-                                    saving
-                                "
-
-                                class="
-                                    rounded-lg
-                                    border
-                                    border-[#cdbb9f]
-                                    bg-[#efe9dc]
-                                    px-3
-                                    py-2
-                                    text-[10px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#53150f]
-                                    transition
-                                    hover:bg-[#fffdf8]/55
-                                    disabled:opacity-50
-                                "
-                            >
-                                Usar valor
-                            </button>
-                        </div>
-
-                        <div
-                            x-show="
-                                lastInitiativeRoll !== null
-                            "
-
-                            x-cloak
-
-                            class="
-                                mt-2
-                                rounded-lg
-                                border
-                                border-[#d8c7ab]/50
-                                bg-white/65
-                                px-2
-                                py-1.5
-                                text-center
-                                text-[10px]
-                                text-[#8c6239]
-                            "
-                        >
-                            d20
-
-                            <strong
-                                class="
-                                    text-[#53150f]
-                                "
-
-                                x-text="
-                                    lastInitiativeRoll
-                                "
-                            ></strong>
-
-                            +
-
-                            modificador
-
-                            <strong
-                                class="
-                                    text-[#53150f]
-                                "
-
-                                x-text="
-                                    initiativeModifierLabel
-                                "
-                            ></strong>
-
-                            =
-
-                            <strong
-                                class="
-                                    font-serif
-                                    text-[#53150f]
-                                "
-
-                                x-text="
-                                    combatInitiative
-                                "
-                            ></strong>
-                        </div>
-
-                        <button
-                            x-show="
-                                combatInitiative !== null
-                            "
-
-                            x-cloak
-
-                            type="button"
-
-                            @click="
-                                clearCombatInitiative()
-                            "
-
-                            class="
-                                mt-2
-                                w-full
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c6239]
-                                transition
-                                hover:text-[#6b1d14]
-                            "
-                        >
-                            Limpar iniciativa do combate
-                        </button>
-                    </div>
-
-
-                    {{-- AÇÕES --}}
-                    <div
-                        class="
-                            hero-quick-stats-modal-footer
-                            flex
-                            justify-end
-                            gap-2
-                            border-t
-                            border-[#d8c7ab]/50
-                            pt-3
-                        "
-                    >
-                        <button
-                            type="button"
-
-                            @click="
-                                initiativeOpen = false
-                            "
-
-                            class="
-                                rounded-lg
-                                px-3
-                                py-2
-                                text-[10px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c6239]
-                                transition
-                                hover:bg-[#efe9dc]
-                            "
-                        >
-                            Cancelar
-                        </button>
-
-                        <button
-                            type="button"
-
-                            @click="
-                                persist()
-                            "
-
-                            :disabled="
-                                saving
-                            "
-
-                            class="
-                                rounded-lg
-                                bg-[#6b1d14]
-                                px-4
-                                py-2
-                                text-[10px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#f4f1e8]
-                                transition
-                                hover:bg-[#53150f]
-                                disabled:opacity-50
-                            "
-                        >
-                            Salvar
-                        </button>
-                    </div>
-                </div>
+    
+                <footer class="hero-quick-stats-modal-footer hero-quick-editor-footer flex justify-end gap-2">
+                    <button type="button" class="hero-quick-editor-button rounded-lg px-3 py-2 text-[10px] font-black uppercase" @click="initiativeOpen = false">Cancelar</button>
+                    <button type="button" class="hero-quick-editor-primary rounded-lg px-4 py-2 text-[10px] font-black uppercase disabled:opacity-50" :disabled="saving" @click="persist()">Salvar</button>
+                </footer>
             </div>
         </div>
     </template>
 
-
-    {{-- ============================================================
+        {{-- ============================================================
          MODAL — DESLOCAMENTO
     ============================================================= --}}
 
@@ -3975,6 +3728,7 @@
                 class="
                     character-theme-modal
                     hero-quick-stats-modal
+                    hero-quick-movement-modal
                     relative
                     z-10
                     w-full
@@ -4000,7 +3754,7 @@
                         px-4
                         py-3
 
-                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
+                        shadow-none
                     "
                 >
                     <div>
@@ -4053,544 +3807,122 @@
                     </button>
                 </div>
 
-                <div class="space-y-4 p-4">
-                    <div
-                        class="
-                            grid
-                            grid-cols-2
-                            gap-3
-                        "
-                    >
-                        <label class="block">
-                            <span
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Padrão
-                            </span>
+                <div class="hero-quick-movement-scroll px-4 py-3.5 sm:px-5 sm:py-4">
 
-                            <div
-                                class="
-                                    relative
-                                    mt-1.5
-                                "
-                            >
-                                <input
-                                    type="number"
-                                    min="0"
-
-                                    x-model.number="
-                                        movementBase
-                                    "
-
-                                    class="
-                                        w-full
-                                        rounded-lg
-                                        border
-                                        border-[#cdbb9f]
-                                        bg-white
-                                        px-3
-                                        py-2
-                                        pr-8
-                                        font-serif
-                                        text-base
-                                        font-black
-                                        text-[#53150f]
-                                        outline-none
-                                        focus:border-[#6b1d14]
-                                    "
-                                >
-
-                                <span
-                                    class="
-                                        pointer-events-none
-                                        absolute
-                                        right-2.5
-                                        top-1/2
-                                        -translate-y-1/2
-                                        text-[10px]
-                                        font-bold
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    ft
-                                </span>
-                            </div>
-                        </label>
-
-                        <label class="block">
-                            <span
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Bônus
-                            </span>
-
-                            <div
-                                class="
-                                    relative
-                                    mt-1.5
-                                "
-                            >
-                                <input
-                                    type="number"
-
-                                    x-model.number="
-                                        movementBonus
-                                    "
-
-                                    class="
-                                        w-full
-                                        rounded-lg
-                                        border
-                                        border-[#cdbb9f]
-                                        bg-white
-                                        px-3
-                                        py-2
-                                        pr-8
-                                        font-serif
-                                        text-base
-                                        font-black
-                                        text-[#53150f]
-                                        outline-none
-                                        focus:border-[#6b1d14]
-                                    "
-                                >
-
-                                <span
-                                    class="
-                                        pointer-events-none
-                                        absolute
-                                        right-2.5
-                                        top-1/2
-                                        -translate-y-1/2
-                                        text-[10px]
-                                        font-bold
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    ft
-                                </span>
-                            </div>
-                        </label>
-                    </div>
-
-                    <div
-                        class="
-                            flex
-                            items-center
-                            justify-between
-                            rounded-xl
-                            border
-                            border-[#d8c7ab]/60
-                            bg-[#f4f1e8]/60
-                            px-3
-                            py-2
-                        "
-                    >
-                        <div>
-                            <span
-                                class="
-                                    block
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Deslocamento final
-                            </span>
-
-                            <button
-                                type="button"
-
-                                @click="
-                                    resetMovementDefault()
-                                "
-
-                                class="
-                                    mt-0.5
-                                    text-[11px]
-                                    font-bold
-                                    text-[#8c6239]/70
-                                    transition
-                                    hover:text-[#6b1d14]
-                                "
-                            >
-                                Restaurar padrão 30 ft
-                            </button>
-                        </div>
-
-                        <span
-                            class="
-                                font-serif
-                                text-xl
-                                font-black
-                                text-[#53150f]
-                            "
-                        >
-                            <span
-                                x-text="
-                                    movementTotal
-                                "
-                            ></span>
-
-                            <span
-                                class="
-                                    text-[11px]
-                                    text-[#8c6239]
-                                "
-                            >
-                                ft
-                            </span>
-                        </span>
-                    </div>
-
-
-                    {{-- SALTOS --}}
-                    <div
-                        class="
-                            border-t
-                            border-[#d8c7ab]/50
-                            pt-3
-                        "
-                    >
-                        <div
-                            class="
-                                mb-3
-                                flex
-                                items-center
-                                justify-between
-                                gap-3
-                                rounded-lg
-                                border
-                                border-[#d8c7ab]/55
-                                bg-[#f4f1e8]/55
-                                px-3
-                                py-2
-                            "
-                        >
+                    {{-- Caminhada: o valor atual é a informação principal. --}}
+                    <section class="hero-movement-section pb-3.5">
+                        <div class="flex items-center justify-between gap-3">
                             <div>
-                                <p
-                                    class="
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Exibir Salto
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-0.5
-                                        text-[11px]
-                                        text-[#8c6239]/65
-                                    "
-                                >
-                                    Mostra os saltos no Header.
-                                </p>
+                                <h4 class="hero-quick-movement-heading text-[12px] font-bold">Caminhada</h4>
+                                <p class="hero-quick-movement-muted text-[9px]">Velocidade principal</p>
                             </div>
-
-                            <button
-                                type="button"
-
-                                @click="
-                                    jumpEnabled =
-                                        !jumpEnabled
-                                "
-
-                                class="
-                                    relative
-                                    h-5
-                                    w-9
-                                    shrink-0
-                                    rounded-full
-                                    border
-                                    transition
-                                "
-
-                                :class="
-                                    jumpEnabled
-                                        ? 'border-[#6b1d14] bg-[#6b1d14]'
-                                        : 'border-[#cdbb9f] bg-[#e8dfd1]'
-                                "
-                            >
-                                <span
-                                    class="
-                                        absolute
-                                        top-1/2
-                                        h-3
-                                        w-3
-                                        -translate-y-1/2
-                                        rounded-full
-                                        bg-white
-                                        shadow-sm
-                                        transition-all
-                                    "
-
-                                    :class="
-                                        jumpEnabled
-                                            ? 'left-[18px]'
-                                            : 'left-[3px]'
-                                    "
-                                ></span>
-                            </button>
+                            <strong class="hero-quick-movement-heading font-serif text-[19px] leading-none tabular-nums" x-text="movementTotal + ' ft'"></strong>
                         </div>
-
-                        <div
-                            x-show="
-                                jumpEnabled
-                            "
-
-                            x-cloak
-                        >
-                            <div class="mb-2">
-                            <p
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Saltos
-                            </p>
-
-                            <p
-                                class="
-                                    mt-0.5
-                                    text-[10px]
-                                    leading-4
-                                    text-[#8c6239]/70
-                                "
-                            >
-                                Com corrida de 10 ft: H = FOR e V = 3 + modificador de FOR.
-                                Sem corrida, use metade.
-                            </p>
-                        </div>
-
-                        <div
-                            class="
-                                grid
-                                grid-cols-2
-                                gap-3
-                            "
-                        >
-                            <label
-                                class="
-                                    rounded-xl
-                                    border
-                                    border-[#d8c7ab]/60
-                                    bg-white/70
-                                    p-3
-                                "
-                            >
-                                <span
-                                    class="
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Horizontal · H
-                                </span>
-
-                                <div
-                                    class="
-                                        mt-1
-                                        flex
-                                        items-end
-                                        justify-between
-                                        gap-3
-                                    "
-                                >
-                                    <span
-                                        class="
-                                            font-serif
-                                            text-xl
-                                            font-black
-                                            text-[#53150f]
-                                        "
-                                    >
-                                        <span
-                                            x-text="
-                                                horizontalJump
-                                            "
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                text-[10px]
-                                                text-[#8c6239]
-                                            "
-                                        >
-                                            ft
-                                        </span>
-                                    </span>
-
-                                    <div class="text-right">
-                                        <span
-                                            class="
-                                                block
-                                                text-[5.5px]
-                                                font-black
-                                                uppercase
-                                                tracking-wider
-                                                text-[#8c6239]/70
-                                            "
-                                        >
-                                            Bônus
-                                        </span>
-
-                                        <input
-                                            type="number"
-
-                                            x-model.number="
-                                                jumpHorizontalBonus
-                                            "
-
-                                            class="
-                                                mt-0.5
-                                                w-14
-                                                rounded-md
-                                                border
-                                                border-[#cdbb9f]
-                                                bg-[#faf8f2]
-                                                px-1
-                                                py-1
-                                                text-center
-                                                text-[11px]
-                                                font-black
-                                                text-[#53150f]
-                                                outline-none
-                                                focus:border-[#6b1d14]
-                                            "
-                                        >
-                                    </div>
-                                </div>
+                        <div class="mt-2.5 grid grid-cols-2 gap-2.5">
+                            <label class="min-w-0">
+                                <span class="hero-quick-movement-muted block text-[9px] font-medium">Base (ft)</span>
+                                <input type="number" min="0" max="999" step="1" inputmode="numeric"
+                                    x-model.number="movementBase"
+                                    class="hero-quick-movement-input mt-1 h-9 w-full rounded-lg px-2 text-center text-[12px] font-bold tabular-nums">
                             </label>
-
-                            <label
-                                class="
-                                    rounded-xl
-                                    border
-                                    border-[#d8c7ab]/60
-                                    bg-white/70
-                                    p-3
-                                "
-                            >
-                                <span
-                                    class="
-                                        text-[11px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Vertical · V
-                                </span>
-
-                                <div
-                                    class="
-                                        mt-1
-                                        flex
-                                        items-end
-                                        justify-between
-                                        gap-3
-                                    "
-                                >
-                                    <span
-                                        class="
-                                            font-serif
-                                            text-xl
-                                            font-black
-                                            text-[#53150f]
-                                        "
-                                    >
-                                        <span
-                                            x-text="
-                                                verticalJump
-                                            "
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                text-[10px]
-                                                text-[#8c6239]
-                                            "
-                                        >
-                                            ft
-                                        </span>
-                                    </span>
-
-                                    <div class="text-right">
-                                        <span
-                                            class="
-                                                block
-                                                text-[5.5px]
-                                                font-black
-                                                uppercase
-                                                tracking-wider
-                                                text-[#8c6239]/70
-                                            "
-                                        >
-                                            Bônus
-                                        </span>
-
-                                        <input
-                                            type="number"
-
-                                            x-model.number="
-                                                jumpVerticalBonus
-                                            "
-
-                                            class="
-                                                mt-0.5
-                                                w-14
-                                                rounded-md
-                                                border
-                                                border-[#cdbb9f]
-                                                bg-[#faf8f2]
-                                                px-1
-                                                py-1
-                                                text-center
-                                                text-[11px]
-                                                font-black
-                                                text-[#53150f]
-                                                outline-none
-                                                focus:border-[#6b1d14]
-                                            "
-                                        >
-                                    </div>
-                                </div>
+                            <label class="min-w-0">
+                                <span class="hero-quick-movement-muted block text-[9px] font-medium">Bônus (ft)</span>
+                                <input type="number" min="-999" max="999" step="1" inputmode="numeric"
+                                    x-model.number="movementBonus"
+                                    class="hero-quick-movement-input mt-1 h-9 w-full rounded-lg px-2 text-center text-[12px] font-bold tabular-nums">
                             </label>
                         </div>
-                    </div>
-                    </div>
+                    </section>
 
+                    {{-- Uma linha por opção, sem cartões dentro de cartões. --}}
+                    <section class="hero-movement-section border-t py-3.5">
+                        <h4 class="hero-quick-movement-heading mb-2.5 text-[12px] font-bold">Outros deslocamentos</h4>
+                        <div class="grid grid-cols-1 gap-x-4 gap-y-1.5 sm:grid-cols-2">
+                            <template x-for="movementOption in [
+                                {key:'climb', label:'Escalada'},
+                                {key:'swim', label:'Natação'},
+                                {key:'fly', label:'Voo'},
+                                {key:'burrow', label:'Escavação'}
+                            ]" :key="movementOption.key">
+                                <div class="hero-movement-speed-row flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1.5">
+                                    <button type="button"
+                                        @click="toggleMovementType(movementOption.key)"
+                                        :aria-pressed="Number(movementTypes[movementOption.key]) > 0"
+                                        :title="'Ativar ou desativar ' + movementOption.label"
+                                        class="hero-movement-speed-toggle group flex min-w-0 flex-1 items-center gap-2 text-left">
+                                        <span class="hero-movement-speed-dot flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-[5px] border text-[10px] font-bold transition"
+                                            :class="Number(movementTypes[movementOption.key]) > 0 ? 'is-on' : ''"
+                                            x-text="Number(movementTypes[movementOption.key]) > 0 ? '✓' : '+'"></span>
+                                        <span class="hero-movement-speed-label truncate text-[11px] font-medium"
+                                            x-text="movementOption.label"></span>
+                                    </button>
+                                    <label x-show="Number(movementTypes[movementOption.key]) > 0" x-cloak
+                                        class="flex shrink-0 items-center gap-1">
+                                        <input type="number" min="1" max="999" step="1" inputmode="numeric"
+                                            x-model.number="movementTypes[movementOption.key]"
+                                            :aria-label="'Velocidade de ' + movementOption.label + ' em pés'"
+                                            class="hero-quick-movement-input h-8 w-[57px] rounded-lg px-1 text-center text-[11px] font-semibold tabular-nums">
+                                        <span class="hero-quick-movement-muted text-[9px]">ft</span>
+                                    </label>
+                                </div>
+                            </template>
+                        </div>
+                        <div x-show="Number(movementTypes.fly) > 0" x-cloak
+                            class="mt-1.5 flex items-center justify-between gap-2 px-1.5 py-1.5">
+                            <span class="hero-quick-movement-heading text-[11px] font-medium">Pairar <span class="hero-quick-movement-muted font-normal">(Hover)</span></span>
+                            <button type="button" @click="movementHover = !movementHover"
+                                :aria-pressed="movementHover"
+                                :class="{'is-on':movementHover}"
+                                class="hero-movement-quiet-toggle rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold transition"
+                                x-text="movementHover ? 'Ativado ✓' : 'Ativar'"></button>
+                        </div>
+                    </section>
+
+                    {{-- Saltos sempre visíveis; ajustes opcionais recolhidos por padrão. --}}
+                    <section class="hero-movement-section border-t pt-3.5">
+                        <div class="flex items-center justify-between gap-3">
+                            <div class="min-w-0">
+                                <h4 class="hero-quick-movement-heading text-[12px] font-bold">Saltos</h4>
+                                <p class="hero-quick-movement-muted mt-0.5 text-[9px]"
+                                    x-text="horizontalJump + ' ft horizontal · ' + verticalJump + ' ft vertical'"></p>
+                            </div>
+                            <div class="flex shrink-0 items-center gap-1.5">
+                                <button type="button" @click="jumpEnabled = !jumpEnabled"
+                                    :aria-pressed="jumpEnabled"
+                                    :class="{'is-on':jumpEnabled}"
+                                    class="hero-movement-quiet-toggle rounded-lg border px-2.5 py-1.5 text-[10px] font-semibold transition"
+                                    x-text="jumpEnabled ? 'Na ficha ✓' : 'Oculto'"></button>
+                                <button type="button" @click="jumpDetailsOpen = !jumpDetailsOpen"
+                                    :aria-expanded="jumpDetailsOpen"
+                                    class="hero-movement-adjust text-[10px] font-semibold transition"
+                                    x-text="jumpDetailsOpen ? 'Fechar' : 'Ajustar'"></button>
+                            </div>
+                        </div>
+                        <div x-show="jumpDetailsOpen" x-cloak class="pt-3">
+                            <div class="grid grid-cols-2 gap-2.5">
+                                <label class="min-w-0">
+                                    <span class="hero-quick-movement-muted block text-[9px]">Bônus horizontal (ft)</span>
+                                    <input type="number" min="-999" max="999" step="1" inputmode="numeric"
+                                        x-model.number="jumpHorizontalBonus"
+                                        class="hero-quick-movement-input mt-1 h-9 w-full rounded-lg px-2 text-center text-[12px] font-semibold tabular-nums">
+                                </label>
+                                <label class="min-w-0">
+                                    <span class="hero-quick-movement-muted block text-[9px]">Bônus vertical (ft)</span>
+                                    <input type="number" min="-999" max="999" step="1" inputmode="numeric"
+                                        x-model.number="jumpVerticalBonus"
+                                        class="hero-quick-movement-input mt-1 h-9 w-full rounded-lg px-2 text-center text-[12px] font-semibold tabular-nums">
+                                </label>
+                            </div>
+                            <p class="hero-quick-movement-muted mt-2 text-[9px] leading-relaxed">Com corrida: horizontal = FOR; vertical = 3 + modificador de FOR. Sem corrida, metade.</p>
+                        </div>
+                    </section>
+                </div>
 
                     {{-- AÇÕES --}}
                     <div
                         class="
                             hero-quick-stats-modal-footer
+                            hero-quick-movement-footer
                             flex
                             justify-end
                             gap-2
@@ -4651,7 +3983,6 @@
                             Salvar
                         </button>
                     </div>
-                </div>
             </div>
         </div>
     </template>
@@ -4661,428 +3992,62 @@
          MODAL — PERCEPÇÃO PASSIVA
     ============================================================= --}}
 
-    <template x-teleport="body">
-        <div
-                role="dialog"
-                aria-modal="true"
-
-            x-show="
-                perceptionOpen
-            "
-
-            x-cloak
-
+        <template x-teleport="body">
+        <div role="dialog" aria-modal="true" aria-label="Editar percepção passiva"
+            x-show="perceptionOpen" x-cloak
             x-transition:enter="character-theme-modal-layer-enter"
             x-transition:enter-start="character-theme-modal-layer-enter-start"
             x-transition:enter-end="character-theme-modal-layer-enter-end"
             x-transition:leave="character-theme-modal-layer-leave"
             x-transition:leave-start="character-theme-modal-layer-leave-start"
             x-transition:leave-end="character-theme-modal-layer-leave-end"
-
             data-theme="{{ $characterTheme }}"
-
-
-            class="
-                character-sheet-theme
-                character-theme-modal-layer
-                hero-quick-stats-modal-layer
-                fixed
-                inset-0
-                z-[160]
-                flex
-                items-center
-                justify-center
-                p-4
-            "
-        >
-            <div
-                class="
-                    character-theme-modal-backdrop
-                    absolute
-                    inset-0
-
-                "
-
-                @click="
-                    perceptionOpen = false
-                "
-            ></div>
-
-            <div
+            class="character-sheet-theme character-theme-modal-layer hero-quick-stats-modal-layer fixed inset-0 z-[160] flex items-center justify-center p-4">
+            <div class="character-theme-modal-backdrop absolute inset-0" @click="perceptionOpen = false"></div>
+            <div @click.stop
                 x-transition:enter="character-theme-modal-panel-enter"
                 x-transition:enter-start="character-theme-modal-panel-enter-start"
                 x-transition:enter-end="character-theme-modal-panel-enter-end"
                 x-transition:leave="character-theme-modal-panel-leave"
                 x-transition:leave-start="character-theme-modal-panel-leave-start"
                 x-transition:leave-end="character-theme-modal-panel-leave-end"
-
-                @click.stop
-
-                class="
-                    character-theme-modal
-                    hero-quick-stats-modal
-                    relative
-                    z-10
-                    w-full
-                    max-w-sm
-                    overflow-hidden
-                    rounded-2xl
-                    border
-                    border-[#cdbb9f]
-                    bg-[#faf8f2]
-                    shadow-2xl
-                "
-            >
-                <div
-                    class="
-                        flex
-                        items-center
-                        justify-between
-                        border-b
-                        border-[#a0774d]/30
-
-                        bg-[#eadbc8]
-
-                        px-4
-                        py-3
-
-                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
-                    "
-                >
+                class="character-theme-modal hero-quick-stats-modal hero-quick-editor-modal relative z-10 w-full overflow-hidden rounded-2xl border">
+                <header class="hero-quick-editor-header flex items-center justify-between gap-3 px-4 py-3">
                     <div>
-                        <p
-                            class="
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-[0.2em]
-                                text-[#8c6239]
-                            "
-                        >
-                            Sentidos
-                        </p>
-
-                        <h3
-                            class="
-                                font-serif
-                                text-xl
-                                font-black
-                                text-[#53150f]
-                            "
-                        >
-                            Percepção Passiva
-                        </h3>
+                        <p class="hero-quick-editor-label text-[9px] font-black uppercase tracking-[.16em]">Sentidos</p>
+                        <h3 class="hero-quick-editor-heading font-serif text-xl font-black">Percepção Passiva</h3>
                     </div>
-
-                    <button
-                        type="button"
-
-                        @click="
-                            perceptionOpen = false
-                        "
-
-                        class="
-                            hero-quick-stats-close
-                            flex
-                            h-8
-                            w-8
-                            items-center
-                            justify-center
-                            rounded-lg
-                            text-[#8c6239]
-                            transition
-                            hover:bg-[#e8dfd1]
-                            hover:text-[#53150f]
-                        "
-                    >
-                        ×
-                    </button>
+                    <button type="button" class="hero-quick-stats-close flex h-8 w-8 items-center justify-center rounded-lg" @click="perceptionOpen = false" aria-label="Fechar">×</button>
+                </header>
+    
+                <div class="hero-quick-editor-scroll">
+                    <section class="hero-quick-editor-section">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="hero-quick-editor-muted text-[10px] font-medium">10 + Percepção + bônus</p>
+                            <strong class="hero-quick-editor-heading font-serif text-2xl font-black tabular-nums" x-text="passivePerception"></strong>
+                        </div>
+                        <div class="hero-quick-editor-muted mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[9px]">
+                            <span>Base <strong class="hero-quick-editor-heading">10</strong></span>
+                            <span>·</span>
+                            <span>Percepção <strong class="hero-quick-editor-heading" x-text="(perceptionSkillModifier >= 0 ? '+' : '') + perceptionSkillModifier"></strong></span>
+                            <span>·</span>
+                            <span>Extra <strong class="hero-quick-editor-heading" x-text="(Number(passivePerceptionBonus) >= 0 ? '+' : '') + (parseInt(passivePerceptionBonus) || 0)"></strong></span>
+                        </div>
+                    </section>
+                    <section class="hero-quick-editor-section">
+                        <label class="flex items-center justify-between gap-3">
+                            <span class="hero-quick-editor-muted text-[11px] font-medium">Bônus adicional</span>
+                            <input type="number" x-model.number="passivePerceptionBonus" aria-label="Bônus adicional de Percepção Passiva"
+                                class="hero-quick-editor-input h-9 w-24 rounded-lg px-2 text-center text-[12px] font-bold tabular-nums">
+                        </label>
+                        <p class="hero-quick-editor-muted mt-2 text-[9px] leading-relaxed">Usa o modificador de Percepção; sem perícia cadastrada, utiliza Sabedoria.</p>
+                    </section>
                 </div>
-
-                <div class="space-y-4 p-4">
-                    <div
-                        class="
-                            rounded-xl
-                            border
-                            border-[#d8c7ab]/60
-                            bg-[#f4f1e8]/60
-                            p-3
-                        "
-                    >
-                        <div
-                            class="
-                                flex
-                                items-center
-                                justify-between
-                            "
-                        >
-                            <span
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Base
-                            </span>
-
-                            <span
-                                class="
-                                    font-serif
-                                    text-base
-                                    font-black
-                                    text-[#53150f]
-                                "
-                            >
-                                10
-                            </span>
-                        </div>
-
-                        <div
-                            class="
-                                mt-1
-                                flex
-                                items-center
-                                justify-between
-                            "
-                        >
-                            <span
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Percepção
-                            </span>
-
-                            <span
-                                class="
-                                    font-serif
-                                    text-base
-                                    font-black
-                                    text-[#53150f]
-                                "
-
-                                x-text="
-                                    (
-                                        perceptionSkillModifier >= 0
-                                            ? '+'
-                                            : ''
-                                    )
-                                    +
-                                    perceptionSkillModifier
-                                "
-                            ></span>
-                        </div>
-
-                        <div
-                            class="
-                                mt-1
-                                flex
-                                items-center
-                                justify-between
-                            "
-                        >
-                            <span
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-widest
-                                    text-[#8c6239]
-                                "
-                            >
-                                Bônus
-                            </span>
-
-                            <span
-                                class="
-                                    font-serif
-                                    text-base
-                                    font-black
-                                    text-[#53150f]
-                                "
-
-                                x-text="
-                                    (
-                                        passivePerceptionBonus >= 0
-                                            ? '+'
-                                            : ''
-                                    )
-                                    +
-                                    (
-                                        parseInt(
-                                            passivePerceptionBonus
-                                        ) || 0
-                                    )
-                                "
-                            ></span>
-                        </div>
-
-                        <div
-                            class="
-                                mt-2
-                                border-t
-                                border-[#d8c7ab]/50
-                                pt-2
-                            "
-                        >
-                            <div
-                                class="
-                                    flex
-                                    items-center
-                                    justify-between
-                                "
-                            >
-                                <span
-                                    class="
-                                        text-[10px]
-                                        font-black
-                                        uppercase
-                                        tracking-widest
-                                        text-[#6b1d14]
-                                    "
-                                >
-                                    Total
-                                </span>
-
-                                <span
-                                    class="
-                                        font-serif
-                                        text-xl
-                                        font-black
-                                        text-[#53150f]
-                                    "
-
-                                    x-text="
-                                        passivePerception
-                                    "
-                                ></span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <label class="block">
-                        <span
-                            class="
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c6239]
-                            "
-                        >
-                            Bônus adicional
-                        </span>
-
-                        <input
-                            type="number"
-
-                            x-model.number="
-                                passivePerceptionBonus
-                            "
-
-                            class="
-                                mt-1.5
-                                w-full
-                                rounded-lg
-                                border
-                                border-[#cdbb9f]
-                                bg-white
-                                px-3
-                                py-2
-                                font-serif
-                                text-base
-                                font-black
-                                text-[#53150f]
-                                outline-none
-                                focus:border-[#6b1d14]
-                            "
-                        >
-                    </label>
-
-                    <p
-                        class="
-                            text-[10px]
-                            leading-4
-                            text-[#8c6239]/70
-                        "
-                    >
-                        A conta usa 10 + o modificador atual de Percepção.
-                        Se a perícia não estiver cadastrada, usa o modificador de Sabedoria.
-                    </p>
-
-
-                    {{-- AÇÕES --}}
-                    <div
-                        class="
-                            hero-quick-stats-modal-footer
-                            flex
-                            justify-end
-                            gap-2
-                            border-t
-                            border-[#d8c7ab]/50
-                            pt-3
-                        "
-                    >
-                        <button
-                            type="button"
-
-                            @click="
-                                perceptionOpen = false
-                            "
-
-                            class="
-                                rounded-lg
-                                px-3
-                                py-2
-                                text-[10px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#8c6239]
-                                transition
-                                hover:bg-[#efe9dc]
-                            "
-                        >
-                            Cancelar
-                        </button>
-
-                        <button
-                            type="button"
-
-                            @click="
-                                persist()
-                            "
-
-                            :disabled="
-                                saving
-                            "
-
-                            class="
-                                rounded-lg
-                                bg-[#6b1d14]
-                                px-4
-                                py-2
-                                text-[10px]
-                                font-black
-                                uppercase
-                                tracking-widest
-                                text-[#f4f1e8]
-                                transition
-                                hover:bg-[#53150f]
-                                disabled:opacity-50
-                            "
-                        >
-                            Salvar
-                        </button>
-                    </div>
-                </div>
+    
+                <footer class="hero-quick-stats-modal-footer hero-quick-editor-footer flex justify-end gap-2">
+                    <button type="button" class="hero-quick-editor-button rounded-lg px-3 py-2 text-[10px] font-black uppercase" @click="perceptionOpen = false">Cancelar</button>
+                    <button type="button" class="hero-quick-editor-primary rounded-lg px-4 py-2 text-[10px] font-black uppercase disabled:opacity-50" :disabled="saving" @click="persist()">Salvar</button>
+                </footer>
             </div>
         </div>
     </template>

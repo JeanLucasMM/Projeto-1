@@ -20,6 +20,19 @@ class CombatPlayer extends Model
         'initiative' => 'integer',
     ];
 
+    /** Mantém o participante do turno ao inserir outros durante uma batalha ativa. */
+    protected static function booted(): void
+    {
+        static::deleting(static function (self $participant): void {
+            app(\App\Services\Combats\CombatRunParticipantRecorder::class)->left($participant);
+        });
+        static::created(static function (self $participant): void {
+            app(\App\Services\CombatTurnInsertionService::class)
+                ->reanchorAfterInsertion($participant);
+            app(\App\Services\Combats\CombatRunParticipantRecorder::class)->joined($participant);
+        });
+    }
+
     public function combat(): BelongsTo
     {
         return $this->belongsTo(

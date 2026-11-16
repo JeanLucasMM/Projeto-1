@@ -16,97 +16,66 @@ class Campaign extends Model
         'owner_user_id',
         'name',
         'description',
+        'experience_enabled',
     ];
 
+    protected $casts = [
+        'experience_enabled' => 'boolean',
+    ];
 
     public function owner(): BelongsTo
     {
-        return $this->belongsTo(
-            User::class,
-            'owner_user_id'
-        );
+        return $this->belongsTo(User::class, 'owner_user_id');
     }
-
 
     public function invitations(): HasMany
     {
-        return $this->hasMany(
-            CampaignInvitation::class
-        );
+        return $this->hasMany(CampaignInvitation::class);
     }
-
 
     public function members(): HasMany
     {
-        return $this->hasMany(
-            CampaignMember::class
-        );
+        return $this->hasMany(CampaignMember::class);
     }
-
 
     public function characterLinks(): HasMany
     {
-        return $this->hasMany(
-            CampaignCharacter::class
-        );
+        return $this->hasMany(CampaignCharacter::class);
     }
-
 
     public function characters(): BelongsToMany
     {
-        return $this->belongsToMany(
-            Character::class,
-            'campaign_characters'
-        )
+        return $this->belongsToMany(Character::class, 'campaign_characters')
             ->withPivot([
                 'is_active',
+                'experience_points',
             ])
             ->withTimestamps();
     }
 
-
     public function combats(): HasMany
     {
-        return $this->hasMany(
-            Combat::class
-        );
+        return $this->hasMany(Combat::class);
     }
-
 
     public function isOwner(User|int $user): bool
     {
-        $userId =
-            $user instanceof User
-                ? $user->id
-                : $user;
+        $userId = $user instanceof User ? $user->id : $user;
 
-        return (int) $this->owner_user_id
-            ===
-            (int) $userId;
+        return (int) $this->owner_user_id === (int) $userId;
     }
-
 
     public function hasMember(User|int $user): bool
     {
-        $userId =
-            $user instanceof User
-                ? $user->id
-                : $user;
+        $userId = $user instanceof User ? $user->id : $user;
 
         return $this->members()
-            ->where(
-                'user_id',
-                $userId
-            )
+            ->where('user_id', $userId)
             ->exists();
     }
 
-
-    public function canBeViewedBy(
-        User $user
-    ): bool {
-        return $this->isOwner($user)
-            ||
-            $this->hasMember($user);
+    public function canBeViewedBy(User $user): bool
+    {
+        return $this->isOwner($user) || $this->hasMember($user);
     }
 }

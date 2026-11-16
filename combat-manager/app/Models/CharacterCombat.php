@@ -141,6 +141,13 @@ class CharacterCombat extends Model
         'overrides' => 'array',
     ];
 
+    protected static function booted(): void
+    {
+        static::updated(static function (self $state): void {
+            app(\App\Services\Combats\CombatRunMetricsRecorder::class)->characterChanged($state);
+        });
+    }
+
     public function character(): BelongsTo
     {
         return $this->belongsTo(Character::class);

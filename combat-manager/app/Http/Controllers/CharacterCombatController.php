@@ -22,6 +22,34 @@ class CharacterCombatController extends Controller
             $character
         );
 
+        // Condições podem ser encerradas pelo dono da ficha, sem alterar HP,
+        // exaustão ou campos de combate. Usa a rota PATCH já existente.
+        if ($request->has('remove_combat_condition')) {
+            $data = $request->validate([
+                'remove_combat_condition' => ['required', 'string',
+                    \Illuminate\Validation\Rule::in(array_diff(
+                        array_keys(\App\Support\CombatConditions::all()),
+                        ['exhaustion', 'invisible']
+                    ))],
+                'condition_combat_id' => ['required', 'integer', 'min:1'],
+            ]);
+
+            $participant = CombatPlayer::query()
+                ->where('combat_id', (int) $data['condition_combat_id'])
+                ->where('character_id', (int) $character->id)
+                ->firstOrFail();
+
+            DB::table('combat_player_conditions')
+                ->where('combat_id', (int) $participant->combat_id)
+                ->where('combat_player_id', (int) $participant->id)
+                ->where('character_id', (int) $character->id)
+                ->where('condition_key', $data['remove_combat_condition'])
+                ->where('is_active', true)
+                ->update(['is_active' => false, 'updated_at' => now()]);
+
+            return response()->json(['success' => true]);
+        }
+
         /*
         |--------------------------------------------------------------------------
         | REGRA MORQUEN

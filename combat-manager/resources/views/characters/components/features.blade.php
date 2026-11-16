@@ -4741,9 +4741,270 @@
                 }
             }
 
-        </style>
+                    /* Efeitos temporários — tokens de todos os temas, sem cores fixas. */
+            .feature-active-effects { margin: 0 2px 12px; }
+            .feature-active-effects__list { display: grid; gap: 7px; }
+            .feature-active-effect {
+                display: flex; align-items: center; gap: 10px; padding: 8px 11px;
+                border: 1px solid var(--theme-border, #bea688); border-radius: 9px;
+                background: var(--theme-surface-card, #fffdf8); color: var(--theme-text-primary, #34231b);
+            }
+            .feature-active-effect > div:first-child { flex: 1; }
+            .feature-active-effect small { display: block; margin-top: 3px; color: var(--theme-text-secondary, #745743); font-size: 10px; }
+            .feature-active-effect__time { text-align: center; min-width: 42px; }
+            .feature-active-effect__time strong { font-size: 19px; color: var(--theme-text-strong, #53150f); }
+            .feature-effect-action {
+                border: 1px solid var(--theme-border, #bea688); border-radius: 8px;
+                background: var(--theme-paper-strong, #fffdf8); color: var(--theme-text-primary, #34231b);
+                font: 800 10px/1.2 system-ui, sans-serif; padding: 7px 9px; cursor: pointer;
+            }
+            .feature-effect-action:hover { background: var(--theme-hover, #eee2d5); }
+            .feature-effect-action:disabled { opacity: .4; cursor: wait; }
+            .feature-effect-error { padding: 7px 9px; color: var(--theme-state-damage, #a22); font-size: 11px; font-weight: 700; }
+            .feature-effect-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer;
+                color: var(--theme-text-primary, #34231b); font-size: 12px; font-weight: 700; }
+            .feature-effect-toggle input { accent-color: var(--theme-accent-strong, #6b1d14); width: 16px; height: 16px; }
+            .feature-effect-editor { border: 1px solid var(--theme-border-soft, #ddc8b0); border-radius: 10px;
+                background: var(--theme-panel-soft, #f6eee5); padding: 12px; margin-top: 10px; }
+            .feature-effect-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 7px; }
+            .feature-effect-dialog { width: min(440px, 95vw); }
+            .feature-check-stats { display: grid; grid-template-columns: repeat(3, 1fr); overflow: hidden;
+                border: 1px solid var(--theme-border, #ddc8b0); border-radius: 11px; }
+            .feature-check-stats > div { text-align: center; padding: 10px; border-right: 1px solid var(--theme-border-soft, #ddc8b0); }
+            .feature-check-stats > div:last-child { border-right: none; }
+            .feature-check-stats span { display: block; font-size: 9px; font-weight: 800; color: var(--theme-text-secondary, #745743); }
+            .feature-check-stats strong { display: block; margin-top: 4px; font: 900 23px Georgia, serif; color: var(--theme-text-strong, #53150f); }
+            .feature-check-result { margin-top: 12px; display: flex; align-items: center; gap: 10px;
+                border-radius: 9px; padding: 12px; background: var(--theme-panel-soft, #f6eee5);
+                color: var(--theme-text-primary, #34231b); }
+            .feature-check-result strong { font: 900 23px Georgia, serif; }
+            @media (max-width: 520px) { .feature-effect-row { grid-template-columns: 1fr; } }
+
+            /* V59 — Duração e concentração: dados SVG V57, controlados pelo tema. */
+            /* V59.1: mesma linguagem da rolagem de Transformacoes, com SVG V57. */
+            .feature-v59-dice-modal { width: min(550px, calc(100vw - 26px)); }
+            .feature-v59-dice-modal .feature-v3-modal-header {
+                padding: 20px 23px 16px !important;
+            }
+            .feature-v59-dice-modal .feature-v3-modal-title {
+                font: 900 25px/1.18 Georgia,serif;
+            }
+            .feature-v59-dice-modal .feature-v3-detail-body.feature-v59-dice-main {
+                padding: 21px 18px 20px !important;
+            }
+            .feature-v59-dice-modal .feature-v59-expression {
+                font: 900 21px/1.22 Georgia,serif;
+                letter-spacing: 0;
+                color: var(--theme-text-strong,#53150f);
+            }
+            .feature-v59-dice-modal .feature-v59-dice-tray {
+                min-height: 140px;
+                padding: 20px 0 13px;
+                gap: 10px 15px;
+            }
+            .feature-v59-dice-modal .feature-v59-die { min-width: 76px; }
+            .feature-v59-dice-modal .feature-v59-bonus {
+                border: 0; background: transparent; padding: 3px;
+                font: 800 19px/1 system-ui,sans-serif;
+                color: var(--theme-accent,#93684c);
+            }
+            .feature-v59-dice-modal .feature-v59-total { min-height: 57px; }
+            .feature-v59-dice-modal .feature-v59-total strong { font-size: 46px; }
+            .feature-v59-dice-modal .feature-v59-footer { gap: 9px; padding: 15px 20px !important; }
+            .feature-v59-dice-modal .feature-v59-footer button { min-height: 39px; }
+            @media (max-width: 480px) {
+                .feature-v59-dice-modal .feature-v3-modal-header { padding: 14px 15px !important; }
+                .feature-v59-dice-modal .feature-v3-detail-body.feature-v59-dice-main { padding: 18px 10px !important; }
+                .feature-v59-dice-modal .feature-v59-dice-tray { gap: 7px; }
+                .feature-v59-dice-modal .feature-v59-die { min-width: 62px; }
+                .feature-v59-dice-modal .feature-v59-footer { justify-content: center; padding: 12px !important; }
+            }
+            .feature-v59-dice-main { padding: 20px 18px 17px; text-align: center; }
+            .feature-v59-expression { display: block; font-size: 11px; font-weight: 850;
+                color: var(--theme-text-secondary, #805d48); letter-spacing: .04em; }
+            .feature-v59-dice-tray { display: flex; justify-content: center; flex-wrap: wrap;
+                align-items: center; gap: 8px 13px; min-height: 105px; padding: 11px 0; }
+            .feature-v59-die { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; }
+            .feature-v59-bonus { display: inline-block; border: 1px solid var(--theme-border-soft, #d6bda4);
+                border-radius: 8px; color: var(--theme-text-secondary, #805d48); padding: 5px 8px;
+                font-weight: 850; font-size: 13px; }
+            .feature-v59-total { display: flex; align-items: baseline; justify-content: center; gap: 8px;
+                min-height: 52px; color: var(--theme-text-secondary, #805d48); font-size: 11px; }
+            .feature-v59-total strong { font: 900 38px/1.15 Georgia, serif;
+                color: var(--theme-text-strong, #53150f); font-variant-numeric: tabular-nums; }
+            .feature-v59-mode { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 12px; }
+            .feature-v59-manual { max-width: 220px; margin: 12px auto 0; }
+            .feature-v59-manual label { display:block; font-size: 10px; font-weight: 800;
+                color:var(--theme-text-secondary,#805d48); margin-bottom: 5px; }
+            .feature-v59-manual input { width: 100%; min-height: 43px; border: 1px solid var(--theme-border, #cbb496);
+                border-radius: 8px; background: var(--theme-paper-strong, #fffdf8);
+                color: var(--theme-text-primary, #34231b); padding: 5px 10px;
+                font-size: 20px; font-weight: 800; text-align: center; outline: none; }
+            .feature-v59-manual input:focus { outline: 2px solid var(--theme-accent, #a4765d); outline-offset: 1px; }
+            .feature-v59-footer { display:flex; align-items:center; justify-content:flex-end; gap:7px;
+                flex-wrap:wrap; }
+            .feature-v59-error { margin-top: 9px; font-size: 11px; color: var(--theme-state-damage,#a22); font-weight:700; }
+            .feature-v59-dice-modal .sb-poly-die.is-rolling { will-change: transform; }
+            .feature-v59-dice-modal .sb-poly-die.is-landed {
+                animation: feature-v59-land .25s cubic-bezier(.2,.85,.24,1) both;
+            }
+            @keyframes feature-v59-land {
+                from { transform: translateY(-6px) scale(1.075); }
+                to { transform: translateY(0) scale(1); }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .feature-v59-dice-modal .sb-poly-die.is-landed { animation: none; }
+            }
+            .feature-v59-result-state { margin: 9px auto 0; padding: 10px; border-radius: 8px;
+                background:var(--theme-panel-soft,#f2e7db); color:var(--theme-text-primary,#34231b);
+                font-weight:800; font-size:12px; }
+            @media (max-width: 440px) {
+                .feature-v59-dice-main { padding: 16px 10px; }
+                .feature-v59-dice-tray { gap: 6px; }
+                .feature-v59-footer { justify-content:center; }
+            }
+
+            /* V61: a janela de Concentração usa a mesma linguagem visual do Grimório.
+               Classes sb-* são compartilhadas com concentration-check-modal.blade.php. */
+            .feature-check-unified {
+                --spellbook-state-concentration: var(--theme-state-concentration, #75558a);
+                --spellbook-modal-surface: var(--theme-modal-surface, var(--theme-paper-strong, #fffdf8));
+                --spellbook-modal-header-background: var(--theme-modal-header-background, var(--theme-paper-alt, #f7f0e6));
+                --spellbook-modal-border: var(--theme-modal-border, var(--theme-border, #cdbb9f));
+                --spellbook-panel-soft: var(--theme-panel-soft, #f8f0e6);
+                --spellbook-title: var(--theme-text-strong, #53150f);
+                --spellbook-muted: var(--theme-text-secondary, #7d604d);
+                --spellbook-label: var(--theme-label, #704326);
+                --spellbook-modal-text: var(--theme-modal-text, var(--theme-text-primary, #34231b));
+                --spellbook-paper-strong: var(--theme-paper-strong, #fffdf8);
+                --spellbook-paper-alt: var(--theme-paper-alt, #f7f0e6);
+                --spellbook-border-soft: var(--theme-border-soft, #d6c1ad);
+                --spellbook-border: var(--theme-border, #cdbb9f);
+                --spellbook-button-bg: var(--theme-button-bg, #6b1d14);
+                --spellbook-button-text: var(--theme-button-text, #fffaf2);
+                --spellbook-button-hover: var(--theme-button-hover, #53150f);
+                --spellbook-modal-backdrop: var(--theme-modal-backdrop, rgba(0,0,0,.78));
+                background: var(--spellbook-modal-backdrop);
+                color: var(--spellbook-modal-text);
+            }
+            .feature-check-unified .feature-check-shell {
+                width: min(448px, 100%);
+                max-width: 448px;
+                max-height: calc(100dvh - 32px);
+                display: flex;
+                flex-direction: column;
+                border-radius: 22px;
+                border: 1px solid var(--spellbook-modal-border);
+                background: var(--spellbook-modal-surface);
+                box-shadow: var(--theme-modal-shadow, 0 22px 60px rgba(0,0,0,.20));
+                overflow: hidden;
+            }
+            .feature-check-unified .feature-check-header {
+                flex: 0 0 auto;
+                background: var(--spellbook-modal-header-background);
+                border-bottom: 1px solid var(--spellbook-border-soft);
+                border-top: 4px solid var(--spellbook-state-concentration);
+            }
+            .feature-check-unified .feature-check-content {
+                min-height: 0;
+                overflow-y: auto;
+                background: var(--spellbook-modal-surface);
+            }
+            .feature-check-unified .feature-check-footer {
+                flex: 0 0 auto;
+                background: var(--spellbook-paper-alt);
+                border-top: 1px solid var(--spellbook-border-soft);
+            }
+            .feature-check-unified .feature-check-stats {
+                display: grid;
+                grid-template-columns: repeat(3,minmax(0,1fr));
+                overflow: hidden;
+                background: var(--spellbook-panel-soft);
+                border: 1px solid var(--spellbook-border-soft);
+                border-radius: 12px;
+            }
+            .feature-check-unified .feature-check-stats > div { min-width:0; padding:12px 8px; text-align:center; }
+            .feature-check-unified .feature-check-stats > div + div { border-left:1px solid var(--spellbook-border-soft); }
+            .feature-check-unified .feature-check-stats span {
+                display: block; font-size: 7px; font-weight: 900;
+                letter-spacing:.10em; text-transform:uppercase; color:var(--spellbook-label);
+            }
+            .feature-check-unified .feature-check-stats strong {
+                display:block; margin-top:5px; font:900 22px/1 Georgia,serif;
+                color:var(--spellbook-title); font-variant-numeric:tabular-nums;
+            }
+            .feature-check-unified .feature-check-result {
+                display:flex; align-items:center; justify-content:center; gap:16px;
+                min-height:92px; padding:10px 12px;
+                background:var(--spellbook-panel-soft);
+                border:1px solid var(--spellbook-border-soft);
+                border-radius:12px;
+            }
+            .feature-check-unified .feature-check-die { flex:0 0 70px; display:grid; place-items:center; }
+            .feature-check-unified .feature-check-die .sb-poly-die .sb-poly-number {
+                font-size:22px !important; font-weight:750 !important; letter-spacing:-.01em;
+            }
+            .feature-check-unified .feature-check-result-copy { min-width:0; flex:1; }
+            .feature-check-unified .feature-check-result-copy small {
+                display:block; color:var(--spellbook-label); font-size:8px; font-weight:850;
+                text-transform:uppercase; letter-spacing:.08em;
+            }
+            .feature-check-unified .feature-check-result-copy strong {
+                display:block; font:900 25px/1.2 Georgia,serif;
+                color:var(--spellbook-title); font-variant-numeric:tabular-nums;
+            }
+            .feature-check-unified .feature-check-result-copy p {
+                margin-top:2px; font-size:10px; line-height:1.4; font-weight:700;
+                color:var(--spellbook-muted);
+            }
+            .feature-check-unified .feature-check-manual {
+                width:100%; border:1px solid var(--spellbook-border);
+                background:var(--theme-input-bg, var(--spellbook-paper-strong));
+                border-radius:10px; padding:10px 12px;
+                color:var(--theme-input-text, var(--spellbook-title));
+                outline:none; font:800 15px/1.4 system-ui,sans-serif;
+            }
+            .feature-check-unified .feature-check-manual:focus-visible {
+                border-color:var(--spellbook-state-concentration);
+                box-shadow:0 0 0 3px color-mix(in srgb,var(--spellbook-state-concentration) 17%,transparent);
+            }
+            .feature-check-unified .feature-check-actions {
+                display:flex; flex-wrap:wrap; justify-content:flex-end; gap:7px;
+            }
+            .feature-check-unified .feature-check-actions button { min-height:35px; }
+            .feature-check-unified .feature-check-actions .sb-button-primary {
+                background:var(--theme-button-background,var(--spellbook-button-bg));
+                color:var(--spellbook-button-text);
+            }
+            .feature-check-unified .feature-check-actions .sb-button-primary:hover {
+                background:var(--theme-button-hover-background,var(--spellbook-button-hover));
+            }
+            .feature-check-unified .feature-check-actions .sb-button-soft {
+                background:var(--spellbook-paper-strong);
+                border-color:var(--spellbook-border);
+                color:var(--theme-accent-strong,var(--spellbook-title));
+            }
+            .feature-check-unified .feature-check-actions .sb-button-soft:hover {
+                background:var(--theme-hover,var(--spellbook-panel-soft));
+            }
+            .feature-check-unified .feature-check-state {
+                padding:9px 11px; border-radius:10px;
+                background:var(--spellbook-panel-soft);
+                border:1px solid var(--spellbook-border-soft);
+                color:var(--spellbook-title);
+                font-size:10px; font-weight:750; line-height:1.5;
+            }
+            @media (max-width:420px) {
+                .feature-check-unified .feature-check-shell { max-height:calc(100dvh - 20px); }
+                .feature-check-unified .feature-check-actions { justify-content:center; }
+                .feature-check-unified .feature-check-actions button { padding:7px 9px; }
+            }
+</style>
     @endpush
 @endonce
+
+{{-- Usa a mesma paleta e SVG V57 das Transformações. --}}
+@include('components.ui.poly-die-styles')
 
 <section
     x-data="{
@@ -4761,6 +5022,38 @@
         saving: false,
         busyUsesId: null,
         saveError: null,
+        effects: [],
+        effectConcentration: null,
+        effectBusyId: null,
+        effectError: '',
+        effectNotice: null,
+        effectNoticeTimer: null,
+        effectReplacementOpen: false,
+        pendingEffectFeature: null,
+        featureCheckOpen: false,
+        featureCheck: null,
+        featureCheckFeature: null,
+        featureCheckRolling: false,
+        featureCheckRoll: null,
+        featureCheckManualMode: false,
+        featureCheckManualTotal: '',
+        featureCheckDisplay: '—',
+        featureCheckResolved: false,
+        featureDurationOpen: false,
+        featureDurationFeature: null,
+        featureDurationConfirmed: false,
+        featureDurationMode: 'digital',
+        featureDurationExpression: '',
+        featureDurationDice: [],
+        featureDurationBonus: 0,
+        featureDurationTotal: null,
+        featureDurationManualTotal: '',
+        featureDurationRolling: false,
+        featureDurationError: '',
+        _featureDiceTicker: null,
+        _featureDiceNonce: 0,
+        _effectTimer: null,
+        _effectDamageHandler: null,
 
         urls: {
             store: @js(route('characters.features.store', $character)),
@@ -4785,6 +5078,17 @@
                     'feature' => '__FEATURE__',
                 ]
             )),
+            effectsState: @js(route('characters.features.effects.state', $character)),
+            effectsActivate: @js(route('characters.features.effects.activate', [
+                'character' => $character, 'feature' => '__FEATURE__',
+            ])),
+            effectsStop: @js(route('characters.features.effects.stop', [
+                'character' => $character, 'feature' => '__FEATURE__',
+            ])),
+            effectCheck: @js(route('characters.features.effects.concentration.check', [
+                'character' => $character, 'feature' => '__FEATURE__',
+            ])),
+            diceRoll: @js(url('/api/roll')),
         },
 
         activationLabels: {
@@ -4805,6 +5109,380 @@
             custom: 'Personalizado',
         },
 
+        init() {
+            this.refreshEffects();
+            this._effectTimer = window.setInterval(() => this.refreshEffects(), 8000);
+            this._effectDamageHandler = event => this.handleEffectDamage(event);
+            window.addEventListener('character-damage-applied', this._effectDamageHandler);
+            this._effectConcentrationChanged = () => this.refreshEffects();
+            this._roundsAdvanced = () => this.refreshEffects();
+            window.addEventListener('character-rounds-advanced', this._roundsAdvanced);
+            window.addEventListener('character-concentration-changed', this._effectConcentrationChanged);
+        },
+        destroy() {
+            if (this._effectTimer) window.clearInterval(this._effectTimer);
+            this.stopFeatureDiceTicker();
+            this._featureDiceNonce++;
+            if (this.effectNoticeTimer) window.clearTimeout(this.effectNoticeTimer);
+            if (this._effectDamageHandler) window.removeEventListener('character-damage-applied', this._effectDamageHandler);
+            if (this._effectConcentrationChanged) window.removeEventListener('character-concentration-changed', this._effectConcentrationChanged);
+            if (this._roundsAdvanced) window.removeEventListener('character-rounds-advanced', this._roundsAdvanced);
+        },
+        effectEnabled(feature) {
+            return !!feature?.data?.effect_enabled;
+        },
+        activeEffect(feature) {
+            return this.effects.find(effect => Number(effect.feature_id) === Number(feature?.id)) ?? null;
+        },
+        effectUrl(key, featureId) {
+            return this.urls[key].replace('__FEATURE__', String(featureId));
+        },
+        async effectRequest(url, method = 'GET', payload = null) {
+            const options = {method, headers: this.jsonHeaders()};
+            if (payload !== null) options.body = JSON.stringify(payload);
+            const response = await fetch(url, options);
+            const data = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                const validation = Object.values(data?.errors ?? {}).flat().filter(Boolean);
+                throw new Error(validation.join(' ') || data?.message || 'Não foi possível atualizar o efeito.');
+            }
+            return data;
+        },
+        async refreshEffects() {
+            try {
+                const data = await this.effectRequest(this.urls.effectsState);
+                this.effects = Array.isArray(data.effects) ? data.effects : [];
+                this.effectConcentration = data.concentration || null;
+                // Compartilha a lista com a gaveta lateral da ficha.
+                window.dispatchEvent(new CustomEvent('character-feature-effects-updated', {
+                    detail: {
+                        characterId: Number(@js((int) $character->id)),
+                        effects: this.effects,
+                    },
+                }));
+            } catch (error) {
+                // A ficha continua operacional em caso de falha momentânea de rede.
+            }
+        },
+        extractFeatureDiceTotal(data) {
+            const value = data?.data?.total ?? data?.data?.result ?? data?.data?.value
+                ?? data?.data?.sum ?? data?.total ?? data?.result ?? null;
+            if (value === null || value === undefined || value === '') {
+                throw new Error('O serviço de dados não retornou um resultado.');
+            }
+            const number = Number(value);
+            if (!Number.isSafeInteger(number)) throw new Error('Resultado de dado inválido.');
+            return number;
+        },
+        parseFeatureDurationFormula(expression) {
+            const text = String(expression || '').trim().toLowerCase().replace(/\s+/g, '');
+            const match = text.match(/^(\d{1,2})d(\d{1,3})([+-]\d{1,3})?$/);
+            if (!match) throw new Error('Use uma fórmula como 1d4 ou 2d6+1.');
+            const count = Number(match[1]);
+            const sides = Number(match[2]);
+            const bonus = Number(match[3] || 0);
+            if (count < 1 || count > 10 || sides < 2 || sides > 100 || Math.abs(bonus) > 100) {
+                throw new Error('Esta fórmula ultrapassa os limites de 10 dados e 100 faces.');
+            }
+            return {text, count, sides, bonus, min: Math.max(1, count + bonus),
+                max: Math.max(1, count * sides + bonus)};
+        },
+        stopFeatureDiceTicker() {
+            if (this._featureDiceTicker !== null) {
+                window.clearInterval(this._featureDiceTicker);
+                this._featureDiceTicker = null;
+            }
+        },
+        openFeatureDuration(feature, confirmed = false) {
+            let formula;
+            try { formula = this.parseFeatureDurationFormula(feature?.data?.effect_duration_dice || '1d4'); }
+            catch (error) { this.effectError = error.message; return; }
+            this.effectError = '';
+            this.featureDurationFeature = feature;
+            this.featureDurationConfirmed = confirmed;
+            this.featureDurationExpression = formula.text;
+            this.featureDurationBonus = formula.bonus;
+            this.featureDurationDice = Array.from({length: formula.count}, (_, index) => ({
+                index, sides: formula.sides, display: '—', value: null, landed: false,
+            }));
+            this.featureDurationMode = 'digital';
+            this.featureDurationManualTotal = '';
+            this.featureDurationTotal = null;
+            this.featureDurationError = '';
+            this.featureDurationOpen = true;
+            this.rollFeatureDuration();
+        },
+        closeFeatureDuration() {
+            if (this.effectBusyId !== null) return;
+            this._featureDiceNonce++;
+            this.stopFeatureDiceTicker();
+            this.featureDurationRolling = false;
+            this.featureDurationOpen = false;
+            this.featureDurationFeature = null;
+            this.featureDurationDice = [];
+            this.featureDurationError = '';
+        },
+        async rollFeatureDuration() {
+            if (!this.featureDurationOpen || this.featureDurationRolling || this.effectBusyId !== null) return;
+            const nonce = ++this._featureDiceNonce;
+            this.featureDurationMode = 'digital';
+            this.featureDurationError = '';
+            this.featureDurationRolling = true;
+            this.featureDurationTotal = null;
+            this.stopFeatureDiceTicker();
+
+            const dice = this.featureDurationDice;
+            // A animacao e apenas visual: o resultado valido vem da API de dados.
+            dice.forEach(die => {
+                die.value = null;
+                die.landed = false;
+                die.display = String(Math.floor(Math.random() * die.sides) + 1);
+            });
+            this._featureDiceTicker = window.setInterval(() => {
+                if (nonce !== this._featureDiceNonce) return;
+                dice.forEach(die => {
+                    if (!die.landed) {
+                        die.display = String(Math.floor(Math.random() * die.sides) + 1);
+                    }
+                });
+            }, 65);
+
+            try {
+                // Espera a rede E a animacao minima para impedir resultado instantaneo.
+                // Se a API falhar, nao gera nenhum resultado local para confirmar.
+                const [values] = await Promise.all([
+                    Promise.all(dice.map(die => this.effectRequest(
+                        this.urls.diceRoll, 'POST', {expression: `1d${die.sides}`}
+                    ).then(result => {
+                        const value = this.extractFeatureDiceTotal(result);
+                        if (value < 1 || value > die.sides) throw new Error('O dado retornou uma face invalida.');
+                        return value;
+                    }))),
+                    new Promise(resolve => window.setTimeout(resolve, 1150)),
+                ]);
+                if (nonce !== this._featureDiceNonce) return;
+                // Cada dado para em sequencia, como um lancamento real.
+                for (let i = 0; i < dice.length; i++) {
+                    if (nonce !== this._featureDiceNonce) return;
+                    dice[i].value = values[i];
+                    dice[i].display = String(values[i]);
+                    dice[i].landed = true;
+                    await new Promise(resolve => window.setTimeout(resolve, 135));
+                }
+                if (nonce !== this._featureDiceNonce) return;
+                this.featureDurationTotal = Math.max(1, Math.min(10000,
+                    values.reduce((sum, value) => sum + value, this.featureDurationBonus)));
+            } catch (error) {
+                if (nonce === this._featureDiceNonce) {
+                    this.featureDurationError = error?.message || 'Falha na rolagem.';
+                    dice.forEach(die => { die.value = null; die.display = '—'; die.landed = false; });
+                }
+            } finally {
+                if (nonce === this._featureDiceNonce) {
+                    this.stopFeatureDiceTicker();
+                    this.featureDurationRolling = false;
+                }
+            }
+        },
+        async confirmFeatureDuration() {
+            if (!this.featureDurationFeature || this.featureDurationRolling || this.effectBusyId !== null) return;
+            let total;
+            if (this.featureDurationMode === 'manual') {
+                const formula = this.parseFeatureDurationFormula(this.featureDurationExpression);
+                total = Number(this.featureDurationManualTotal);
+                if (!Number.isSafeInteger(total) || !String(this.featureDurationManualTotal).trim()
+                    || total < formula.min || total > formula.max) {
+                    this.featureDurationError = `Informe um total válido entre ${formula.min} e ${formula.max} rodadas.`;
+                    return;
+                }
+            } else {
+                total = this.featureDurationTotal;
+                if (!Number.isSafeInteger(total)) {
+                    this.featureDurationError = 'Role os dados antes de confirmar.';
+                    return;
+                }
+            }
+            this.featureDurationError = '';
+            await this.activateFeature(this.featureDurationFeature, this.featureDurationConfirmed, total);
+        },
+        async activateFeature(feature, confirmed = false, durationOverride = null) {
+            if (this.effectBusyId !== null || !this.effectEnabled(feature) || this.activeEffect(feature)) return;
+            if (!confirmed && feature?.data?.effect_requires_concentration && this.effectConcentration) {
+                this.pendingEffectFeature = feature;
+                this.effectReplacementOpen = true;
+                return;
+            }
+            if (feature?.data?.effect_duration_mode === 'dice' && durationOverride === null) {
+                this.effectReplacementOpen = false;
+                this.pendingEffectFeature = null;
+                this.openFeatureDuration(feature, confirmed);
+                return;
+            }
+            this.effectBusyId = Number(feature.id);
+            this.effectError = '';
+            try {
+                const payload = {confirm_replace_concentration: confirmed};
+                if (durationOverride !== null) payload.duration_roll_total = durationOverride;
+                const result = await this.effectRequest(this.effectUrl('effectsActivate', feature.id), 'POST', payload);
+                this.effectReplacementOpen = false;
+                this.pendingEffectFeature = null;
+                await this.refreshEffects();
+                if (this.detailFeature?.id === feature.id) this.detailOpen = false;
+                const duration = Number(result.effect?.duration_remaining ?? 0);
+                this.effectNotice = {
+                    name: String(feature.name || 'Habilidade'),
+                    duration: duration,
+                    concentration: !!result.effect?.requires_concentration,
+                };
+                if (this.effectNoticeTimer) window.clearTimeout(this.effectNoticeTimer);
+                this.effectNoticeTimer = window.setTimeout(() => { this.effectNotice = null; }, 5500);
+                window.dispatchEvent(new CustomEvent('character-concentration-changed'));
+                this._featureDiceNonce++;
+                this.stopFeatureDiceTicker();
+                this.featureDurationRolling = false;
+                this.featureDurationOpen = false;
+                this.featureDurationFeature = null;
+            } catch (error) {
+                this.effectError = error?.message || 'Não foi possível ativar a habilidade.';
+                if (this.featureDurationOpen) this.featureDurationError = this.effectError;
+                await this.refreshEffects();
+            } finally { this.effectBusyId = null; }
+        },
+        async stopFeatureEffect(feature) {
+            if (this.effectBusyId !== null) return;
+            this.effectBusyId = Number(feature.id);
+            this.effectError = '';
+            try {
+                await this.effectRequest(this.effectUrl('effectsStop', feature.id), 'POST', {});
+                await this.refreshEffects();
+                window.dispatchEvent(new CustomEvent('character-concentration-changed'));
+            } catch (error) { this.effectError = error?.message || 'Não foi possível encerrar o efeito.'; }
+            finally {
+                this.effectBusyId = null;
+                window.dispatchEvent(new CustomEvent('character-feature-effect-stop-finished', {
+                    detail: {
+                        characterId: Number(@js((int) $character->id)),
+                        error: this.effectError,
+                    },
+                }));
+            }
+        },
+        async handleEffectDamage(event) {
+            const detail = event?.detail ?? {};
+            const characterId = Number(@js((int) $character->id));
+            if (![Number(detail.characterId ?? 0), Number(detail.mechanicalCharacterId ?? 0)].includes(characterId)) return;
+            const damage = Math.max(0, parseInt(detail.damage ?? 0) || 0);
+            if (damage < 1 || this.featureCheckOpen || this.effectConcentration?.source !== 'feature') return;
+            const effect = this.effects.find(item => Number(item.feature_id) === Number(this.effectConcentration?.id));
+            if (!effect?.requires_concentration) return;
+            try {
+                const result = await this.effectRequest(this.effectUrl('effectCheck', effect.feature_id), 'POST', {damage});
+                if (result.concentration_check?.required) {
+                    this.featureCheck = result.concentration_check;
+                    this.featureCheckFeature = effect;
+                    this.featureCheckRoll = null;
+                    this.featureCheckResolved = false;
+                    this.featureCheckManualMode = false;
+                    this.featureCheckManualTotal = '';
+                    this.featureCheckDisplay = '—';
+                    this.featureCheckOpen = true;
+                }
+            } catch (error) { this.effectError = error?.message || 'Falha ao preparar o teste.'; }
+        },
+        async rollFeatureConcentration() {
+            if (!this.featureCheck || !this.featureCheckFeature || this.featureCheckRolling || this.featureCheckResolved) return;
+            const nonce = ++this._featureDiceNonce;
+            this.featureCheckRolling = true;
+            this.effectError = '';
+            this.featureCheckManualMode = false;
+            this.featureCheckRoll = null;
+            this.featureCheckDisplay = String(Math.floor(Math.random() * 20) + 1);
+            this.stopFeatureDiceTicker();
+            this._featureDiceTicker = window.setInterval(() => {
+                if (nonce === this._featureDiceNonce) {
+                    this.featureCheckDisplay = String(Math.floor(Math.random() * 20) + 1);
+                }
+            }, 65);
+            try {
+                const check = this.featureCheck;
+                const [roll] = await Promise.all([
+                    this.effectRequest(this.urls.diceRoll, 'POST', {
+                        expression: check.expression || '1d20',
+                    }),
+                    new Promise(resolve => window.setTimeout(resolve, 1200)),
+                ]);
+                if (nonce !== this._featureDiceNonce) return;
+                const total = this.extractFeatureDiceTotal(roll);
+                const modifier = Number(check.modifier || 0);
+                const die = total - modifier;
+                if (!Number.isSafeInteger(die) || die < 1 || die > 20) {
+                    throw new Error('O resultado do d20 nao corresponde ao modificador do teste.');
+                }
+                this.stopFeatureDiceTicker();
+                this.featureCheckDisplay = String(die);
+                this.featureCheckRoll = {die, total, passed: null};
+                await new Promise(resolve => window.setTimeout(resolve, 180));
+            } catch (error) {
+                if (nonce === this._featureDiceNonce) {
+                    this.effectError = error?.message || 'Erro ao rolar Constituicao.';
+                    this.featureCheckDisplay = '—';
+                }
+            } finally {
+                if (nonce === this._featureDiceNonce) {
+                    this.stopFeatureDiceTicker();
+                    this.featureCheckRolling = false;
+                }
+            }
+        },
+        async confirmFeatureConcentration() {
+            if (!this.featureCheck || !this.featureCheckFeature || this.featureCheckRolling || this.featureCheckResolved) return;
+            let total;
+            if (this.featureCheckManualMode) {
+                total = Number(this.featureCheckManualTotal);
+                const modifier = Number(this.featureCheck.modifier || 0);
+                if (!String(this.featureCheckManualTotal).trim() || !Number.isSafeInteger(total)
+                    || total < 1 + modifier || total > 20 + modifier) {
+                    this.effectError = 'Informe o resultado total do teste, incluindo modificadores.';
+                    return;
+                }
+            } else {
+                total = this.featureCheckRoll?.total;
+                if (!Number.isSafeInteger(total)) {
+                    this.effectError = 'Role o d20 primeiro.';
+                    return;
+                }
+            }
+            this.featureCheckRolling = true;
+            this.effectError = '';
+            try {
+                const check = this.featureCheck;
+                const result = await this.effectRequest(this.effectUrl('effectCheck', this.featureCheckFeature.feature_id), 'POST', {
+                    damage: check.damage, roll_total: total,
+                });
+                this.featureCheckRoll = {
+                    die: total - Number(check.modifier || 0), total,
+                    passed: !!result?.result?.passed,
+                };
+                this.featureCheckDisplay = String(this.featureCheckRoll.die);
+                this.featureCheckResolved = true;
+                await this.refreshEffects();
+                if (!result?.result?.passed) window.dispatchEvent(new CustomEvent('character-concentration-changed'));
+            } catch (error) { this.effectError = error?.message || 'Erro ao registrar salvamento.'; }
+            finally { this.featureCheckRolling = false; }
+        },
+        closeFeatureCheck() {
+            if (this.featureCheckRolling) return;
+            this._featureDiceNonce++;
+            this.stopFeatureDiceTicker();
+            this.featureCheckOpen = false;
+            this.featureCheck = null;
+            this.featureCheckFeature = null;
+            this.featureCheckRoll = null;
+            this.featureCheckManualMode = false;
+            this.featureCheckManualTotal = '';
+            this.featureCheckDisplay = '—';
+            this.featureCheckResolved = false;
+        },
         get leftFeatures() {
             return this.sortedFeatures.filter(
                 feature =>
@@ -4891,6 +5569,11 @@
                         data.column === 'right'
                             ? 'right'
                             : 'left',
+                    effect_enabled: !!data.effect_enabled,
+                    effect_requires_concentration: !!data.effect_requires_concentration,
+                    effect_duration_mode: data.effect_duration_mode === 'dice' ? 'dice' : 'fixed',
+                    effect_duration_value: Number(data.effect_duration_value ?? 1),
+                    effect_duration_dice: data.effect_duration_dice ?? '1d4',
                 },
             };
         },
@@ -4914,6 +5597,11 @@
                     counter_mode: 'spend',
                     recovery_custom: '',
                     column: 'left',
+                    effect_enabled: false,
+                    effect_requires_concentration: false,
+                    effect_duration_mode: 'fixed',
+                    effect_duration_value: 1,
+                    effect_duration_dice: '1d4',
                 },
             };
         },
@@ -5250,6 +5938,11 @@
                         this.form?.data?.column === 'right'
                             ? 'right'
                             : 'left',
+                    effect_enabled: !!this.form?.data?.effect_enabled,
+                    effect_requires_concentration: !!this.form?.data?.effect_requires_concentration,
+                    effect_duration_mode: this.form?.data?.effect_duration_mode === 'dice' ? 'dice' : 'fixed',
+                    effect_duration_value: Math.max(1, Number(this.form?.data?.effect_duration_value || 1)),
+                    effect_duration_dice: String(this.form?.data?.effect_duration_dice || '1d4').trim(),
                 },
             };
         },
@@ -5610,6 +6303,12 @@
         },
     }"
 
+    @character-feature-effect-stop.window="
+        if (Number($event.detail?.characterId) === Number(@js((int) $character->id))) {
+            stopFeatureEffect({ id: Number($event.detail.featureId) });
+        }
+    "
+
     @character-rest-completed.window="
         syncAfterRest(
             $event.detail
@@ -5640,7 +6339,10 @@
         </button>
     </div>
 
-    {{-- ============================================================
+
+    {{-- Efeitos ativos são apresentados na gaveta Rodadas e Efeitos do show.blade.php. --}}
+
+{{-- ============================================================
          DIVISÃO DAS DUAS LISTAS
     ============================================================= --}}
     <div class="character-features-v11-table-wrap">
@@ -5746,6 +6448,12 @@
                                 </button>
                             </div>
                         </template>
+                        <button x-show="effectEnabled(feature)" x-cloak type="button"
+                            class="feature-effect-action"
+                            @click.stop="activeEffect(feature) ? stopFeatureEffect(feature) : activateFeature(feature)"
+                            :disabled="effectBusyId !== null"
+                            x-text="activeEffect(feature) ? 'Encerrar' : 'Ativar'">
+                        </button>
                     </div>
 
                     <div
@@ -5857,6 +6565,12 @@
                                 </button>
                             </div>
                         </template>
+                        <button x-show="effectEnabled(feature)" x-cloak type="button"
+                            class="feature-effect-action"
+                            @click.stop="activeEffect(feature) ? stopFeatureEffect(feature) : activateFeature(feature)"
+                            :disabled="effectBusyId !== null"
+                            x-text="activeEffect(feature) ? 'Encerrar' : 'Ativar'">
+                        </button>
                     </div>
 
                     <div
@@ -6088,6 +6802,11 @@
                 </div>
 
                 <footer class="feature-v3-detail-footer">
+                    <button type="button" x-show="effectEnabled(detailFeature)" x-cloak
+                        @click="activeEffect(detailFeature) ? stopFeatureEffect(detailFeature) : activateFeature(detailFeature)"
+                        class="feature-v3-secondary"
+                        :disabled="effectBusyId !== null"
+                        x-text="activeEffect(detailFeature) ? 'Encerrar efeito' : 'Ativar habilidade'"></button>
                     <button
                         type="button"
                         @click="
@@ -6390,6 +7109,34 @@
                         </label>
                     </section>
 
+                    {{-- EFEITO TEMPORÁRIO --}}
+                    <section class="feature-editor-v3-section">
+                        <label class="feature-effect-toggle">
+                            <input type="checkbox" x-model="form.data.effect_enabled">
+                            <span>Esta habilidade cria um efeito temporário com contador</span>
+                        </label>
+                        <div x-show="form.data.effect_enabled" x-cloak class="feature-effect-editor">
+                            <label class="feature-editor-v3-label">Duração da habilidade</label>
+                            <div class="feature-effect-row">
+                                <select x-model="form.data.effect_duration_mode" class="feature-editor-v3-select">
+                                    <option value="fixed">Rodadas fixas</option>
+                                    <option value="dice">Rolagem ao ativar</option>
+                                </select>
+                                <input x-show="form.data.effect_duration_mode === 'fixed'" type="number"
+                                    min="1" max="10000" x-model.number="form.data.effect_duration_value"
+                                    class="feature-editor-v3-input" aria-label="Quantidade de rodadas">
+                                <input x-show="form.data.effect_duration_mode === 'dice'" type="text"
+                                    maxlength="40" x-model="form.data.effect_duration_dice" placeholder="Ex.: 1d4"
+                                    class="feature-editor-v3-input" aria-label="Dados da duração">
+                            </div>
+                            <label class="feature-effect-toggle mt-3">
+                                <input type="checkbox" x-model="form.data.effect_requires_concentration">
+                                <span>Exige concentração (compartilhada com feitiços e transformações)</span>
+                            </label>
+                            <p class="feature-editor-v3-help">O contador começa quando o jogador ativa a habilidade. Se houver usos, a ativação consome um uso. O avanço da iniciativa reduz as rodadas automaticamente.</p>
+                        </div>
+                    </section>
+
                     {{-- RASTREADOR --}}
                     <section class="feature-editor-v3-section">
                         <span class="feature-editor-v3-label">
@@ -6627,6 +7374,253 @@
                     </div>
                 </footer>
             </section>
+        </div>
+    </template>
+    {{-- Confirmar substituição da concentração atual --}}
+    <template x-teleport="body">
+        <div x-show="effectReplacementOpen" x-cloak data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-theme-modal-layer fixed inset-0 z-[280] flex items-center justify-center p-4">
+            <div class="feature-v3-backdrop character-theme-modal-backdrop" @click="effectReplacementOpen = false"></div>
+            <section class="feature-v3-modal character-theme-modal feature-effect-dialog" role="alertdialog" aria-modal="true">
+                <header class="feature-v3-modal-header character-theme-modal-header">
+                    <h3 class="feature-v3-modal-title character-theme-modal-title">Substituir concentração?</h3>
+                </header>
+                <div class="feature-v3-detail-body">
+                    Você está concentrado em <strong x-text="effectConcentration?.name || 'outro efeito'"></strong>.
+                    Ativar <strong x-text="pendingEffectFeature?.name"></strong> encerrará a concentração anterior.
+                    <p x-show="effectConcentration?.source === 'transformation'" class="mt-2">
+                        A transformação será encerrada e poderá aplicar exaustão.
+                    </p>
+                </div>
+                <footer class="feature-v3-detail-footer">
+                    <button class="feature-v3-secondary" @click="effectReplacementOpen = false">Cancelar</button>
+                    <button class="feature-v3-primary" @click="activateFeature(pendingEffectFeature, true)"
+                        :disabled="effectBusyId !== null">Encerrar e ativar</button>
+                </footer>
+            </section>
+        </div>
+    </template>
+
+    {{-- Duração variável de Habilidades — V59: não ativa até o usuário confirmar. --}}
+    <template x-teleport="body">
+        <div x-show="featureDurationOpen" x-cloak data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-theme-modal-layer fixed inset-0 z-[295] flex items-center justify-center p-4">
+            <div class="feature-v3-backdrop character-theme-modal-backdrop" x-on:click="closeFeatureDuration()"></div>
+            <section class="feature-v3-modal character-theme-modal feature-v59-dice-modal" role="dialog" aria-modal="true"
+                aria-label="Duração da habilidade">
+                <header class="feature-v3-modal-header character-theme-modal-header">
+                    <div>
+                        <span class="feature-v3-modal-kicker">Habilidade</span>
+                        <h3 class="feature-v3-modal-title character-theme-modal-title">Duração da habilidade</h3>
+                        <p class="feature-editor-v3-help" x-text="featureDurationFeature?.name"></p>
+                    </div>
+                    <button type="button" class="feature-v3-modal-close" x-on:click="closeFeatureDuration()" aria-label="Fechar">×</button>
+                </header>
+                <div class="feature-v3-detail-body feature-v59-dice-main">
+                    <span class="feature-v59-expression" x-text="featureDurationExpression + ' rodadas'"></span>
+                    <div class="feature-v59-dice-tray" x-show="featureDurationMode !== 'manual'">
+                        <template x-for="die in featureDurationDice" :key="die.index">
+                            <div class="feature-v59-die">
+                            <template x-if="die.sides === 4">
+                                <x-ui.poly-die sides="4" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="die.sides === 6">
+                                <x-ui.poly-die sides="6" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="die.sides === 8">
+                                <x-ui.poly-die sides="8" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="die.sides === 10">
+                                <x-ui.poly-die sides="10" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="die.sides === 12">
+                                <x-ui.poly-die sides="12" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="die.sides === 20">
+                                <x-ui.poly-die sides="20" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="die.sides === 100">
+                                <x-ui.poly-die sides="100" size="76" x-bind:class="die.landed ? 'is-landed' : (featureDurationRolling ? 'is-rolling' : '')"><span x-text="die.display"></span></x-ui.poly-die>
+                            </template>
+                            <template x-if="![4,6,8,10,12,20,100].includes(die.sides)">
+                                <span class="feature-v59-bonus" x-text="die.display"></span>
+                            </template>
+                            </div>
+                        </template>
+                        <span x-show="featureDurationBonus !== 0" class="feature-v59-bonus"
+                            x-text="featureDurationBonus > 0 ? '+' + featureDurationBonus : featureDurationBonus"></span>
+                    </div>
+                    <div class="feature-v59-total" x-show="featureDurationMode !== 'manual'">
+                        <span x-text="featureDurationRolling ? 'Rolando' : 'Total'"></span>
+                        <strong aria-live="polite" x-text="featureDurationRolling ? '···' : (featureDurationTotal ?? '—')"></strong>
+                        <span>rodadas</span>
+                    </div>
+                    <div class="feature-v59-manual" x-show="featureDurationMode === 'manual'" x-cloak>
+                        <label for="feature-v59-duration-manual">Total rolado na mesa (rodadas)</label>
+                        <input id="feature-v59-duration-manual" type="number" step="1" min="1"
+                            x-model="featureDurationManualTotal" placeholder="0">
+                    </div>
+                    <p x-show="featureDurationError" x-cloak class="feature-v59-error" x-text="featureDurationError"></p>
+                    <div class="feature-v59-mode" x-show="featureDurationMode === 'manual'">
+                        <button type="button" class="feature-v3-secondary" x-on:click="featureDurationMode = 'digital'; featureDurationError = ''">Ver dados</button>
+                    </div>
+                </div>
+                <footer class="feature-v3-detail-footer feature-v59-footer">
+                    <button type="button" class="feature-v3-secondary"
+                        x-on:click="featureDurationMode = 'manual'; featureDurationError = ''"
+                        :disabled="effectBusyId !== null || featureDurationRolling">Rolar na mesa</button>
+                    <button type="button" class="feature-v3-secondary" x-show="featureDurationMode === 'digital'"
+                        x-on:click="rollFeatureDuration()" :disabled="featureDurationRolling || effectBusyId !== null">
+                        Rolar novamente
+                    </button>
+                    <button type="button" class="feature-v3-primary" x-on:click="confirmFeatureDuration()"
+                        :disabled="featureDurationRolling || effectBusyId !== null"
+                        x-text="effectBusyId !== null ? 'Ativando...' : (featureDurationRolling ? 'Rolando...' : 'Usar resultado')"></button>
+                </footer>
+            </section>
+        </div>
+    </template>
+
+    {{-- V61: mesma estrutura visual de concentration-check-modal.blade.php do Grimório. --}}
+    <template x-teleport="body">
+        <div x-show="featureCheckOpen" x-cloak data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-spellbook-v4 sb-modal-backdrop feature-check-unified fixed inset-0 z-[290] flex items-center justify-center p-4 backdrop-blur-sm"
+            x-on:click.self="closeFeatureCheck()">
+            <section class="sb-modal-shell feature-check-shell w-full max-w-md overflow-hidden rounded-[22px] border"
+                role="alertdialog" aria-modal="true" aria-label="Salvamento de concentração">
+                <header class="sb-modal-header feature-check-header px-5 py-4">
+                    <div class="flex items-start justify-between gap-4">
+                        <div class="flex min-w-0 items-start gap-3">
+                            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                                style="background:color-mix(in srgb,var(--spellbook-state-concentration) 14%,var(--spellbook-paper-strong) 86%);color:var(--spellbook-state-concentration);">
+                                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                    <path d="M12 2v4M12 18v4M2 12h4M18 12h4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M19.1 4.9l-2.8 2.8M7.7 16.3l-2.8 2.8"></path>
+                                </svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p class="text-[7px] font-black uppercase tracking-[0.14em]"
+                                    style="color:var(--spellbook-state-concentration);">Concentração</p>
+                                <h3 class="sb-title mt-0.5 font-serif text-[22px] font-black leading-tight">
+                                    Salvamento de Constituição
+                                </h3>
+                                <p class="sb-muted mt-1 text-[9px] leading-4">
+                                    <span class="font-bold" style="color:var(--spellbook-title);"
+                                        x-text="featureCheckFeature?.name || 'Habilidade'"></span>
+                                    precisa manter a concentração após receber dano.
+                                </p>
+                            </div>
+                        </div>
+                        <button type="button" x-on:click="closeFeatureCheck()" :disabled="featureCheckRolling"
+                            class="sb-button-soft flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-base disabled:opacity-40"
+                            aria-label="Fechar">×</button>
+                    </div>
+                </header>
+
+                <div class="feature-check-content px-5 py-4">
+                    <div class="sb-panel feature-check-stats sb-shadow">
+                        <div><span>CD</span><strong x-text="featureCheck?.dc ?? 10"></strong></div>
+                        <div><span>Dano</span><strong x-text="featureCheck?.damage ?? 0"></strong></div>
+                        <div><span>Mod.</span>
+                            <strong x-text="Number(featureCheck?.modifier ?? 0) >= 0 ? '+' + Number(featureCheck?.modifier ?? 0) : String(Number(featureCheck?.modifier ?? 0))"></strong>
+                        </div>
+                    </div>
+
+                    <p x-show="Number(featureCheck?.exhaustion_penalty ?? 0) > 0" x-cloak
+                        class="sb-muted mt-2 text-center text-[9px] font-semibold"
+                        x-text="'Exaustão: -' + Number(featureCheck?.exhaustion_penalty ?? 0) + ' no salvamento'"></p>
+
+                    <button type="button" x-show="!featureCheckRoll && !featureCheckRolling && !featureCheckManualMode && !featureCheckResolved" x-cloak
+                        x-on:click="rollFeatureConcentration()"
+                        class="sb-button-primary mt-4 w-full rounded-xl px-4 py-3 text-[9px] font-black uppercase tracking-[0.1em]">
+                        Rolar Constituição
+                    </button>
+
+                    <div x-show="!featureCheckManualMode && (featureCheckRolling || featureCheckRoll)" x-cloak
+                        class="sb-panel feature-check-result mt-4">
+                        <div class="feature-check-die">
+                            <x-ui.poly-die sides="20" size="70"
+                                x-bind:class="featureCheckRolling && !featureCheckRoll ? 'is-rolling' : (featureCheckRoll ? 'is-landed' : '')">
+                                <span x-text="featureCheckDisplay"></span>
+                            </x-ui.poly-die>
+                        </div>
+                        <div class="feature-check-result-copy">
+                            <small x-text="featureCheckRolling && !featureCheckRoll ? 'Rolando d20...' : (featureCheckRolling ? 'Registrando...' : 'Resultado total')"></small>
+                            <strong x-text="featureCheckRolling && !featureCheckRoll ? '···' : (featureCheckRoll?.total ?? '—')"></strong>
+                            <p x-show="featureCheckRoll && !featureCheckResolved && !featureCheckRolling" x-cloak
+                                x-text="(Number(featureCheckRoll?.total ?? 0) >= Number(featureCheck?.dc ?? 10) ? 'Sucesso' : 'Falha') + ' · aguardando confirmação'"></p>
+                            <p x-show="featureCheckResolved" x-cloak
+                                x-text="featureCheckRoll?.passed ? 'Sucesso · Concentração mantida' : 'Falha · Concentração encerrada'"></p>
+                        </div>
+                    </div>
+
+                    <div x-show="featureCheckManualMode && !featureCheckResolved" x-cloak class="mt-4">
+                        <label class="sb-label mb-2 block text-[9px] font-black" for="feature-concentration-manual-total">
+                            Total rolado na mesa (com modificador)
+                        </label>
+                        <input id="feature-concentration-manual-total" type="number" step="1"
+                            class="feature-check-manual" x-model="featureCheckManualTotal" placeholder="Informe o resultado total">
+                    </div>
+
+                    <p x-show="featureCheckResolved && featureCheckManualMode" x-cloak
+                        class="feature-check-state mt-3"
+                        x-text="featureCheckRoll?.passed ? 'Sucesso · Concentração mantida' : 'Falha · Concentração encerrada'"></p>
+                    <p x-show="effectError" x-cloak role="alert" class="mt-3 text-[10px] font-bold"
+                        style="color:var(--theme-state-damage,#a22);" x-text="effectError"></p>
+                </div>
+
+                <footer class="sb-paper-alt feature-check-footer flex justify-end px-5 py-3">
+                    <div class="feature-check-actions" x-show="!featureCheckResolved" x-cloak>
+                        <button type="button" x-show="!featureCheckManualMode" x-on:click="featureCheckManualMode = true; effectError = ''"
+                            :disabled="featureCheckRolling"
+                            class="sb-button-soft rounded-lg border px-3 py-2 text-[8px] font-black uppercase tracking-[0.04em] disabled:opacity-40">
+                            Rolar na mesa
+                        </button>
+                        <button type="button" x-show="featureCheckManualMode" x-on:click="featureCheckManualMode = false; effectError = ''"
+                            :disabled="featureCheckRolling"
+                            class="sb-button-soft rounded-lg border px-3 py-2 text-[8px] font-black uppercase tracking-[0.04em] disabled:opacity-40">
+                            Voltar aos dados
+                        </button>
+                        <button type="button" x-show="!featureCheckManualMode && featureCheckRoll"
+                            x-on:click="rollFeatureConcentration()" :disabled="featureCheckRolling"
+                            class="sb-button-soft rounded-lg border px-3 py-2 text-[8px] font-black uppercase tracking-[0.04em] disabled:opacity-40">
+                            Rolar novamente
+                        </button>
+                        <button type="button" x-show="featureCheckManualMode || featureCheckRoll" x-cloak
+                            x-on:click="confirmFeatureConcentration()" :disabled="featureCheckRolling || (!featureCheckManualMode && !featureCheckRoll)"
+                            class="sb-button-primary rounded-lg px-3 py-2 text-[8px] font-black uppercase tracking-[0.04em] disabled:opacity-40"
+                            x-text="featureCheckRolling && featureCheckRoll ? 'Registrando...' : 'Usar resultado'"></button>
+                    </div>
+                    <button type="button" x-show="featureCheckResolved" x-cloak x-on:click="closeFeatureCheck()"
+                        class="sb-button-soft rounded-lg border px-4 py-2 text-[8px] font-black uppercase tracking-[0.06em]">
+                        Fechar
+                    </button>
+                </footer>
+            </section>
+        </div>
+    </template>
+    {{-- Confirmação discreta ao ativar, sem confundir o sucesso com erro. --}}
+    <template x-teleport="body">
+        <div x-show="effectNotice" x-cloak data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme fixed bottom-5 left-1/2 -translate-x-1/2 z-[330] w-[min(92vw,360px)]"
+            role="status" aria-live="polite">
+            <div style="display:flex;align-items:center;gap:11px;padding:12px 14px;border-radius:13px;
+                border:1px solid var(--theme-border,#cbb496);
+                background:var(--theme-paper-strong,#fffdf8);
+                color:var(--theme-text-primary,#34231b);
+                box-shadow:0 12px 38px #0003;">
+                <span style="display:grid;place-items:center;width:32px;height:32px;flex-shrink:0;
+                    border-radius:50%;background:var(--theme-accent-soft,#e8dbca);
+                    color:var(--theme-accent-strong,#53150f);font-size:17px;">✓</span>
+                <div style="min-width:0;flex:1">
+                    <strong style="display:block;font:900 13px/1.35 Georgia,serif;color:var(--theme-text-strong,#53150f);"
+                        x-text="(effectNotice?.name || 'Habilidade') + ' ativada'"></strong>
+                    <small style="display:block;margin-top:2px;font:600 10px/1.4 system-ui,sans-serif;color:var(--theme-text-secondary,#866b55);"
+                        x-text="(effectNotice?.duration || 0) + ' rodadas' + (effectNotice?.concentration ? ' · Concentração' : '')"></small>
+                </div>
+                <button type="button" @click="effectNotice = null" aria-label="Dispensar aviso"
+                    style="font-size:17px;color:var(--theme-text-secondary,#866b55);">×</button>
+            </div>
         </div>
     </template>
 </section>

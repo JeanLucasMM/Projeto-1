@@ -64,6 +64,12 @@
         ];
     @endphp
 
+    @if($crKey !== null)
+        <div class="detail-row">
+            <strong>Nível de Desafio:</strong> {{ $crKey }} (Prof. +{{ $profBonus }}{{ $npcXp !== null ? ', ' . number_format($npcXp, 0, ',', '.') . ' XP' : '' }})
+        </div>
+    @endif
+
     @foreach($extras as $label => $value)
         @if($value && $value !== '-')
             <div class="detail-row">

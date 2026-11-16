@@ -334,7 +334,7 @@
 
             'Idiomas' => $translateList($json['header']['languages'] ?? [], Languages::class),
 
-            'Nível de Desafio' => "{$crStr} (Bônus de Proficiência +{$profBonus})",
+            'Nível de Desafio' => $crStr . ' (Prof. +' . $profBonus . (isset($npcXp) && $npcXp !== null ? ', ' . number_format($npcXp, 0, ',', '.') . ' XP' : '') . ')',
 
         ];
 
@@ -1416,6 +1416,107 @@
                         @if($isSpellcasting && !empty($spellcastingIntro))
 
                             <span class="spellcasting-intro">{{ $spellcastingIntro }}</span>
+
+                            {{-- Os feitiços do Construtor ficam nos slots da ação, não em "content". --}}
+                            @php
+                                $npcSpellSlots = collect($itemSpellcasting['slots'] ?? [])
+                                    ->filter(fn ($slot) => is_array($slot) && trim((string) ($slot['spells'] ?? '')) !== '')
+                                    ->sortBy(fn ($slot) => (int) ($slot['level'] ?? 0))
+                                    ->values();
+                            @endphp
+
+                            @if($npcSpellSlots->isNotEmpty())
+                                <div class="npc-spellcasting-levels mt-1.5 space-y-1.5 text-xs">
+                                    @foreach($npcSpellSlots as $npcSpellSlot)
+                                        @php
+                                            $npcSlotLevel = max(0, min(9, (int) ($npcSpellSlot['level'] ?? 0)));
+                                            $npcSlotUses = max(0, (int) ($npcSpellSlot['uses'] ?? 0));
+                                            $npcSlotReset = trim((string) ($npcSpellSlot['reset'] ?? 'day'));
+                                            $npcSlotIsAtWill = $npcSlotLevel === 0
+                                                || in_array($npcSlotReset, ['at_will', 'atWill', 'unlimited', 'none'], true);
+                                            $npcSlotHasCounter = !$npcSlotIsAtWill && $npcSlotUses > 0;
+                                            $npcSlotNames = trim((string) $npcSpellSlot['spells']);
+                                            $npcSlotLabel = $npcSlotLevel === 0
+                                                ? 'Truques'
+                                                : $npcSlotLevel . 'º Nível';
+                                            $npcSlotRecovery = match ($npcSlotReset) {
+                                                'short_rest' => 'Descanso curto',
+                                                'long_rest' => 'Descanso longo',
+                                                'turn' => 'Turno',
+                                                'recharge' => 'Recarga',
+                                                'custom' => trim((string) ($npcSpellSlot['customReset'] ?? '')),
+                                                default => 'Dia',
+                                            };
+                                            $npcSlotResourceKey = 'Conjuração:'
+                                                . (string) ($itemTitle ?: 'Magias')
+                                                . ':nivel:' . $npcSlotLevel
+                                                . ':slot:' . (string) ($npcSpellSlot['id'] ?? $loop->index);
+                                            $npcSlotCurrent = $npcSlotHasCounter && method_exists($combatNpc, 'getResource')
+                                                ? (int) $combatNpc->getResource($npcSlotResourceKey, $npcSlotUses)
+                                                : $npcSlotUses;
+                                        @endphp
+                                        <div class="npc-spellcasting-level flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 leading-relaxed">
+                                            <strong class="shrink-0 font-serif font-bold text-[#5a1810]">{{ $npcSlotLabel }}</strong>
+                                            @if($npcSlotIsAtWill)
+                                                <span class="shrink-0 text-[10px] italic text-[#8c6239]">à vontade</span>
+                                            @elseif($npcSlotHasCounter)
+                                                <span
+                                                    x-data="{
+                                                        current: @js($npcSlotCurrent),
+                                                        max: @js($npcSlotUses),
+                                                        npcId: @js((int) $combatNpc->id),
+                                                        resourceKey: @js($npcSlotResourceKey),
+                                                        csrf: @js(csrf_token()),
+                                                        saveBusy: false,
+                                                        async updateCounter(amount) {
+                                                            if (this.saveBusy) return;
+                                                            const oldValue = this.current;
+                                                            const nextValue = Math.max(0, Math.min(this.max, oldValue + amount));
+                                                            if (nextValue === oldValue) return;
+                                                            this.current = nextValue;
+                                                            this.saveBusy = true;
+                                                            try {
+                                                                const response = await fetch('/combat/npc/update-resource', {
+                                                                    method: 'POST',
+                                                                    headers: {
+                                                                        'Content-Type': 'application/json',
+                                                                        'Accept': 'application/json',
+                                                                        'X-CSRF-TOKEN': this.csrf,
+                                                                    },
+                                                                    body: JSON.stringify({
+                                                                        combat_npc_id: this.npcId,
+                                                                        feature_title: this.resourceKey,
+                                                                        current_uses: nextValue,
+                                                                    }),
+                                                                });
+                                                                if (!response.ok) throw new Error('Falha ao salvar o espaço de magia.');
+                                                            } catch (error) {
+                                                                this.current = oldValue;
+                                                                console.error(error);
+                                                            } finally {
+                                                                this.saveBusy = false;
+                                                            }
+                                                        },
+                                                    }"
+                                                    class="inline-flex shrink-0 items-center gap-1 rounded border border-[#512019]/25 bg-[#5a1810] px-1.5 py-0.5 align-middle font-sans text-[10px] font-bold not-italic leading-none text-[#f4f1e8]"
+                                                    title="{{ $npcSlotRecovery !== '' ? $npcSlotRecovery : 'Usos de magia' }}"
+                                                >
+                                                    <button type="button" x-on:click.stop="updateCounter(-1)"
+                                                        x-bind:disabled="saveBusy || current <= 0"
+                                                        class="border-none bg-transparent px-0.5 text-[#f4f1e8] hover:text-white disabled:opacity-40"
+                                                        aria-label="Gastar espaço de magia">−</button>
+                                                    <span class="min-w-[22px] text-center" x-text="current + '/' + max"></span>
+                                                    <button type="button" x-on:click.stop="updateCounter(1)"
+                                                        x-bind:disabled="saveBusy || current >= max"
+                                                        class="border-none bg-transparent px-0.5 text-[#f4f1e8] hover:text-white disabled:opacity-40"
+                                                        aria-label="Recuperar espaço de magia">+</button>
+                                                </span>
+                                            @endif
+                                            <span class="min-w-0 text-[#34241d]">({{ $npcSlotNames }})</span>
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
 
                         @endif
 

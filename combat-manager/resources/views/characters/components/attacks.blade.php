@@ -2016,6 +2016,288 @@
                 box-shadow: 0 24px 70px rgba(0,0,0,.42) !important;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | V17 — FEEDBACK DE AÇÕES + HISTÓRICO DE DANO
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme].character-attack-action-toast,
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast,
+            .character-sheet-theme[data-theme]
+            .character-attack-damage-log {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow: var(--theme-modal-shadow, 0 24px 70px rgba(0,0,0,.28)) !important;
+            }
+
+            /*
+             * V19 — TOAST TOTALMENTE OPACO / SEM ARO CLARO
+             *
+             * O toast usa uma superfície sólida do próprio tema. Nada de
+             * transparência, glass ou borda luminosa: ele deve parecer um
+             * pequeno painel da ficha destacado apenas por profundidade e
+             * pelo acento lateral.
+             */
+            .character-sheet-theme[data-theme].character-attack-action-toast,
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast {
+                position: relative;
+                isolation: isolate;
+
+                opacity: 1 !important;
+
+                border:
+                    1px solid
+                    var(--theme-border) !important;
+
+                background:
+                    var(
+                        --theme-toast-surface,
+                        var(--theme-surface-raised, var(--theme-paper-strong))
+                    ) !important;
+
+                background-color:
+                    var(
+                        --theme-toast-surface,
+                        var(--theme-surface-raised, var(--theme-paper-strong))
+                    ) !important;
+
+                background-image:
+                    none !important;
+
+                -webkit-backdrop-filter:
+                    none !important;
+
+                backdrop-filter:
+                    none !important;
+
+                box-shadow:
+                    0 18px 42px rgba(0,0,0,.34),
+                    0 3px 10px rgba(0,0,0,.16) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-action-toast::before,
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast::before {
+                content: "";
+                position: absolute;
+                inset: 8px auto 8px 0;
+                z-index: 2;
+                width: 3px;
+                border-radius: 0 999px 999px 0;
+
+                background:
+                    var(--theme-accent-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-action-toast::after,
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast::after {
+                display: none !important;
+                content: none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast-icon {
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 26%,
+                        var(--theme-paper-strong) 74%
+                    ) !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-accent) 22%,
+                        var(--theme-paper-strong) 78%
+                    ) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    none !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast-title {
+                color:
+                    var(--theme-label) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast-message {
+                color:
+                    var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast-close {
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--theme-border-strong) 55%,
+                        var(--theme-paper-strong) 45%
+                    ) !important;
+
+                background:
+                    var(--theme-paper-alt) !important;
+
+                color:
+                    var(--theme-text-secondary) !important;
+
+                box-shadow:
+                    none !important;
+
+                transition:
+                    background .14s ease,
+                    color .14s ease,
+                    border-color .14s ease,
+                    transform .14s ease;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast-close:hover {
+                border-color:
+                    var(--theme-border-strong) !important;
+
+                background:
+                    var(--theme-hover) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast-close:active {
+                transform:
+                    scale(.96);
+            }
+
+            /*
+             * Temas escuros recebem somente uma sombra um pouco mais profunda.
+             * A superfície continua sendo exatamente o paper-strong do tema.
+             */
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            ).character-attack-action-toast,
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            )
+            .character-attack-action-toast {
+                box-shadow:
+                    0 20px 48px rgba(0,0,0,.52),
+                    0 4px 12px rgba(0,0,0,.24) !important;
+            }
+
+            /*
+             * Erro continua sendo estado funcional. A superfície ainda pertence
+             * ao tema, enquanto a faixa/ícone usam a cor semântica de dano.
+             */
+            .character-sheet-theme[data-theme].character-attack-action-toast.is-error,
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast.is-error {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-state-damage, #991b1b) 24%,
+                        var(--theme-paper-strong) 76%
+                    ) !important;
+
+                background:
+                    var(
+                        --theme-toast-surface,
+                        var(--theme-surface-raised, var(--theme-paper-strong))
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-attack-action-toast.is-error::before,
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast.is-error::before {
+                background:
+                    var(--theme-state-damage, #991b1b) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast.is-error
+            .character-attack-action-toast-icon {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--theme-state-damage, #991b1b) 32%,
+                        var(--theme-paper-strong) 68%
+                    ) !important;
+
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--theme-state-damage, #991b1b) 18%,
+                        var(--theme-paper-strong) 82%
+                    ) !important;
+
+                color:
+                    var(--theme-state-damage, #991b1b) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-action-toast.is-error
+            .character-attack-action-toast-title {
+                color:
+                    var(--theme-state-damage, #991b1b) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-damage-log-header {
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-damage-log-entry {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-card-background) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-damage-log-part {
+                border-color: var(--theme-border-soft) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-primary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-history-button {
+                position: relative;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-attack-history-count {
+                position: absolute;
+                right: -5px;
+                top: -5px;
+                display: flex;
+                min-width: 16px;
+                height: 16px;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid var(--theme-paper-strong);
+                border-radius: 999px;
+                background: var(--theme-accent-strong);
+                padding: 0 4px;
+                color: var(--theme-button-text);
+                font-size: 8px;
+                font-weight: 900;
+                line-height: 1;
+            }
+
             @media (prefers-reduced-motion: reduce) {
                 .character-attack-note-drawer,
                 .character-attack-toast {
@@ -2092,6 +2374,15 @@
                     lastRoll: null,
                     rollToastTimer: null,
 
+                    actionToastOpen: false,
+                    actionToastMessage: '',
+                    actionToastType: 'success',
+                    actionToastTimer: null,
+
+                    damageLogOpen: false,
+                    damageLog: [],
+                    damageLogSequence: 0,
+
                     get visibleRows() {
                         return this.rows.filter(
                             row =>
@@ -2106,6 +2397,174 @@
                                 &&
                                 row.visible === false
                         );
+                    },
+
+                    init() {
+                        this.loadDamageLog();
+                    },
+
+                    showActionToast(
+                        message,
+                        type = 'success'
+                    ) {
+                        this.actionToastMessage =
+                            String(message || '').trim();
+
+                        if (!this.actionToastMessage) {
+                            return;
+                        }
+
+                        this.actionToastType =
+                            type === 'error'
+                                ? 'error'
+                                : 'success';
+
+                        this.actionToastOpen =
+                            true;
+
+                        clearTimeout(
+                            this.actionToastTimer
+                        );
+
+                        this.actionToastTimer =
+                            setTimeout(
+                                () => {
+                                    this.actionToastOpen =
+                                        false;
+                                },
+                                3600
+                            );
+                    },
+
+                    damageLogStorageKey() {
+                        return String(
+                            this.urls
+                                ?.damageLogKey
+                            || 'spellbound:damage-log'
+                        );
+                    },
+
+                    loadDamageLog() {
+                        try {
+                            const saved =
+                                sessionStorage
+                                    .getItem(
+                                        this.damageLogStorageKey()
+                                    );
+
+                            const parsed =
+                                saved
+                                    ? JSON.parse(saved)
+                                    : [];
+
+                            this.damageLog =
+                                Array.isArray(parsed)
+                                    ? parsed.slice(0, 20)
+                                    : [];
+                        } catch (error) {
+                            this.damageLog = [];
+                        }
+                    },
+
+                    persistDamageLog() {
+                        try {
+                            sessionStorage.setItem(
+                                this.damageLogStorageKey(),
+                                JSON.stringify(
+                                    this.damageLog.slice(0, 20)
+                                )
+                            );
+                        } catch (error) {
+                            // O histórico continua funcionando em memória.
+                        }
+                    },
+
+                    recordDamageRoll(
+                        row,
+                        parts,
+                        total
+                    ) {
+                        const normalizedParts =
+                            (Array.isArray(parts) ? parts : [])
+                                .map(part => ({
+                                    expression:
+                                        String(
+                                            part?.expression
+                                            ?? ''
+                                        ),
+
+                                    type_label:
+                                        String(
+                                            part?.type_label
+                                            || 'Dano'
+                                        ),
+
+                                    total:
+                                        parseInt(
+                                            part?.total
+                                        ) || 0,
+
+                                    formatted:
+                                        String(
+                                            part?.formatted
+                                            ?? ''
+                                        ),
+                                }));
+
+                        if (normalizedParts.length === 0) {
+                            return;
+                        }
+
+                        const now = new Date();
+
+                        this.damageLogSequence += 1;
+
+                        this.damageLog.unshift({
+                            id:
+                                `${now.getTime()}-${this.damageLogSequence}`,
+
+                            attack_name:
+                                row?.name
+                                || 'Ataque',
+
+                            time:
+                                now.toLocaleTimeString(
+                                    'pt-BR',
+                                    {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    }
+                                ),
+
+                            total:
+                                parseInt(total) || 0,
+
+                            parts:
+                                normalizedParts,
+                        });
+
+                        if (this.damageLog.length > 20) {
+                            this.damageLog =
+                                this.damageLog.slice(0, 20);
+                        }
+
+                        this.persistDamageLog();
+                    },
+
+                    openDamageLog() {
+                        this.closeSettings();
+                        this.closeNote();
+                        this.closeMastery();
+                        this.damageLogOpen = true;
+                    },
+
+                    closeDamageLog() {
+                        this.damageLogOpen = false;
+                    },
+
+                    clearDamageLog() {
+                        this.damageLog = [];
+                        this.persistDamageLog();
                     },
 
                     positionSettings() {
@@ -2843,8 +3302,8 @@
                             true;
                     },
 
-                    closeModal() {
-                        if (this.saving) {
+                    closeModal(force = false) {
+                        if (this.saving && !force) {
                             return;
                         }
 
@@ -3393,7 +3852,13 @@
                                     )
                             );
 
-                            this.closeModal();
+                            this.closeModal(true);
+
+                            this.showActionToast(
+                                editing
+                                    ? 'Ataque atualizado.'
+                                    : 'Ataque criado.'
+                            );
 
                         } catch (error) {
                             this.saveError =
@@ -3471,7 +3936,11 @@
                                         )
                                 );
 
-                            this.closeModal();
+                            this.closeModal(true);
+
+                            this.showActionToast(
+                                'Ataque excluído.'
+                            );
 
                         } catch (error) {
                             this.saveError =
@@ -4294,6 +4763,24 @@
                                     null,
                             };
 
+                            this.recordDamageRoll(
+                                row,
+                                [
+                                    {
+                                        expression:
+                                            part.roll_expression,
+                                        type_label:
+                                            part.type_label
+                                            || 'Dano',
+                                        total:
+                                            result.total,
+                                        formatted:
+                                            result.formatted,
+                                    },
+                                ],
+                                result.total
+                            );
+
                             this.rollToastOpen =
                                 true;
 
@@ -4419,6 +4906,12 @@
                                     resolved,
                             };
 
+                            this.recordDamageRoll(
+                                row,
+                                resolved,
+                                total
+                            );
+
                             this.rollToastOpen =
                                 true;
 
@@ -4506,12 +4999,20 @@
             )),
 
             roll: @js(url('/api/roll')),
+
+            damageLogKey: @js(
+                'spellbound:character:'
+                . $character->id
+                . ':attack-damage-log'
+            ),
         }
     )"
 
     @keydown.escape.window="
         if (settingsOpen) {
             closeSettings();
+        } else if (damageLogOpen) {
+            closeDamageLog();
         } else if (deleteConfirmOpen) {
             deleteConfirmOpen = false;
         } else if (noteDrawerOpen) {
@@ -4565,9 +5066,46 @@
 
 
 
-        {{-- Configuração / ataques ocultos --}}
+        {{-- Histórico de dano + configuração / ataques ocultos --}}
 
-        <div class="relative ml-auto">
+        <div class="ml-auto flex items-center gap-1.5">
+            <button
+                type="button"
+                @click.stop="openDamageLog()"
+                class="character-attacks-v11-settings-button character-attack-history-button flex items-center justify-center rounded-lg border border-[#cdbb9f]/70 bg-[#f4f1e8] text-[#8c6239] transition hover:bg-[#efe9dc] hover:text-[#53150f]"
+                title="Histórico de dano desta sessão"
+                aria-label="Histórico de dano"
+            >
+                <svg
+                    class="h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                >
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M3 12a9 9 0 1 0 3-6.7L3 8"
+                    />
+                    <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="1.7"
+                        d="M3 4v4h4M12 7v5l3 2"
+                    />
+                </svg>
+
+                <span
+                    x-show="damageLog.length > 0"
+                    x-cloak
+                    class="character-attack-history-count"
+                    x-text="damageLog.length > 99 ? '99+' : damageLog.length"
+                ></span>
+            </button>
+
+            <div class="relative">
             <button
                 x-ref="settingsButton"
 
@@ -4627,6 +5165,7 @@
                     />
                 </svg>
             </button>
+            </div>
         </div>
 
 
@@ -5486,6 +6025,204 @@
                     </div>
                 </div>
             </aside>
+        </div>
+    </template>
+
+
+    {{-- =========================================================
+         Histórico de dano — sessão atual
+    ========================================================== --}}
+
+    <template x-teleport="body">
+        <div
+            x-show="damageLogOpen"
+            x-cloak
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme pointer-events-none fixed inset-0 z-[240]"
+        >
+            <aside
+                x-show="damageLogOpen"
+                x-transition:enter="transform transition ease-out duration-200"
+                x-transition:enter-start="translate-x-[105%] opacity-0"
+                x-transition:enter-end="translate-x-0 opacity-100"
+                x-transition:leave="transform transition ease-in duration-150"
+                x-transition:leave-start="translate-x-0 opacity-100"
+                x-transition:leave-end="translate-x-[105%] opacity-0"
+                @click.outside="closeDamageLog()"
+                class="character-theme-modal character-attack-damage-log pointer-events-auto absolute right-4 top-20 flex max-h-[min(74vh,680px)] w-[min(94vw,460px)] flex-col overflow-hidden rounded-2xl border"
+            >
+                <div class="character-attack-damage-log-header flex shrink-0 items-start justify-between gap-3 border-b px-4 py-3.5">
+                    <div class="min-w-0">
+                        <p class="text-[8px] font-black uppercase tracking-[0.14em]" style="color: var(--theme-label);">
+                            Combate
+                        </p>
+                        <div class="mt-0.5 flex items-baseline gap-2">
+                            <h3 class="font-serif text-[20px] font-black" style="color: var(--theme-text-strong);">
+                                Histórico de dano
+                            </h3>
+                            <span
+                                class="rounded-full px-2 py-0.5 text-[8px] font-black"
+                                style="background: var(--theme-accent-softer); color: var(--theme-label);"
+                                x-text="damageLog.length"
+                            ></span>
+                        </div>
+                        <p class="mt-1 text-[9px]" style="color: var(--theme-text-secondary);">
+                            Mantém as últimas 20 rolagens de dano desta sessão.
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        @click="closeDamageLog()"
+                        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg"
+                        style="color: var(--theme-text-secondary);"
+                        aria-label="Fechar histórico"
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div class="min-h-0 flex-1 overflow-y-auto p-3.5">
+                    <div
+                        x-show="damageLog.length === 0"
+                        x-cloak
+                        class="rounded-xl border border-dashed px-4 py-10 text-center"
+                        style="border-color: var(--theme-border); background: var(--theme-surface-card-alt);"
+                    >
+                        <p class="font-serif text-[16px] font-black" style="color: var(--theme-text-strong);">
+                            Nenhum dano rolado ainda
+                        </p>
+                        <p class="mx-auto mt-1 max-w-xs text-[10px] leading-5" style="color: var(--theme-text-secondary);">
+                            Quando você rolar o dano de um ataque, cada tipo e seu resultado ficarão registrados aqui.
+                        </p>
+                    </div>
+
+                    <div x-show="damageLog.length > 0" x-cloak class="space-y-2.5">
+                        <template x-for="entry in damageLog" :key="entry.id">
+                            <article class="character-attack-damage-log-entry rounded-xl border px-3.5 py-3">
+                                <div class="flex items-start justify-between gap-3">
+                                    <div class="min-w-0">
+                                        <strong
+                                            class="block truncate font-serif text-[14px] font-black"
+                                            style="color: var(--theme-text-strong);"
+                                            x-text="entry.attack_name"
+                                        ></strong>
+                                        <span
+                                            class="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.08em]"
+                                            style="color: var(--theme-text-secondary);"
+                                            x-text="entry.time"
+                                        ></span>
+                                    </div>
+
+                                    <div class="shrink-0 text-right">
+                                        <strong
+                                            class="block font-serif text-[21px] font-black leading-none"
+                                            style="color: var(--theme-accent-strong);"
+                                            x-text="entry.total"
+                                        ></strong>
+                                        <span class="text-[7px] font-black uppercase tracking-[0.1em]" style="color: var(--theme-label);">
+                                            total
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2.5 space-y-1.5">
+                                    <template x-for="(part, partIndex) in (entry.parts ?? [])" :key="partIndex">
+                                        <div class="character-attack-damage-log-part flex items-center justify-between gap-3 rounded-lg border px-2.5 py-2">
+                                            <div class="min-w-0">
+                                                <span
+                                                    class="block truncate text-[9px] font-black uppercase tracking-[0.06em]"
+                                                    style="color: var(--theme-label);"
+                                                    x-text="part.type_label"
+                                                ></span>
+                                                <span
+                                                    class="mt-0.5 block truncate font-mono text-[9px]"
+                                                    style="color: var(--theme-text-secondary);"
+                                                    x-text="part.formatted || part.expression"
+                                                ></span>
+                                            </div>
+
+                                            <strong
+                                                class="shrink-0 font-serif text-[17px] font-black"
+                                                style="color: var(--theme-text-strong);"
+                                                x-text="part.total"
+                                            ></strong>
+                                        </div>
+                                    </template>
+                                </div>
+                            </article>
+                        </template>
+                    </div>
+                </div>
+
+                <footer
+                    x-show="damageLog.length > 0"
+                    x-cloak
+                    class="flex shrink-0 items-center justify-between gap-3 border-t px-4 py-3"
+                    style="border-color: var(--theme-border); background: var(--theme-modal-footer-background, var(--theme-band-background));"
+                >
+                    <span class="text-[8px] font-semibold" style="color: var(--theme-text-secondary);">
+                        O histórico é limpo ao encerrar a sessão do navegador.
+                    </span>
+
+                    <button
+                        type="button"
+                        @click="clearDamageLog()"
+                        class="rounded-lg border px-3 py-2 text-[8px] font-black uppercase tracking-[0.08em]"
+                        style="border-color: var(--theme-border); background: var(--theme-surface-raised); color: var(--theme-text-strong);"
+                    >
+                        Limpar
+                    </button>
+                </footer>
+            </aside>
+        </div>
+    </template>
+
+
+    {{-- =========================================================
+         Feedback de ações — criar / editar / excluir
+    ========================================================== --}}
+
+    <template x-teleport="body">
+        <div
+            x-show="actionToastOpen"
+            x-cloak
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="translate-y-3 opacity-0 scale-[.985]"
+            x-transition:enter-end="translate-y-0 opacity-100 scale-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="translate-y-0 opacity-100 scale-100"
+            x-transition:leave-end="translate-y-2 opacity-0 scale-[.99]"
+            data-theme="{{ $characterTheme }}"
+            class="character-sheet-theme character-attack-action-toast fixed left-1/2 z-[260] w-[min(92vw,390px)] -translate-x-1/2 overflow-hidden rounded-xl border" style="bottom: clamp(76px, 11vh, 104px);"
+            :class="actionToastType === 'error' ? 'is-error' : ''"
+            role="status"
+            aria-live="polite"
+        >
+            <div class="flex items-center gap-3 px-3.5 py-3">
+                <span class="character-attack-action-toast-icon flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[15px] font-black">
+                    <span x-text="actionToastType === 'error' ? '!' : '✓'"></span>
+                </span>
+
+                <div class="min-w-0 flex-1">
+                    <p class="character-attack-action-toast-title text-[10px] font-black uppercase tracking-[0.08em]">
+                        Ataques
+                    </p>
+                    <p
+                        class="character-attack-action-toast-message mt-0.5 text-[12px] font-semibold"
+                        x-text="actionToastMessage"
+                    ></p>
+                </div>
+
+                <button
+                    type="button"
+                    @click="actionToastOpen = false"
+                    class="character-attack-action-toast-close flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-base"
+                    aria-label="Fechar aviso"
+                >
+                    ×
+                </button>
+            </div>
         </div>
     </template>
 

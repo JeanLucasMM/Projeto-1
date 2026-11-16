@@ -7,22 +7,24 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CharacterSpellSlot extends Model
 {
-    protected $table = 'character_spell_slots';
-
     protected $fillable = [
         'character_id',
         'slot_type',
         'slot_level',
         'current',
         'maximum',
-        'metadata',
+        'calculated_maximum',
+        'manual_maximum',
+        'recovery',
     ];
 
     protected $casts = [
+        'character_id' => 'integer',
         'slot_level' => 'integer',
         'current' => 'integer',
         'maximum' => 'integer',
-        'metadata' => 'array',
+        'calculated_maximum' => 'integer',
+        'manual_maximum' => 'integer',
     ];
 
     public function character(): BelongsTo
@@ -30,49 +32,31 @@ class CharacterSpellSlot extends Model
         return $this->belongsTo(Character::class);
     }
 
-    public function isPactMagic(): bool
-    {
-        return $this->slot_type === 'pact';
-    }
-
-    public function isEmpty(): bool
-    {
-        return $this->current <= 0;
-    }
-
     public function hasAvailableSlot(): bool
     {
-        return $this->current > 0;
+        return (int) $this->current > 0;
     }
 
-    public function consume(int $amount = 1): bool
+    public function consumeOne(): bool
     {
-        if ($amount <= 0) {
-            return true;
-        }
-
-        if ($this->current < $amount) {
+        if (! $this->hasAvailableSlot()) {
             return false;
         }
 
-        $this->current -= $amount;
+        $this->current = max(0, (int) $this->current - 1);
 
-        $this->save();
-
-        return true;
+        return $this->save();
     }
 
-    public function restore(?int $amount = null): void
+    public function restore(): bool
     {
-        if ($amount === null) {
-            $this->current = $this->maximum;
-        } else {
-            $this->current = min(
-                $this->maximum,
-                $this->current + max(0, $amount)
-            );
-        }
+        $this->current = max(0, (int) $this->maximum);
 
-        $this->save();
+        return $this->save();
+    }
+
+    public function isPact(): bool
+    {
+        return str_starts_with((string) $this->slot_type, 'pact:');
     }
 }

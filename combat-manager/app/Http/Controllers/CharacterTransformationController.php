@@ -8,6 +8,7 @@ use App\Models\CharacterTransformationState;
 use App\Models\Npc;
 use App\Services\Transformations\MonsterTransformationSheetResolver;
 use App\Services\Characters\ConcentrationCheckService;
+use App\Services\Characters\CharacterConcentrationManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -87,7 +88,7 @@ class CharacterTransformationController extends Controller
                                     ),
 
                                 'settings' =>
-                                    [],
+                                    $normalized['settings'],
                             ]);
 
                         /*
@@ -192,6 +193,11 @@ class CharacterTransformationController extends Controller
                 $validated,
                 $character
             );
+
+        $normalized['settings'] = array_replace(
+            is_array($transformation->settings) ? $transformation->settings : [],
+            $normalized['settings']
+        );
 
 
         /*
@@ -600,12 +606,25 @@ class CharacterTransformationController extends Controller
         $activationExhaustion =
             null;
 
+        $confirmedReplacement = $request->boolean('confirm_replace_concentration');
+        $requestedDuration = $request->input('duration_total');
+        $durationRollMode = $request->input('duration_roll_mode', 'manual');
+        if (!in_array($durationRollMode, ['manual', 'automatic'], true)) {
+            throw ValidationException::withMessages(['duration_roll_mode' => 'Modo inválido.']);
+        }
+
         DB::transaction(
             function () use (
                 $character,
                 $transformation,
-                &$activationExhaustion
+                &$activationExhaustion,
+                $confirmedReplacement,
+                $requestedDuration,
+                $durationRollMode
             ): void {
+                // Serializa conjuração e transformação na ficha original.
+                app(CharacterConcentrationManager::class)->lockCharacter($character);
+
                 $lockedTransformation =
                     CharacterTransformation::query()
                         ->whereKey(
@@ -613,6 +632,23 @@ class CharacterTransformationController extends Controller
                         )
                         ->lockForUpdate()
                         ->firstOrFail();
+
+                $linkedSpellId = $lockedTransformation->casting_time === 'spell'
+                    ? (int) data_get($lockedTransformation->settings, 'linked_spell_id', 0)
+                    : 0;
+                $linkedToSpell = $linkedSpellId > 0;
+                if ($lockedTransformation->casting_time === 'spell' && !$linkedToSpell) {
+                    throw ValidationException::withMessages(['linked_spell_id' => 'Esta transformação precisa de um feitiço vinculado.']);
+                }
+                if ($linkedToSpell) {
+                    $current = app(CharacterConcentrationManager::class)->currentConcentration($character);
+                    if (($current['source'] ?? null) !== 'spell'
+                        || (int) ($current['id'] ?? 0) !== $linkedSpellId) {
+                        throw ValidationException::withMessages([
+                            'concentration' => 'Conjure primeiro o feitiço vinculado e mantenha sua concentração.',
+                        ]);
+                    }
+                }
 
                 $state =
                     CharacterTransformationState::query()
@@ -643,6 +679,19 @@ class CharacterTransformationController extends Controller
                     throw ValidationException::withMessages([
                         'transformation' =>
                             'Volte à Forma Normal antes de assumir outra transformação.',
+                    ]);
+                }
+
+                // O usuário deve consentir com a interrupção do feitiço anterior.
+                // Verificado após o lock e antes de consumir usos ou aplicar exaustão.
+                if ($lockedTransformation->requires_concentration
+                    && !$linkedToSpell
+                    && !$confirmedReplacement
+                    && app(CharacterConcentrationManager::class)
+                        ->hasActiveConcentration($character)
+                ) {
+                    throw ValidationException::withMessages([
+                        'concentration' => 'Você já mantém uma concentração. Confirme a substituição antes de transformar.',
                     ]);
                 }
 
@@ -749,25 +798,55 @@ class CharacterTransformationController extends Controller
                     $lockedTransformation->save();
                 }
 
-                $durationRemaining =
-                    (
-                        $lockedTransformation->duration_type
-                            !== CharacterTransformation::DURATION_INDEFINITE
-                        && $lockedTransformation->duration_value !== null
-                    )
-                        ? max(
-                            1,
-                            (int) $lockedTransformation->duration_value
-                        )
-                        : null;
+                // O estado persistido conta RODADAS, inclusive para minutos e horas.
+                // 1 minuto = 10 rodadas; 1 hora = 600 rodadas (6 segundos/rodada).
+                $durationMultiplier = match ((string) $lockedTransformation->duration_type) {
+                    'rounds' => 1,
+                    'minutes' => 10,
+                    'hours' => 600,
+                    default => 0,
+                };
+                $durationRemaining = $durationMultiplier > 0
+                    ? min(2000000, max(1, (int) $lockedTransformation->duration_value) * $durationMultiplier)
+                    : null;
+                $durationFormula = (string) data_get($lockedTransformation->settings, 'duration_formula', '');
+                if ($durationFormula !== '') {
+                    $range = $this->durationDiceRange($durationFormula);
+                    if ($range === null || filter_var($requestedDuration, FILTER_VALIDATE_INT) === false) {
+                        throw ValidationException::withMessages([
+                            'duration_total' => 'Role os dados de duração ou informe um resultado válido antes de transformar.',
+                        ]);
+                    }
+                    $rolled = (int) $requestedDuration;
+                    if ($rolled < $range['min'] || $rolled > $range['max']) {
+                        throw ValidationException::withMessages([
+                            'duration_total' => 'O resultado está fora dos limites da fórmula.',
+                        ]);
+                    }
+                    $durationRemaining = $rolled;
+                }
+
+                $encounter = DB::table('combat_players as cp')
+                    ->join('combats as c', 'c.id', '=', 'cp.combat_id')
+                    ->where('cp.character_id', $character->id)
+                    ->where('c.is_active', true)
+                    ->orderByDesc('c.id')
+                    ->first(['c.id', 'c.current_round', 'c.current_turn']);
 
                 $runtimeState = [
                     'activation' =>
-                        'manual',
+                        $linkedToSpell ? 'spell' : 'manual',
+                    'linked_spell_id' => $linkedToSpell ? $linkedSpellId : null,
+                    'concentration_source' => $linkedToSpell ? 'spell' : 'transformation',
 
                     'requires_concentration' =>
                         (bool) $lockedTransformation
                             ->requires_concentration,
+
+                    'duration_unit' => 'rounds',
+                    'duration_total_rounds' => $durationRemaining,
+                    'duration_formula' => $durationFormula !== '' ? $durationFormula : null,
+                    'duration_roll_mode' => $durationFormula !== '' ? $durationRollMode : null,
 
                     /*
                      * Regra estabelecida para Ficha de Monstro:
@@ -788,6 +867,14 @@ class CharacterTransformationController extends Controller
                     $activationExhaustion;
 
 
+                // Antes de tornar a forma ativa, encerre a concentração anterior,
+                // inclusive quando ela pertence a uma Habilidade temporária.
+                if ($lockedTransformation->requires_concentration && !$linkedToSpell) {
+                    app(CharacterConcentrationManager::class)->replaceForConcentration(
+                        $character, 'transformation', (int) $lockedTransformation->id
+                    );
+                }
+
                 $payload = [
                     'character_transformation_id' =>
                         (int) $lockedTransformation->id,
@@ -799,13 +886,13 @@ class CharacterTransformationController extends Controller
                         now(),
 
                     'combat_id' =>
-                        null,
+                        $encounter?->id,
 
                     'activated_round' =>
-                        null,
+                        $encounter?->current_round,
 
                     'activated_turn' =>
-                        null,
+                        $encounter?->current_turn,
 
                     'duration_remaining' =>
                         $durationRemaining,
@@ -831,6 +918,13 @@ class CharacterTransformationController extends Controller
 
                         ...$payload,
                     ]);
+                }
+
+                // Concentração da forma substitui a do feitiço, atomicamente.
+                // Formas que não exigem concentração preservam o feitiço atual.
+                if (!$linkedToSpell) {
+                    app(CharacterConcentrationManager::class)
+                        ->startTransformation($character, $lockedTransformation);
                 }
             }
         );
@@ -869,9 +963,8 @@ class CharacterTransformationController extends Controller
             $character
         );
 
-        $this->ensureRuleEnabled(
-            $character
-        );
+        // A regra pode ter sido desligada enquanto a forma estava ativa.
+        // Nunca impedir o retorno seguro à Forma Normal.
 
         $endExhaustion =
             null;
@@ -881,6 +974,7 @@ class CharacterTransformationController extends Controller
                 $character,
                 &$endExhaustion
             ): void {
+                app(CharacterConcentrationManager::class)->lockCharacter($character);
                 $state =
                     CharacterTransformationState::query()
                         ->where(
@@ -907,18 +1001,8 @@ class CharacterTransformationController extends Controller
                             ->first()
                         : null;
 
-                if ($activeTransformation) {
-                    $endExhaustion =
-                        $this->applyTransformationExhaustion(
-                            $character,
-                            $activeTransformation,
-                            CharacterTransformation::EXHAUSTION_ON_END
-                        );
-                }
-
-                $this->clearActiveState(
-                    $state
-                );
+                $endExhaustion = app(CharacterConcentrationManager::class)
+                    ->endTransformation($character, $state, $activeTransformation);
             }
         );
 
@@ -958,10 +1042,6 @@ class CharacterTransformationController extends Controller
             $character
         );
 
-        $this->ensureRuleEnabled(
-            $character
-        );
-
         $validated =
             $request->validate([
                 'damage' => [
@@ -970,6 +1050,8 @@ class CharacterTransformationController extends Controller
                     'min:1',
                     'max:1000000',
                 ],
+                'roll_total' => ['nullable', 'integer', 'min:-1000', 'max:1000'],
+                'transformation_id' => ['nullable', 'integer', 'min:1'],
             ]);
 
         $state =
@@ -1014,12 +1096,36 @@ class CharacterTransformationController extends Controller
             ]);
         }
 
-        return response()->json([
-            'success' =>
-                true,
+        if (array_key_exists('roll_total', $validated) && $validated['roll_total'] !== null) {
+            // Um teste antigo não pode encerrar uma forma que já foi trocada.
+            if ((int) ($validated['transformation_id'] ?? 0) !== (int) $transformation->id) {
+                throw ValidationException::withMessages([
+                    'transformation_id' => 'A transformação mudou antes da resolução do teste.',
+                ]);
+            }
+            // O vínculo de feitiço é a fonte única da concentração.
+            $linkedSpellId = $transformation->casting_time === 'spell'
+                ? (int) data_get($transformation->settings, 'linked_spell_id', 0)
+                : 0;
+            $result = $linkedSpellId > 0
+                ? app(CharacterConcentrationManager::class)->resolveSpell(
+                    $character, $linkedSpellId, (int) $validated['damage'],
+                    (int) $validated['roll_total']
+                )
+                : app(CharacterConcentrationManager::class)->resolveTransformation(
+                    $character, (int) $transformation->id,
+                    (int) $validated['damage'], (int) $validated['roll_total']
+                );
+            return response()->json([
+                'success' => true,
+                'resolved' => true,
+                'result' => $result,
+            ]);
+        }
 
-            'concentration_check' =>
-                $check,
+        return response()->json([
+            'success' => true,
+            'concentration_check' => $check,
         ]);
     }
 
@@ -1067,6 +1173,7 @@ class CharacterTransformationController extends Controller
                     $character,
                     $validated
                 ): array {
+                    app(CharacterConcentrationManager::class)->lockCharacter($character);
                     $state =
                         CharacterTransformationState::query()
                             ->where(
@@ -1246,16 +1353,8 @@ class CharacterTransformationController extends Controller
                             ];
                         }
 
-                        $endExhaustion =
-                            $this->applyTransformationExhaustion(
-                                $character,
-                                $transformation,
-                                CharacterTransformation::EXHAUSTION_ON_END
-                            );
-
-                        $this->clearActiveState(
-                            $state
-                        );
+                        $endExhaustion = app(CharacterConcentrationManager::class)
+                            ->endTransformation($character, $state, $transformation);
 
                     } else {
                         $state->save();
@@ -1593,6 +1692,23 @@ class CharacterTransformationController extends Controller
     }
 
 
+    /** Limites de fórmulas simples; usado no cadastro e na ativação. */
+    private function durationDiceRange(string $formula): ?array
+    {
+        $formula = preg_replace('/\s+/', '', strtolower($formula));
+        if (!preg_match('/^(\d{1,2})d(4|6|8|10|12|20|100)([+-]\d{1,3})?$/', $formula, $matches)) {
+            return null;
+        }
+        $count = (int) $matches[1];
+        $sides = (int) $matches[2];
+        $modifier = isset($matches[3]) ? (int) $matches[3] : 0;
+        if ($count < 1 || $count > 12 || $modifier < -100 || $modifier > 100) return null;
+        $min = $count + $modifier;
+        $max = $count * $sides + $modifier;
+        if ($min < 1 || $max > 10000) return null;
+        return ['min' => $min, 'max' => $max];
+    }
+
     /*
     |--------------------------------------------------------------------------
     | VALIDAÇÃO DA DEFINIÇÃO
@@ -1622,6 +1738,8 @@ class CharacterTransformationController extends Controller
                 'integer',
             ],
 
+            'linked_spell_id' => ['nullable', 'integer', 'min:1'],
+
             'casting_time' => [
                 'required',
                 Rule::in([
@@ -1637,9 +1755,11 @@ class CharacterTransformationController extends Controller
                 'boolean',
             ],
 
+            'duration_formula' => ['nullable', 'string', 'max:16'],
             'duration_type' => [
                 'required',
                 Rule::in([
+                    'dice',
                     CharacterTransformation::DURATION_INDEFINITE,
                     CharacterTransformation::DURATION_ROUNDS,
                     CharacterTransformation::DURATION_MINUTES,
@@ -1954,6 +2074,21 @@ class CharacterTransformationController extends Controller
         $type =
             (string) $validated['type'];
 
+        // Vincule apenas uma magia já presente no Grimório do próprio personagem.
+        $linkedSpellId = null;
+        if (($validated['casting_time'] ?? 'none') === 'spell') {
+            $linkedSpellId = (int) ($validated['linked_spell_id'] ?? 0);
+            if ($linkedSpellId < 1 || !\App\Models\CharacterSpell::query()
+                ->where('character_id', $character->id)
+                ->where('spell_id', $linkedSpellId)
+                ->whereHas('spell', fn ($query) => $query->where('concentration', true))
+                ->exists()) {
+                throw ValidationException::withMessages([
+                    'linked_spell_id' => 'Escolha uma magia de concentração presente no Grimório deste personagem.',
+                ]);
+            }
+        }
+
         $sourceNpcId =
             null;
 
@@ -2000,13 +2135,25 @@ class CharacterTransformationController extends Controller
         }
 
 
-        $durationType =
-            (string) $validated['duration_type'];
+        $durationType = (string) $validated['duration_type'];
+        $durationFormula = null;
+        if ($durationType === 'dice') {
+            $durationFormula = preg_replace('/\s+/', '', (string) ($validated['duration_formula'] ?? ''));
+            if ($this->durationDiceRange($durationFormula) === null) {
+                throw ValidationException::withMessages([
+                    'duration_formula' => 'Use até 12 dados D4, D6, D8, D10, D12, D20 ou D100; exemplo: 2d6+1.',
+                ]);
+            }
+            // A duração dinâmica continua no contrato existente de rodadas.
+            $durationType = CharacterTransformation::DURATION_ROUNDS;
+        }
 
-        $durationValue =
-            null;
+        $durationValue = null;
 
-        if (
+        if ($durationFormula !== null) {
+            // Somente um valor temporário; o resultado real é definido na ativação.
+            $durationValue = 1;
+        } elseif (
             $durationType
             !== CharacterTransformation::DURATION_INDEFINITE
         ) {
@@ -2163,7 +2310,12 @@ class CharacterTransformationController extends Controller
                 (string) $validated['casting_time'],
 
             'requires_concentration' =>
-                (bool) $validated['requires_concentration'],
+                $linkedSpellId !== null || (bool) $validated['requires_concentration'],
+
+            'settings' => [
+                'linked_spell_id' => $linkedSpellId,
+                'duration_formula' => $durationFormula,
+            ],
 
             'duration_type' =>
                 $durationType,
@@ -2327,7 +2479,7 @@ class CharacterTransformationController extends Controller
     | - Forma Normal + Nova Ficha compartilham a MESMA Exaustão.
     | - O valor pertence sempre ao Character original.
     | - A Nova Ficha apenas lê e edita esse mesmo valor.
-    | - Ficha de Monstro não recebe Exaustão da transformação.
+    | - Ficha de Monstro também aplica exaustão na ficha original.
     |--------------------------------------------------------------------------
     */
     private function applyTransformationExhaustion(
@@ -2335,165 +2487,8 @@ class CharacterTransformationController extends Controller
         CharacterTransformation $transformation,
         string $timing
     ): ?array {
-        if (
-            !$transformation->applies_exhaustion
-            || $transformation->exhaustion_timing !== $timing
-        ) {
-            return null;
-        }
-
-        /*
-         * Ficha de Monstro é mecânica independente.
-         * A penalidade configurada na transformação não atravessa para ela.
-         */
-        if ($transformation->isMonsterSheet()) {
-            return null;
-        }
-
-        if (!$transformation->isCharacterSheet()) {
-            return null;
-        }
-
-        /*
-         * Para Nova Ficha, a Exaustão continua pertencendo ao Character
-         * original recebido pelo controller.
-         */
-        $targetCharacter =
-            Character::query()
-                ->whereKey(
-                    $character->id
-                )
-                ->lockForUpdate()
-                ->firstOrFail();
-
-        $requestedLevels =
-            max(
-                1,
-                min(
-                    6,
-                    (int) (
-                        $transformation->exhaustion_levels
-                        ?? 0
-                    )
-                )
-            );
-
-        $combat =
-            $targetCharacter
-                ->combat()
-                ->lockForUpdate()
-                ->first();
-
-        if (!$combat) {
-            $combat =
-                $targetCharacter
-                    ->combat()
-                    ->create([
-                        'experience_points' =>
-                            0,
-
-                        'current_hp' =>
-                            0,
-
-                        'max_hp' =>
-                            1,
-
-                        'temporary_hp' =>
-                            0,
-
-                        'temporary_max_hp' =>
-                            0,
-
-                        'hit_dice' =>
-                            [],
-
-                        'armor_class' =>
-                            10,
-
-                        'speed' =>
-                            30,
-
-                        'initiative_bonus' =>
-                            0,
-
-                        'death_save_successes' =>
-                            0,
-
-                        'death_save_failures' =>
-                            0,
-
-                        'concentration_active' =>
-                            false,
-
-                        'concentration_spell_id' =>
-                            null,
-
-                        'exhaustion_level' =>
-                            0,
-
-                        'conditions' =>
-                            [],
-
-                        'damage_resistances' =>
-                            [],
-
-                        'damage_immunities' =>
-                            [],
-
-                        'damage_vulnerabilities' =>
-                            [],
-
-                        'overrides' =>
-                            [],
-                    ]);
-        }
-
-        $before =
-            max(
-                0,
-                min(
-                    6,
-                    (int) (
-                        $combat->exhaustion_level
-                        ?? 0
-                    )
-                )
-            );
-
-        $after =
-            min(
-                6,
-                $before
-                + $requestedLevels
-            );
-
-        $combat->exhaustion_level =
-            $after;
-
-        $combat->save();
-
-        return [
-            'timing' =>
-                $timing,
-
-            'character_id' =>
-                (int) $targetCharacter->id,
-
-            'before' =>
-                $before,
-
-            'requested' =>
-                $requestedLevels,
-
-            'added' =>
-                max(
-                    0,
-                    $after - $before
-                ),
-
-            'level' =>
-                $after,
-        ];
+        return app(CharacterConcentrationManager::class)
+            ->applyTransformationExhaustion($character, $transformation, $timing);
     }
 
 
@@ -3026,6 +3021,25 @@ class CharacterTransformationController extends Controller
             );
     }
 
+    private function npcPortraitUrl(?Npc $npc): ?string
+    {
+        if (!$npc) return null;
+        $data = $npc->json_data ?? [];
+        if (is_string($data)) $data = json_decode($data, true) ?: [];
+        if (!is_array($data)) $data = [];
+        foreach ([
+            $npc->image_path ?? null,
+            data_get($data, 'image_path'),
+            data_get($data, 'image'),
+            data_get($data, 'portrait'),
+        ] as $path) {
+            if (!is_string($path) || trim($path) === '') continue;
+            $url = $this->imageUrl($path);
+            if ($url !== null) return $url;
+        }
+        return null;
+    }
+
     private function transformationPayload(
         CharacterTransformation $transformation
     ): array {
@@ -3066,13 +3080,17 @@ class CharacterTransformationController extends Controller
             'image_path' =>
                 $transformation->image_path,
 
+            // Usa a imagem escolhida pelo jogador; sem ela, a foto do Cofre.
             'image_url' =>
-                $this->imageUrl(
-                    $transformation->image_path
-                ),
+                $this->imageUrl($transformation->image_path)
+                ?: ($transformation->isMonsterSheet()
+                    ? $this->npcPortraitUrl($transformation->sourceNpc)
+                    : null),
 
             'casting_time' =>
                 (string) $transformation->casting_time,
+
+            'linked_spell_id' => (int) data_get($transformation->settings, 'linked_spell_id', 0) ?: null,
 
             'requires_concentration' =>
                 (bool) $transformation->requires_concentration,

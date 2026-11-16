@@ -2503,6 +2503,145 @@
             color: var(--theme-state-damage) !important;
         }
 
+        /* Navegação contextual, sem ocupar o conteúdo do statblock. */
+        .monster-sheet-v18-view-original {
+            position: absolute;
+            top: 16px;
+            left: -49px;
+            z-index: 7;
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--theme-border, #a78969);
+            border-radius: 11px;
+            background: var(--theme-paper-strong, #fffdf8);
+            color: var(--theme-text-primary, #38251d);
+            box-shadow: 0 5px 18px #0002;
+            cursor: pointer;
+            transition: background .15s ease, transform .15s ease;
+        }
+        .monster-sheet-v18-view-original:hover {
+            background: var(--theme-card-hover, var(--theme-paper, #f2e6d8));
+            transform: translateX(-2px);
+        }
+        .monster-sheet-v18-view-original:focus-visible,
+        .monster-sheet-v18-reopen:focus-visible {
+            outline: 2px solid var(--theme-accent-strong, #6b1d14);
+            outline-offset: 3px;
+        }
+        .monster-sheet-v18-view-original svg {
+            width: 18px;
+            height: 18px;
+        }
+        /* Atalho de retorno — reaproveita as cores dos botões laterais do tema.
+           A transformação continua ativa; este botão só troca a visualização. */
+        .character-sheet-theme[data-theme].monster-sheet-v18-reopen {
+            position: fixed;
+            z-index: 25;
+            top: 12px;
+            left: 50%;
+            bottom: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
+            width: auto;
+            max-width: min(90vw, 370px);
+            min-height: 48px;
+            padding: 6px 14px 6px 7px;
+            transform: translateX(-50%);
+            border: 1px solid var(--theme-border, rgba(160, 130, 100, .45));
+            border-radius: 13px;
+            background: var(--theme-side-tab-background, var(--theme-button-background, #6b1d14));
+            color: var(--theme-side-tab-text, var(--theme-button-text, #fffaf2));
+            box-shadow: 0 8px 22px rgba(0, 0, 0, .17),
+                inset 0 1px 0 color-mix(in srgb, currentColor 12%, transparent);
+            font-family: system-ui, sans-serif;
+            line-height: 1.15;
+            text-align: left;
+            cursor: pointer;
+            transition: background .16s ease, box-shadow .16s ease, transform .16s ease;
+        }
+        .character-sheet-theme[data-theme].monster-sheet-v18-reopen:hover {
+            background: var(--theme-side-tab-hover-background,
+                var(--theme-button-hover-background, var(--theme-button-background, #6b1d14)));
+            box-shadow: 0 11px 28px rgba(0, 0, 0, .22),
+                inset 0 1px 0 color-mix(in srgb, currentColor 16%, transparent);
+            transform: translate(-50%, -2px);
+        }
+        .character-sheet-theme[data-theme].monster-sheet-v18-reopen:active {
+            transform: translate(-50%, 0) scale(.985);
+        }
+        .character-sheet-theme[data-theme].monster-sheet-v18-reopen:focus-visible {
+            outline: 2px solid var(--theme-accent-strong, currentColor);
+            outline-offset: 3px;
+        }
+        .monster-sheet-v18-reopen-symbol {
+            display: grid;
+            flex: 0 0 34px;
+            width: 34px;
+            height: 34px;
+            place-items: center;
+            border: 1px solid color-mix(in srgb, currentColor 19%, transparent);
+            border-radius: 9px;
+            background: color-mix(in srgb, currentColor 11%, transparent);
+        }
+        .monster-sheet-v18-reopen-symbol svg {
+            width: 17px;
+            height: 17px;
+        }
+        .monster-sheet-v18-reopen-copy {
+            display: flex;
+            min-width: 0;
+            flex: 1 1 auto;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .monster-sheet-v18-reopen-kicker {
+            display: block;
+            font-size: 8px;
+            font-weight: 850;
+            letter-spacing: .11em;
+            opacity: .76;
+            text-transform: uppercase;
+        }
+        .monster-sheet-v18-reopen-name {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            font-size: 11px;
+            font-weight: 850;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .monster-sheet-v18-reopen-chevron {
+            flex: 0 0 14px;
+            width: 14px;
+            height: 14px;
+            margin-left: 1px;
+            opacity: .75;
+        }
+        @media (max-width: 760px) {
+            .monster-sheet-v18-view-original {
+                top: 7px;
+                left: 7px;
+                width: 32px;
+                height: 32px;
+            }
+            .character-sheet-theme[data-theme].monster-sheet-v18-reopen {
+                top: 9px;
+                max-width: min(92vw, 350px);
+                min-height: 44px;
+                padding: 5px 11px 5px 6px;
+                gap: 8px;
+            }
+            .monster-sheet-v18-reopen-symbol {
+                flex-basis: 31px;
+                width: 31px;
+                height: 31px;
+            }
+        }
     </style>
 @endonce
 
@@ -2520,7 +2659,28 @@
         busy: false,
         deTransforming: false,
         error: null,
-
+        monsterVisible: true,
+        originalDrawerOpen: false,
+        destroy() {
+            document.body.classList.remove('character-monster-active', 'character-monster-view-visible');
+        },
+        monsterViewKey: @js('spellbound:monster:view:' . $character->id . ':' . $trackerSessionToken),
+        initMonsterView() {
+            try {
+                this.monsterVisible = sessionStorage.getItem(this.monsterViewKey) !== 'hidden';
+            } catch (error) {
+                this.monsterVisible = true;
+            }
+        },
+        hideMonsterView() {
+            this.monsterVisible = false;
+            try { sessionStorage.setItem(this.monsterViewKey, 'hidden'); } catch (error) {}
+        },
+        showMonsterView() {
+            this.monsterVisible = true;
+            try { sessionStorage.removeItem(this.monsterViewKey); } catch (error) {}
+            this.$nextTick(() => this.scheduleBalance());
+        },
         concentrationCheck: null,
         concentrationRoll: null,
         concentrationRolling: false,
@@ -4096,12 +4256,16 @@
             );
         },
     }"
-    x-init="initBalance()"
+    @character-original-drawer-state.window="originalDrawerOpen = !!$event.detail?.open"
+    x-effect="document.body.classList.toggle('character-monster-active', true); document.body.classList.toggle('character-monster-view-visible', monsterVisible && !originalDrawerOpen)"
+    x-init="initMonsterView(); initBalance()"
     class="contents"
 >
     <template x-teleport="body">
         <div
             class="monster-sheet-v18-overlay character-sheet-theme"
+            x-show="monsterVisible && !originalDrawerOpen"
+            x-cloak
             role="dialog"
             aria-modal="true"
             aria-label="Ficha da transformação {{ $transformation->name }}"
@@ -4114,6 +4278,17 @@
 
 
             <div class="monster-sheet-v18-shell">
+
+                <button
+                    type="button"
+                    class="monster-sheet-v18-view-original"
+                    @click="hideMonsterView()"
+                    title="Ver a ficha original sem encerrar a transformação"
+                    aria-label="Ver ficha original sem destransformar"
+                ><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m11 19-7-7 7-7"></path><path d="M4 12h16"></path>
+                </svg></button>
 
                 <button
                     type="button"
@@ -4175,27 +4350,6 @@
                                         <div class="monster-sheet-v18-identity">
 
                                             <div class="min-w-0">
-
-                                                <div class="monster-sheet-v18-kicker">
-
-                                                    <span class="monster-sheet-v18-form-name">
-                                                        {{ $transformation->name }}
-                                                    </span>
-
-                                                    <span class="monster-sheet-v18-pill">
-                                                        {{ $castingTimeLabel }}
-                                                    </span>
-
-                                                    @if (
-                                                        $transformation?->requires_concentration
-                                                    )
-                                                        <span class="monster-sheet-v18-pill">
-                                                            Concentração
-                                                        </span>
-                                                    @endif
-
-                                                </div>
-
 
                                                 <h1 class="monster-sheet-v18-title">
                                                     {{ $monsterName }}
@@ -4771,6 +4925,34 @@
         </div>
     </template>
 
+    <template x-teleport="body">
+        <button
+            type="button"
+            x-show="!monsterVisible && !originalDrawerOpen"
+            x-cloak
+            data-theme="{{ $characterTheme }}"
+            class="monster-sheet-v18-reopen character-sheet-theme"
+            @click="showMonsterView()"
+            title="Reabrir a ficha da criatura sem encerrar a transformação"
+            aria-label="Voltar à ficha da criatura {{ $transformation->name }}"
+        >
+            <span class="monster-sheet-v18-reopen-symbol" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 12h16M13 5l7 7-7 7" />
+                </svg>
+            </span>
+            <span class="monster-sheet-v18-reopen-copy">
+                <span class="monster-sheet-v18-reopen-kicker">Transformação ativa</span>
+                <span class="monster-sheet-v18-reopen-name">Ver criatura · {{ $transformation->name }}</span>
+            </span>
+            <svg class="monster-sheet-v18-reopen-chevron" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m9 18 6-6-6-6" />
+            </svg>
+        </button>
+    </template>
 
     <template x-teleport="body">
         <div

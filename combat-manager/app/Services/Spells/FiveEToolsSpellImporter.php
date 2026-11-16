@@ -19,6 +19,8 @@ class FiveEToolsSpellImporter
         'duration_data',
         'description_data',
         'higher_level_data',
+        'reprinted_as',
+        'scaling_level_dice',
         'damage_types',
         'saving_throws',
         'area_tags',

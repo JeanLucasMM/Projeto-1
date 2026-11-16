@@ -126,6 +126,18 @@
         'attacks',
     ]);
 
+    // Foto original: URL na origem atual, sem hostname antigo de APP_URL.
+    $originalCharacterImageUrl = null;
+    if ($character->image_path) {
+        $originalImagePath = str_replace('\\', '/', trim((string) $character->image_path));
+        $originalImagePath = preg_replace(
+            '~^/?(?:storage/app/public/|public/storage/|storage/|public/)~i',
+            '',
+            $originalImagePath
+        );
+        $originalCharacterImageUrl = '/storage/' . ltrim($originalImagePath, '/');
+    }
+
     $sheetTransformationImageUrl =
         null;
 
@@ -4669,6 +4681,405 @@
             }
         }
 
+    /* Só eleva as abas originais quando a Ficha de Monstro está aberta.
+       O inventário e os demais drawers continuam no DOM original. */
+    body.character-monster-view-visible .character-side-tabs.character-monster-shared-tabs {
+        z-index: 2147483090 !important;
+    }
+    body.character-original-drawer-open .character-side-tabs.character-monster-shared-tabs {
+        visibility: hidden;
+        pointer-events: none;
+    }
+    /* As abas originais continuam disponíveis tanto na Ficha de Monstro
+       quanto ao consultar a ficha original com a transformação ainda ativa.
+       Fora da sobreposição da criatura, elas mantêm seu z-index normal para
+       não se sobrepor aos modais do restante da ficha. */
+    body.character-original-drawer-open .ct-form-floating-timer {
+        display: none !important;
+    }
+    /* Na ficha original os popups da aplicação ficam acima dos indicadores. */
+    body:not(.character-monster-view-visible) .ct-form-floating-timer,
+    .character-global-concentration-hud {
+        z-index: 35 !important;
+    }
+
+    /* Atalho de rodadas — mesmo trilho de Party, Inventário e Grimório.
+       Os números vêm do estado persistido; a mudança aqui é apenas visual. */
+    .character-monster-timer-tab {
+        position: relative;
+        display: flex;
+        width: 68px;
+        min-height: 111px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 9px 4px 8px !important;
+        border: 1px solid var(--theme-border, #b7a085) !important;
+        border-radius: 14px !important;
+        background: var(--theme-side-tab-background, var(--theme-button-background)) !important;
+        color: var(--theme-side-tab-text, var(--theme-button-text)) !important;
+        box-shadow: var(--theme-shadow, 0 6px 18px #0002);
+        font-family: system-ui, sans-serif;
+        text-align: center;
+        transition: background .15s ease, box-shadow .15s ease, transform .15s ease;
+    }
+    .character-monster-timer-tab:hover,
+    .character-monster-timer-tab:focus-visible {
+        background: var(--theme-side-tab-hover-background, var(--theme-button-hover-background)) !important;
+        box-shadow: var(--theme-shadow, 0 8px 22px #0003);
+    }
+    .character-monster-timer-tab:focus-visible {
+        outline: 2px solid var(--theme-accent, currentColor);
+        outline-offset: 2px;
+    }
+    .character-monster-timer-icon {
+        width: 17px;
+        height: 17px;
+        flex: 0 0 17px;
+        opacity: .92;
+    }
+    .character-monster-timer-number {
+        display: block;
+        min-height: 26px;
+        max-width: 100%;
+        font: 900 25px/1 Georgia, Cambria, serif;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        letter-spacing: -.025em;
+    }
+    .character-monster-timer-tab.is-large-count .character-monster-timer-number {
+        font-size: 19px;
+    }
+    .character-monster-timer-caption {
+        display: block;
+        font: 900 7.5px/1.15 system-ui, sans-serif;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+    .character-monster-timer-subtitle {
+        display: block;
+        max-width: 100%;
+        font: 700 7px/1.25 system-ui, sans-serif;
+        opacity: .84;
+    }
+    .character-monster-timer-concentration {
+        display: inline-flex;
+        max-width: 100%;
+        min-height: 15px;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        margin-top: 3px;
+        padding: 2px 4px;
+        border: 1px solid color-mix(in srgb, var(--theme-state-concentration, #9470b2) 45%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--theme-state-concentration, #9470b2) 16%, var(--theme-side-tab-background, #f7f0e6));
+        color: var(--theme-side-tab-text, var(--theme-button-text));
+        font: 850 6.5px/1 system-ui, sans-serif;
+        letter-spacing: -.015em;
+        white-space: nowrap;
+    }
+    .character-monster-timer-dot {
+        width: 5px;
+        height: 5px;
+        flex: 0 0 5px;
+        border-radius: 50%;
+        background: var(--theme-state-concentration, #9470b2);
+        box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-state-concentration, #9470b2) 20%, transparent);
+    }
+
+    /* Acompanhamento dos efeitos — gaveta oficial, mesma paleta de Party/Inventário. */
+    .character-effects-drawer {
+        height: 100%; overflow-y: auto; overscroll-behavior: contain;
+        color: var(--theme-text-primary, #34231b);
+        background: var(--theme-drawer-background, var(--theme-paper, #fbf8f1));
+        padding: 20px 22px 26px;
+    }
+    .character-effects-drawer__head {
+        display: flex; align-items: flex-start; justify-content: space-between;
+        gap: 14px; border-bottom: 1px solid var(--theme-border-soft, #dbc8b1);
+        padding-bottom: 18px; margin-bottom: 20px;
+    }
+    .character-effects-drawer__eyebrow {
+        display: block; margin-bottom: 4px; text-transform: uppercase;
+        font: 800 9px/1.2 system-ui, sans-serif; letter-spacing: .12em;
+        color: var(--theme-text-secondary, #866f59);
+    }
+    .character-effects-drawer__title {
+        font: 900 25px/1.15 Georgia, serif;
+        color: var(--theme-text-strong, var(--theme-accent-strong, #53150f));
+    }
+    .character-effects-drawer__description {
+        margin-top: 7px; font: 400 12px/1.5 system-ui, sans-serif;
+        color: var(--theme-text-secondary, #806d58);
+    }
+    .character-effects-drawer__close,
+    .character-effects-drawer__action {
+        display: inline-flex; align-items: center; justify-content: center;
+        min-height: 35px; border: 1px solid var(--theme-border, #c5aa8c);
+        border-radius: 9px; background: var(--theme-paper-strong, #fffdf8);
+        color: var(--theme-text-primary, #34231b);
+        font: 800 11px/1 system-ui, sans-serif; padding: 0 12px;
+        transition: background .15s ease;
+    }
+    .character-effects-drawer__close:hover,
+    .character-effects-drawer__action:hover:not(:disabled) {
+        background: var(--theme-hover, #efe5d7);
+    }
+    .character-effects-drawer__action:disabled { opacity: .45; cursor: wait; }
+    .character-effects-drawer__group-label {
+        margin-bottom: 10px; font: 900 10px/1.3 system-ui, sans-serif;
+        text-transform: uppercase; letter-spacing: .09em;
+        color: var(--theme-text-secondary, #806d58);
+    }
+    .character-effects-drawer__section { margin-bottom: 25px; }
+    .character-effects-drawer__card {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 13px; border: 1px solid var(--theme-border-soft, #dcc7b0);
+        border-radius: 14px; background: var(--theme-surface-card, var(--theme-paper-strong, #fffdf8));
+        padding: 14px; margin-bottom: 9px; box-shadow: 0 2px 9px #0000000c;
+    }
+    .character-effects-drawer__main { flex: 1; min-width: 0; }
+    .character-effects-drawer__name {
+        display: block; font: 900 16px/1.3 Georgia, serif;
+        overflow-wrap: anywhere; color: var(--theme-text-strong, var(--theme-text-primary, #34231b));
+    }
+    .character-effects-drawer__meta {
+        display: block; margin-top: 4px; font: 600 11px/1.4 system-ui, sans-serif;
+        color: var(--theme-text-secondary, #806d58);
+    }
+    .character-effects-drawer__pill {
+        display: inline-flex; align-items: center; gap: 5px; margin-top: 7px;
+        border: 1px solid color-mix(in srgb, var(--theme-state-concentration, #8964a4) 40%, transparent);
+        border-radius: 999px; padding: 4px 7px;
+        background: color-mix(in srgb, var(--theme-state-concentration, #8964a4) 13%, var(--theme-paper, #fbf8f1));
+        color: var(--theme-text-primary, #34231b);
+        font: 800 9px/1 system-ui, sans-serif;
+    }
+    .character-effects-drawer__time { min-width: 66px; text-align: center; flex: 0 0 auto; }
+    .character-effects-drawer__time strong {
+        display: block; font: 900 28px/1 Georgia, serif;
+        font-variant-numeric: tabular-nums;
+        color: var(--theme-text-strong, var(--theme-accent-strong, #53150f));
+    }
+    .character-effects-drawer__time small {
+        display: block; margin-top: 4px; font: 800 9px/1.2 system-ui, sans-serif;
+        color: var(--theme-text-secondary, #806d58);
+    }
+    .character-effects-drawer__empty {
+        border: 1px dashed var(--theme-border, #c5aa8c);
+        border-radius: 13px; padding: 26px 16px; text-align: center;
+        color: var(--theme-text-secondary, #806d58);
+        font: 600 12px/1.6 system-ui, sans-serif;
+    }
+    .character-effects-drawer__error {
+        color: var(--theme-state-damage, #992b20);
+        margin: 8px 0; font: 700 12px/1.4 system-ui, sans-serif;
+    }
+    @media (max-width: 540px) {
+        .character-effects-drawer { padding: 17px 14px 22px; }
+        .character-effects-drawer__card { gap: 9px; padding: 11px; flex-wrap: wrap; }
+    }
+
+
+    /* Modal de tempo: compacto, temático, sobre as fichas de monstro. */
+    .rounds-modal-overlay {
+        position: fixed; inset: 0; z-index: 2147483200;
+        display: grid; place-items: center; padding: 16px;
+        background: rgba(22,17,16,.62); backdrop-filter: blur(4px);
+    }
+    .rounds-modal {
+        width: min(100%, 540px); max-height: min(87dvh, 820px);
+        display: flex; flex-direction: column; overflow: hidden;
+        border: 1px solid var(--theme-border, #bdab93);
+        border-radius: 20px; background: var(--theme-paper, #fbf8f1);
+        color: var(--theme-text-primary, #34231b);
+        box-shadow: 0 24px 70px rgba(0,0,0,.33);
+    }
+    .rounds-modal__head {
+        display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+        padding: 18px 19px 14px;
+        background: var(--theme-paper-alt, var(--theme-surface-card, #f4ebdf));
+        border-bottom: 1px solid var(--theme-border-soft, #d8c4ac);
+    }
+    .rounds-modal__kicker { display: block; font: 800 9px/1.3 system-ui,sans-serif;
+        letter-spacing:.14em; text-transform: uppercase; color:var(--theme-text-secondary,#8a6953); }
+    .rounds-modal__title { margin: 4px 0 0; font: 900 24px/1.1 Georgia,serif;
+        color:var(--theme-text-strong,var(--theme-accent-strong,#53150f)); }
+    .rounds-modal__close, .rounds-modal__smallbtn {
+        display:inline-flex;align-items:center;justify-content:center;gap:5px;
+        border:1px solid var(--theme-border,#c5aa8c); border-radius:9px;
+        background:var(--theme-paper-strong,#fffdf8);color:var(--theme-text-primary,#34231b);
+        padding:8px 11px;font:800 10px/1.1 system-ui,sans-serif; cursor:pointer;
+    }
+    .rounds-modal__close { width:34px;height:34px;padding:0;font-size:17px; }
+    .rounds-modal__smallbtn:hover:not(:disabled), .rounds-modal__close:hover {
+        background:var(--theme-hover,var(--theme-accent-soft,#e9dbc9));
+    }
+    .rounds-modal__smallbtn:disabled {opacity:.4;cursor:wait;}
+    .rounds-modal__body { overflow-y:auto;min-height:0;padding:15px 17px 17px;display:grid;gap:11px; }
+    .rounds-modal__concentration {
+        display:flex;align-items:center;gap:12px;border:1px solid
+        color-mix(in srgb,var(--theme-state-concentration,#9064a2) 38%,var(--theme-border-soft,#d6c5b1));
+        background:color-mix(in srgb,var(--theme-state-concentration,#9064a2) 8%,var(--theme-surface-card,#fffdf8));
+        border-radius:13px;padding:11px 12px;
+    }
+    .rounds-modal__focus {
+        width:33px;height:33px;border-radius:10px;display:grid;place-items:center;
+        background:color-mix(in srgb,var(--theme-state-concentration,#9064a2) 18%,transparent);
+        color:var(--theme-state-concentration,#9064a2);font-size:19px;flex-shrink:0;
+    }
+    .rounds-modal__mini { color:var(--theme-text-secondary,#856f59);font:800 9px/1.3 system-ui,sans-serif;
+        text-transform:uppercase;letter-spacing:.08em; }
+    .rounds-modal__focusname {display:block;margin-top:2px;overflow-wrap:anywhere;
+        font:900 14px/1.3 Georgia,serif;color:var(--theme-text-strong,var(--theme-text-primary,#34231b));}
+    .rounds-modal__list { display:grid;gap:8px; }
+    .rounds-modal__card { border:1px solid var(--theme-border-soft,#d8c4ac);border-radius:13px;
+        background:var(--theme-surface-card,var(--theme-paper-strong,#fffdf8)); padding:12px; }
+    .rounds-modal__cardline {display:flex;align-items:center;justify-content:space-between;gap:14px;}
+    .rounds-modal__effectname {display:block;font:900 15px/1.25 Georgia,serif;
+        color:var(--theme-text-strong,var(--theme-text-primary,#34231b));overflow-wrap:anywhere;}
+    .rounds-modal__meta {display:block;margin-top:4px;font:600 10px/1.5 system-ui,sans-serif;
+        color:var(--theme-text-secondary,#856f59);}
+    .rounds-modal__count { min-width:64px; flex-shrink:0;text-align:center; }
+    .rounds-modal__count strong {display:block;font:900 27px/1 Georgia,serif;
+        font-variant-numeric:tabular-nums;color:var(--theme-accent-strong,var(--theme-text-strong,#53150f));}
+    .rounds-modal__count span {display:block;margin-top:3px;font:800 9px/1 system-ui,sans-serif;
+        color:var(--theme-text-secondary,#856f59);}
+    .rounds-modal__tag {display:inline-block;margin-top:6px;padding:3px 7px;border-radius:999px;
+        background:color-mix(in srgb,var(--theme-state-concentration,#9064a2) 13%,transparent);
+        color:var(--theme-text-primary,#34231b);font:800 9px/1.1 system-ui,sans-serif;}
+    .rounds-modal__cardfoot {display:flex;gap:8px;margin-top:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;}
+    .rounds-modal__foot {border-top:1px solid var(--theme-border-soft,#d8c4ac);
+        background:var(--theme-paper-alt,var(--theme-surface-card,#f4ebdf));padding:11px 17px 14px;}
+    .rounds-modal__controls {display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;}
+    .rounds-modal__notice {font:600 10px/1.5 system-ui,sans-serif;
+        color:var(--theme-text-secondary,#856f59);}
+    .rounds-modal__alert {font:800 11px/1.4 system-ui,sans-serif;
+        color:var(--theme-state-damage,#aa3228);}
+    @media (max-width:480px) { .rounds-modal-overlay{padding:9px}
+        .rounds-modal__title{font-size:21px} .rounds-modal__body{padding:11px} }
+
+    /* O atalho pertence à ficha original e à forma transformada.
+       Só desaparece temporariamente enquanto qualquer gaveta está aberta. */
+    body.character-original-drawer-open .character-monster-timer-tab { display: none !important; }
+
+
+/* ================================================================
+   V32 — PAINÉIS DE VIDA SOBREPOSTOS, SEM EXPANDIR O HERO
+   ================================================================
+   O hero-life (V27) já tem ambos os painéis em position:absolute.
+   A antiga V31 mudava para relative e aumentava o cabeçalho, o que
+   deslocava a Iniciativa. Mantemos o layout original e elevamos
+   somente os contextos de empilhamento necessários.
+   ================================================================ */
+
+/* Nunca recorte os popovers ao sair da região de PV. */
+.character-sheet-page .hero-header-segment,
+.character-sheet-page .hero-header-main-panel,
+.character-sheet-page .hero-header-vitals-zone,
+.character-sheet-page .hero-header-life-zone,
+.character-sheet-page .hero-life-modal-source,
+.character-sheet-page .hero-life {
+    overflow: visible !important;
+}
+
+/* Conserva os popovers absolutos e o centro horizontal da barra.
+   Eles NÃO ocupam espaço na altura da ficha. */
+.character-sheet-page .hero-header-life-zone
+.hero-life-modal-source .hero-life > .hero-hp-quick-panel {
+    position: absolute !important;
+    top: 100% !important;
+    bottom: auto !important;
+    left: 50% !important;
+    right: auto !important;
+    width: min(320px, calc(100vw - 2rem)) !important;
+    max-width: none !important;
+    margin-top: 8px !important;
+    z-index: 120 !important;
+    pointer-events: auto !important;
+}
+
+/* Editor de PV temporários conserva sua largura compacta. */
+.character-sheet-page .hero-header-life-zone
+.hero-life-modal-source .hero-life > [id^="hero-temp-hp-panel-"] {
+    width: min(285px, calc(100vw - 2rem)) !important;
+}
+
+/* Mantém o ponteiro visual ligado à barra. */
+.character-sheet-page .hero-header-life-zone
+.hero-life-modal-source .hero-hp-quick-pointer {
+    display: block !important;
+}
+
+/* Quando o Alpine abre um painel, sobrepõe a identidade,
+   Iniciativa, dados de vida e o restante da ficha. Não altera altura. */
+.character-sheet-page .hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) {
+    z-index: 75 !important;
+}
+
+.character-sheet-page .hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-header-main-panel {
+    z-index: 80 !important;
+}
+
+.character-sheet-page .hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-header-vitals-zone,
+.character-sheet-page .hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-header-life-zone,
+.character-sheet-page .hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-life-modal-source {
+    z-index: 90 !important;
+}
+
+
+/* ================================================================
+   V33 — POPOVERS DE VIDA NÃO RECORTADOS PELO HEADER
+   ================================================================
+   O Theme Core define:
+     .character-sheet-theme[data-theme] .hero-header-segment {
+         overflow: hidden !important;
+     }
+   A V32 tinha seletor menos específico. Aqui liberamos o recorte
+   SOMENTE com Dano/Cura ou PV Temporários visível. Sem mexer na
+   geometria, posição dos painéis ou bordas quando estão fechados.
+   ================================================================ */
+.character-sheet-theme[data-theme].character-sheet-page
+.hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) {
+    overflow: visible !important;
+    z-index: 130 !important;
+}
+
+/* Abaixo do header, o painel continua à frente dos cards vizinhos. */
+.character-sheet-theme[data-theme].character-sheet-page
+.hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-header-main-panel,
+.character-sheet-theme[data-theme].character-sheet-page
+.hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-header-vitals-zone,
+.character-sheet-theme[data-theme].character-sheet-page
+.hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-header-life-zone,
+.character-sheet-theme[data-theme].character-sheet-page
+.hero-header-segment:has(
+    .hero-hp-quick-panel:not([x-cloak]):not([style*="display: none"]):not([style*="display:none"])
+) .hero-life-modal-source {
+    overflow: visible !important;
+    z-index: 135 !important;
+}
+
 </style>
 
 
@@ -4841,6 +5252,136 @@
         x-data="{
 
             drawer: null,
+            effectsModalOpen: false,
+            concentrationSnapshot: {active: false},
+            trackerBusy: false,
+            trackerNotice: '',
+            trackerError: '',
+            trackerCsrf: @js(csrf_token()),
+            trackerRoundUrl: @js(route('characters.features.effects.advance-rounds', $character)),
+            trackerConcentrationStopUrl: @js(route('characters.spellbook.concentration.destroy', $character)),
+            trackerTransformationStopUrl: @js(route('characters.transformations.deactivate', $character)),
+
+            async trackerRequest(url, method, body = null) {
+                const response = await fetch(url, {
+                    method,
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': this.trackerCsrf,
+                    },
+                    ...(body !== null ? { body: JSON.stringify(body) } : {}),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const validation = Object.values(data?.errors ?? {}).flat().filter(Boolean);
+                    throw new Error(validation.join(' ') || data?.message || 'Não foi possível atualizar as rodadas.');
+                }
+                return data;
+            },
+
+            openEffectsModal() {
+                this.closeDrawer();
+                this.trackerError = '';
+                this.trackerNotice = '';
+                this.effectsModalOpen = true;
+            },
+            closeEffectsModal() {
+                if (this.trackerBusy) return;
+                this.effectsModalOpen = false;
+            },
+            async advanceTrackerRounds(rounds) {
+                if (this.trackerBusy || this.concentrationSnapshot?.combat_active || this.monsterRound?.combat_active || this.featureEffects.some(x => x.tracking)) return;
+                this.trackerBusy = true;
+                this.trackerNotice = '';
+                this.trackerError = '';
+                try {
+                    const data = await this.trackerRequest(this.trackerRoundUrl, 'POST', {rounds});
+                    this.trackerNotice = data.message || 'Rodadas atualizadas.';
+                    if (data.transformation_ended) {
+                        window.location.reload();
+                        return;
+                    }
+                    window.dispatchEvent(new CustomEvent('character-rounds-advanced'));
+                    window.dispatchEvent(new CustomEvent('character-concentration-changed'));
+                } catch (error) {
+                    this.trackerError = error.message || 'Erro ao avançar as rodadas.';
+                } finally { this.trackerBusy = false; }
+            },
+            async stopTrackedConcentration() {
+                if (this.trackerBusy || !this.concentrationSnapshot.active) return;
+                this.trackerBusy = true;
+                this.trackerError = '';
+                try {
+                    const data = await this.trackerRequest(this.trackerConcentrationStopUrl, 'DELETE');
+                    if (data?.concentration?.transformation_ended) { window.location.reload(); return; }
+                    this.trackerNotice = 'Concentração encerrada.';
+                    window.dispatchEvent(new CustomEvent('character-concentration-changed'));
+                    window.dispatchEvent(new CustomEvent('character-rounds-advanced'));
+                } catch (error) { this.trackerError = error.message || 'Não foi possível encerrar a concentração.'; }
+                finally { this.trackerBusy = false; }
+            },
+            async stopTrackedTransformation() {
+                if (this.trackerBusy || !this.monsterRound.active) return;
+                if (!window.confirm('Encerrar a transformação agora? A exaustão configurada será aplicada.')) return;
+                this.trackerBusy = true;
+                this.trackerError = '';
+                try {
+                    await this.trackerRequest(this.trackerTransformationStopUrl, 'POST');
+                    window.location.reload();
+                } catch (error) { this.trackerError = error.message || 'Não foi possível encerrar a transformação.'; }
+                finally { this.trackerBusy = false; }
+            },
+
+            // A lista é recebida do componente Features, que já faz polling.
+            // Não cria segundo temporizador e não muda o estado dos efeitos.
+            featureEffects: [],
+            featureEffectStoppingId: null,
+            featureEffectError: '',
+            featureEffectsCharacterId: Number(@js((int) $character->id)),
+
+            receiveFeatureEffects(payload) {
+                if (Number(payload?.characterId) !== this.featureEffectsCharacterId) return;
+                this.featureEffects = Array.isArray(payload?.effects) ? payload.effects : [];
+            },
+
+            finishFeatureEffectStop(payload) {
+                if (Number(payload?.characterId) !== this.featureEffectsCharacterId) return;
+                this.featureEffectStoppingId = null;
+                this.featureEffectError = String(payload?.error || '');
+            },
+
+            stopFeatureEffectInDrawer(effect) {
+                if (this.featureEffectStoppingId !== null || !effect?.feature_id) return;
+                this.featureEffectStoppingId = Number(effect.feature_id);
+                this.featureEffectError = '';
+                window.dispatchEvent(new CustomEvent('character-feature-effect-stop', {
+                    detail: {
+                        featureId: Number(effect.feature_id),
+                        characterId: this.featureEffectsCharacterId,
+                    },
+                }));
+            },
+
+            // O contador é apenas a apresentação do estado persistido na ficha original.
+            // A fonte dos dados continua sendo o endpoint de concentração/iniciativa.
+            monsterRound: {
+                active: @js((bool) ($activeSheetState?->is_active ?? false)),
+                transformation_id: @js($activeSheetState?->character_transformation_id),
+                elapsed_rounds: null,
+                duration_remaining: @js($activeSheetState?->duration_remaining),
+                requires_concentration: @js((bool) ($activeSheetState?->transformation?->requires_concentration ?? false)),
+            },
+
+            updateMonsterRound(timer) {
+                if (!timer) {
+                    this.monsterRound = { ...this.monsterRound, active: false };
+                    return;
+                }
+                this.monsterRound = { ...this.monsterRound, ...timer, active: true };
+            },
 
             shopPollUrl:
                 @js(
@@ -4990,23 +5531,22 @@
 
         }"
 
+        @character-transformation-duration-changed.window="updateMonsterRound($event.detail)"
+        @character-feature-effects-updated.window="receiveFeatureEffects($event.detail)"
+        @character-concentration-snapshot.window="concentrationSnapshot = $event.detail || {active:false}"
+        @character-feature-effect-stop-finished.window="finishFeatureEffectStop($event.detail)"
+
         x-effect="
 
-            document.body.classList.toggle(
-
-                'overflow-hidden',
-
-                drawer !== null
-
-            )
+            document.body.classList.toggle('overflow-hidden', drawer !== null || effectsModalOpen);
+            document.body.classList.toggle('character-original-drawer-open', drawer !== null || effectsModalOpen);
+            window.dispatchEvent(new CustomEvent('character-original-drawer-state', {
+                detail: { open: drawer !== null || effectsModalOpen, drawer: effectsModalOpen ? 'effects-modal' : drawer }
+            }));
 
         "
 
-        @keydown.escape.window="
-
-            closeDrawer()
-
-        "
+        @keydown.escape.window="effectsModalOpen ? closeEffectsModal() : closeDrawer()"
 
         data-theme="{{ $characterTheme }}"
 
@@ -5370,7 +5910,7 @@
                                 $character,
 
                             'imageOverrideUrl' =>
-                                $sheetTransformationImageUrl,
+                                $sheetTransformationImageUrl ?: $originalCharacterImageUrl,
 
 
                         ]
@@ -5378,6 +5918,9 @@
                     )
 
 
+
+                    {{-- V66 — Indicadores de condições do encontro, abaixo do cabeçalho. --}}
+                    @include('characters.components.combat-conditions', ['character' => $character])
 
                     {{-- ====================================================
 
@@ -5638,10 +6181,12 @@
 
         ================================================================= --}}
 
+        <template x-teleport="body">
         <div
-
+            data-theme="{{ $characterTheme }}"
             class="
-
+                character-sheet-theme
+                character-monster-shared-tabs
                 character-side-tabs
 
                 fixed
@@ -6099,9 +6644,60 @@
 
             </button>
 
+
+            {{-- Único atalho de Rodadas e Efeitos: transformação e habilidades.
+                 A contagem exibida é informativa; o painel completo fica na gaveta. --}}
+            <template x-if="monsterRound.active || featureEffects.length > 0 || concentrationSnapshot.active">
+                <button
+                    type="button"
+                    class="character-side-tab character-monster-timer-tab"
+                    :class="{
+                        'active': effectsModalOpen,
+                        'is-large-count': monsterRound.active && monsterRound.duration_remaining != null && Number(monsterRound.duration_remaining) > 999
+                    }"
+                    @click="effectsModalOpen ? closeEffectsModal() : openEffectsModal()"
+                    :title="'Acompanhar transformação, habilidades e concentração'"
+                    aria-label="Abrir acompanhamento de Rodadas, Efeitos e Concentração"
+                >
+                    <svg class="character-monster-timer-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 6v6l4 2"></path>
+                    </svg>
+                    <strong
+                        class="character-monster-timer-number"
+                        x-text="monsterRound.active
+                            ? (monsterRound.duration_remaining == null ? '∞' : Math.max(0, Number(monsterRound.duration_remaining) || 0))
+                            : (featureEffects.length === 1
+                                ? (featureEffects[0].duration_remaining == null ? '∞' : Math.max(0, Number(featureEffects[0].duration_remaining) || 0))
+                                : (featureEffects.length ? featureEffects.length
+                                    : (concentrationSnapshot.duration_remaining != null
+                                        ? Math.max(0, Number(concentrationSnapshot.duration_remaining) || 0)
+                                        : Math.max(0, Number(concentrationSnapshot.elapsed_rounds) || 0))))"
+                    ></strong>
+                    <span class="character-monster-timer-caption" x-text="!monsterRound.active && featureEffects.length > 1 ? 'Efeitos' : 'Rodadas'"></span>
+                    <span
+                        class="character-monster-timer-subtitle"
+                        x-text="!monsterRound.active && featureEffects.length > 1
+                            ? 'ativos'
+                            : (monsterRound.active
+                                ? (monsterRound.duration_remaining == null ? 'sem limite' : 'restantes')
+                                : (featureEffects.length
+                                    ? (featureEffects[0]?.duration_remaining == null ? 'sem limite' : 'restantes')
+                                    : (concentrationSnapshot.duration_remaining == null ? 'decorridas' : 'restantes')))"
+                    ></span>
+                    <span
+                        class="character-monster-timer-concentration"
+                        x-show="(monsterRound.active && monsterRound.requires_concentration) || featureEffects.some(effect => effect.requires_concentration) || concentrationSnapshot.active"
+                        title="Esta transformação exige concentração"
+                    >
+                        <span aria-hidden="true" class="character-monster-timer-dot"></span>
+                        Concentração
+                    </span>
+                </button>
+            </template>
+
         </div>
-
-
+        </template>
 
 
 
@@ -6278,8 +6874,6 @@
 
                     w-full
 
-                    max-w-3xl
-
                     flex-col
 
                     border-l
@@ -6290,212 +6884,20 @@
 
                 "
 
+                :class="{
+                    'max-w-6xl':
+                        drawer === 'spellbook',
+
+                    'max-w-[1060px]':
+                        drawer === 'inventory',
+
+                    'max-w-3xl':
+                        drawer !== 'spellbook' && drawer !== 'inventory'
+                }"
+
             >
 
-                {{-- ========================================================
-
-                     HEADER — GRIMÓRIO
-
-                ========================================================= --}}
-
-                <div
-
-                    x-show="
-
-                        drawer ===
-
-                            'spellbook'
-
-                    "
-
-                    x-cloak
-
-                    class="
-
-                        shrink-0
-
-                        border-b
-
-                        border-[#cdbb9f]/60
-
-                        bg-[#53150f]
-
-                        px-5
-
-                        py-5
-
-                        text-[#f4f1e8]
-
-                    "
-
-                >
-
-                    <div
-
-                        class="
-
-                            flex
-
-                            items-start
-
-                            justify-between
-
-                            gap-4
-
-                        "
-
-                    >
-
-                        <div>
-
-                            <p
-
-                                class="
-
-                                    text-[9px]
-
-                                    font-black
-
-                                    uppercase
-
-                                    tracking-[0.3em]
-
-                                    text-[#cdbb9f]
-
-                                "
-
-                            >
-
-                                Grimório de Aventureiro
-
-                            </p>
-
-                            <h2
-
-                                class="
-
-                                    mt-1
-
-                                    font-serif
-
-                                    text-2xl
-
-                                    font-black
-
-                                "
-
-                            >
-
-                                Magias
-
-                            </h2>
-
-                            <p
-
-                                class="
-
-                                    mt-1
-
-                                    text-xs
-
-                                    text-[#eadfce]/70
-
-                                "
-
-                            >
-
-                                {{ $character->name }}
-
-                            </p>
-
-                        </div>
-
-
-
-
-
-                        <button
-
-                            type="button"
-
-                            @click="
-
-                                closeDrawer()
-
-                            "
-                            class="
-
-                                flex
-
-                                h-9
-
-                                w-9
-
-                                shrink-0
-
-                                items-center
-
-                                justify-center
-
-                                rounded-lg
-
-                                border
-
-                                border-[#cdbb9f]/30
-
-                                bg-[#f4f1e8]/10
-
-                                text-[#f4f1e8]
-
-                                transition
-
-                                hover:bg-[#f4f1e8]/20
-
-                            "
-
-                            title="Fechar Grimório"
-
-                        >
-
-                            <svg
-
-                                class="
-
-                                    h-5
-
-                                    w-5
-
-                                "
-
-                                fill="none"
-
-                                viewBox="0 0 24 24"
-
-                                stroke="currentColor"
-
-                            >
-
-                                <path
-
-                                    stroke-linecap="round"
-
-                                    stroke-linejoin="round"
-
-                                    stroke-width="1.8"
-
-                                    d="M6 6l12 12M18 6L6 18"
-
-                                />
-
-                            </svg>
-
-                        </button>
-
-                    </div>
-
-                </div>
-
-
+                {{-- O Grimório V3 desenha sua própria faixa superior de slots. --}}
 
 
 
@@ -6577,6 +6979,7 @@
 
 
 
+
                 {{-- ========================================================
 
                      GRIMÓRIO
@@ -6603,9 +7006,7 @@
 
                         overflow-y-auto
 
-                        p-4
-
-                        sm:p-6
+                        p-0
 
                     "
 
@@ -6631,6 +7032,125 @@
 
         </div>
 
+        {{-- Modal compacto compartilhado: feitiços, habilidades e transformações. --}}
+        <template x-teleport="body">
+            <div x-show="effectsModalOpen" x-cloak @click.self="closeEffectsModal()"
+                class="rounds-modal-overlay character-sheet-theme"
+                data-theme="{{ $characterTheme }}" role="presentation">
+                <section class="rounds-modal" role="dialog" aria-modal="true"
+                    aria-label="Tempo, rodadas e concentração">
+                    <header class="rounds-modal__head">
+                        <div>
+                            <span class="rounds-modal__kicker">Acompanhamento · personagem</span>
+                            <h2 class="rounds-modal__title">Tempo e efeitos</h2>
+                        </div>
+                        <button class="rounds-modal__close" type="button" @click="closeEffectsModal()"
+                            aria-label="Fechar acompanhamento">×</button>
+                    </header>
+                    <div class="rounds-modal__body">
+                        <div x-show="concentrationSnapshot.active" x-cloak class="rounds-modal__concentration">
+                            <span class="rounds-modal__focus" aria-hidden="true">◈</span>
+                            <div style="flex:1;min-width:0">
+                                <span class="rounds-modal__mini"
+                                    x-text="concentrationSnapshot.source === 'spell' ? 'Concentração · Feitiço' : concentrationSnapshot.source === 'feature' ? 'Concentração · Habilidade' : 'Concentração · Transformação'"></span>
+                                <strong class="rounds-modal__focusname"
+                                    x-text="concentrationSnapshot.effect_name || concentrationSnapshot.spell_name || 'Efeito concentrado'"></strong>
+                                <span class="rounds-modal__meta"
+                                    x-show="concentrationSnapshot.source === 'spell'"
+                                    x-text="concentrationSnapshot.duration_total_rounds != null
+                                        ? ('Duração: ' + (concentrationSnapshot.duration_label || 'definida')
+                                            + ' · ' + Math.max(0,Number(concentrationSnapshot.duration_remaining)||0)
+                                            + ' rodadas restantes')
+                                        : 'Duração sem limite de rodadas definido'"></span>
+                                <span class="rounds-modal__meta" x-text="concentrationSnapshot.tracking_rounds
+                                    ? (Math.max(0,Number(concentrationSnapshot.elapsed_rounds)||0) + ' rodadas desde o início')
+                                    : (Math.max(0,Number(concentrationSnapshot.elapsed_rounds)||0) + ' rodadas acompanhadas')"></span>
+                            </div>
+                            <button type="button" class="rounds-modal__smallbtn" @click="stopTrackedConcentration()"
+                                :disabled="trackerBusy">Encerrar</button>
+                        </div>
+
+                        <template x-if="monsterRound.active">
+                            <article class="rounds-modal__card">
+                                <div class="rounds-modal__cardline">
+                                    <div style="min-width:0;flex:1">
+                                        <span class="rounds-modal__mini">Transformação</span>
+                                        <strong class="rounds-modal__effectname"
+                                            x-text="@js((string) ($activeSheetState?->transformation?->name ?? 'Transformação'))"></strong>
+                                        <span class="rounds-modal__meta"
+                                            x-text="monsterRound.combat_active && monsterRound.current_round != null
+                                                ? ('Rodada atual ' + monsterRound.current_round + (monsterRound.started_round != null ? ' · Início ' + monsterRound.started_round : ''))
+                                                : 'Acompanhamento fora de combate'"></span>
+                                        <span class="rounds-modal__meta"
+                                            x-text="Math.max(0,Number(monsterRound.elapsed_rounds)||0) + ' rodadas decorridas'"></span>
+                                        <span class="rounds-modal__tag" x-show="monsterRound.requires_concentration">◈ Concentração</span>
+                                    </div>
+                                    <div class="rounds-modal__count">
+                                        <strong x-text="monsterRound.duration_remaining == null ? '∞' : Math.max(0,Number(monsterRound.duration_remaining)||0)"></strong>
+                                        <span x-text="monsterRound.duration_remaining == null ? 'sem limite' : 'restantes'"></span>
+                                    </div>
+                                </div>
+                                <div class="rounds-modal__cardfoot">
+                                    <span class="rounds-modal__meta">1 rodada ≈ 6 segundos</span>
+                                    <button type="button" class="rounds-modal__smallbtn" :disabled="trackerBusy"
+                                        @click="stopTrackedTransformation()">Encerrar forma</button>
+                                </div>
+                            </article>
+                        </template>
+
+                        <template x-for="effect in featureEffects" :key="effect.feature_id">
+                            <article class="rounds-modal__card">
+                                <div class="rounds-modal__cardline">
+                                    <div style="min-width:0;flex:1">
+                                        <span class="rounds-modal__mini">Habilidade ativa</span>
+                                        <strong class="rounds-modal__effectname" x-text="effect.name"></strong>
+                                        <span class="rounds-modal__meta"
+                                            x-text="effect.tracking ? ('Rodada ' + effect.current_round + ' · início ' + effect.activated_round) : 'Fora de combate'"></span>
+                                        <span class="rounds-modal__meta"
+                                            x-text="Math.max(0,Number(effect.elapsed_rounds)||0) + ' rodadas decorridas'"></span>
+                                        <span class="rounds-modal__tag" x-show="effect.requires_concentration">◈ Concentração</span>
+                                    </div>
+                                    <div class="rounds-modal__count">
+                                        <strong x-text="effect.duration_remaining == null ? '∞' : Math.max(0,Number(effect.duration_remaining)||0)"></strong>
+                                        <span>restantes</span>
+                                    </div>
+                                </div>
+                                <div class="rounds-modal__cardfoot">
+                                    <span class="rounds-modal__meta" x-show="effect.roll_expression"
+                                        x-text="effect.roll_expression ? (effect.roll_expression + ' → ' + effect.rolled_total + ' rodadas') : ''"></span>
+                                    <button type="button" class="rounds-modal__smallbtn"
+                                        :disabled="featureEffectStoppingId !== null || trackerBusy"
+                                        @click="stopFeatureEffectInDrawer(effect)"
+                                        x-text="featureEffectStoppingId === Number(effect.feature_id) ? 'Encerrando...' : 'Encerrar efeito'"></button>
+                                </div>
+                            </article>
+                        </template>
+                        <p x-show="!monsterRound.active && !featureEffects.length && !concentrationSnapshot.active"
+                            class="rounds-modal__notice">Nenhum efeito ativo. Ative uma habilidade ou transformação para acompanhar sua duração.</p>
+                        <p x-show="featureEffectError || trackerError" role="alert" class="rounds-modal__alert"
+                            x-text="featureEffectError || trackerError"></p>
+                        <p x-show="trackerNotice" role="status" class="rounds-modal__notice"
+                            x-text="trackerNotice"></p>
+                    </div>
+                    <footer class="rounds-modal__foot">
+                        <template x-if="concentrationSnapshot.combat_active || monsterRound.combat_active || featureEffects.some(x => x.tracking)">
+                            <p class="rounds-modal__notice">Em combate, a contagem avança automaticamente com a iniciativa do Mestre.</p>
+                        </template>
+                        <template x-if="!(concentrationSnapshot.combat_active || monsterRound.combat_active || featureEffects.some(x => x.tracking))">
+                            <div>
+                                <p class="rounds-modal__notice">Fora de combate · avanço manual (não altera a iniciativa).</p>
+                                <div class="rounds-modal__controls">
+                                    <button type="button" class="rounds-modal__smallbtn" :disabled="trackerBusy" @click="advanceTrackerRounds(1)">+1 rodada</button>
+                                    <button type="button" class="rounds-modal__smallbtn" :disabled="trackerBusy" @click="advanceTrackerRounds(3)">+3 rodadas</button>
+                                    <button type="button" class="rounds-modal__smallbtn" :disabled="trackerBusy" @click="advanceTrackerRounds(10)">+1 minuto</button>
+                                </div>
+                            </div>
+                        </template>
+                    </footer>
+                </section>
+            </div>
+        </template>
+
         @if($showPartyDrawer)
             @include(
                 'characters.components.shop',
@@ -6640,6 +7160,45 @@
                 ]
             )
         @endif
+
+        {{-- Um único estado de concentração serve a TODOS os efeitos.
+             Este observador não desenha outro HUD concorrente. --}}
+        <div x-data="{
+                url: @js(route('characters.spellbook.state', $character)),
+                pollTimer: null,
+                loading: false,
+                lastSource: null,
+                init() {
+                    this.refresh();
+                    this.pollTimer = window.setInterval(() => this.refresh(), 2500);
+                },
+                destroy() {
+                    if (this.pollTimer) window.clearInterval(this.pollTimer);
+                },
+                async refresh() {
+                    if (this.loading || document.hidden) return;
+                    this.loading = true;
+                    try {
+                        const response = await fetch(this.url + (this.url.includes('?') ? '&' : '?') + 'scope=concentration', {
+                            headers: {'Accept': 'application/json','X-Requested-With':'XMLHttpRequest'}, cache:'no-store',
+                        });
+                        if (!response.ok) return;
+                        const data = await response.json();
+                        const next = data.concentration || {active:false};
+                        window.dispatchEvent(new CustomEvent('character-concentration-snapshot', {detail:next}));
+                        window.dispatchEvent(new CustomEvent('character-transformation-duration-changed', {
+                            detail:data.transformation_timer || null,
+                        }));
+                        if (this.lastSource === 'transformation' && next.source !== 'transformation') {
+                            window.location.reload(); return;
+                        }
+                        this.lastSource = next.source || null;
+                    } catch (_error) {} finally { this.loading = false; }
+                },
+            }"
+            @character-concentration-changed.window="refresh()"
+            @character-rounds-advanced.window="refresh()"
+            style="display:none" aria-hidden="true"></div>
 
     </div>
 

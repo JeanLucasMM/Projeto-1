@@ -9,10 +9,6 @@ use RuntimeException;
 class FiveEToolsHomebrewClient
 {
     /**
-     * Retorna todos os arquivos do repositório homebrew que possuem a
-     * propriedade "spell", independentemente de estarem em spell/,
-     * collection/, book/, subclass/, etc.
-     *
      * @return array<int, string>
      */
     public function spellFiles(): array
@@ -44,11 +40,12 @@ class FiveEToolsHomebrewClient
     }
 
     /**
-     * Baixa um arquivo homebrew e devolve somente seu array "spell".
+     * Retorna o documento completo porque precisamos tanto do array `spell`
+     * quanto de `_meta.sources`.
      *
-     * @return array<int, array<string, mixed>>
+     * @return array<string, mixed>
      */
-    public function spellsFromFile(string $path): array
+    public function documentFromFile(string $path): array
     {
         $url = rtrim(
             (string) config('spells.fiveetools_homebrew.base_url'),
@@ -63,7 +60,19 @@ class FiveEToolsHomebrewClient
             );
         }
 
-        return $data['spell'];
+        return $data;
+    }
+
+    /**
+     * Mantido por compatibilidade com código anterior.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function spellsFromFile(string $path): array
+    {
+        $document = $this->documentFromFile($path);
+
+        return $document['spell'];
     }
 
     private function getJson(string $url): array
@@ -81,7 +90,10 @@ class FiveEToolsHomebrewClient
 
         $sleepMs = max(
             0,
-            (int) config('spells.fiveetools_homebrew.retry_sleep_ms', 750)
+            (int) config(
+                'spells.fiveetools_homebrew.retry_sleep_ms',
+                750
+            )
         );
 
         $lastException = null;
@@ -94,7 +106,10 @@ class FiveEToolsHomebrewClient
                         'User-Agent' => 'Spellbound/1.0',
                     ])
                     ->timeout(
-                        (int) config('spells.fiveetools_homebrew.timeout', 60)
+                        (int) config(
+                            'spells.fiveetools_homebrew.timeout',
+                            60
+                        )
                     )
                     ->get($url);
 

@@ -647,6 +647,17 @@ class MasterVaultController extends Controller
 
 
 
+        /*
+         * Vestígios: preserva Dormente, Desperta e Exaltada separadamente.
+         * O estágio efetivo pertence ao inventário de cada personagem,
+         * não à definição global do item no Cofre.
+         */
+        if (is_array($properties['vestige'] ?? null)) {
+            $properties['vestige'] = $this->normalizeVestigeForStorage(
+                $properties['vestige']
+            );
+        }
+
         $rawWeapon = $request->input('properties.weapon');
 
 
@@ -965,6 +976,101 @@ class MasterVaultController extends Controller
 
 
 
+    /**
+     * Persiste as três gavetas do Vestígio sem impor limite artificial de
+     * habilidades e sem escolher uma etapa global para os personagens.
+     *
+     * current_stage é mantido SOMENTE por compatibilidade com itens antigos.
+     */
+    private function normalizeVestigeForStorage(array $source): array
+    {
+        $validStages = ['dormant', 'awakened', 'exalted'];
+        $currentStage = $source['current_stage'] ?? 'dormant';
+
+        if (!in_array($currentStage, $validStages, true)) {
+            $currentStage = 'dormant';
+        }
+
+        $stages = [];
+
+        foreach ($validStages as $stage) {
+            $rawStage = is_array($source['stages'][$stage] ?? null)
+                ? $source['stages'][$stage]
+                : [];
+
+            $features = [];
+            $rawFeatures = is_array($rawStage['features'] ?? null)
+                ? $rawStage['features']
+                : [];
+
+            foreach ($rawFeatures as $feature) {
+                if (!is_array($feature)) {
+                    continue;
+                }
+
+                $title = trim((string) ($feature['title'] ?? ''));
+                $description = trim((string) ($feature['description'] ?? ''));
+
+                if ($title === '' && $description === '') {
+                    continue;
+                }
+
+                $usage = is_array($feature['usage'] ?? null)
+                    ? $feature['usage']
+                    : [];
+                $usageEnabled = filter_var(
+                    $usage['enabled'] ?? false,
+                    FILTER_VALIDATE_BOOLEAN
+                );
+
+                if (!$usageEnabled) {
+                    $usage = ['enabled' => false];
+                } else {
+                    $max = max(1, (int) ($usage['max'] ?? 1));
+                    $mode = in_array($usage['counter_mode'] ?? null, ['spend', 'build'], true)
+                        ? $usage['counter_mode']
+                        : 'spend';
+                    $current = isset($usage['current'])
+                        ? (int) $usage['current']
+                        : ($mode === 'build' ? 0 : $max);
+                    $recovery = (string) ($usage['recovery'] ?? 'day');
+
+                    if (!in_array($recovery, [
+                        'day', 'short_rest', 'long_rest', 'dawn', 'single_use', 'custom',
+                    ], true)) {
+                        $recovery = 'day';
+                    }
+
+                    $usage = [
+                        'enabled' => true,
+                        'counter_mode' => $mode,
+                        'current' => max(0, min($max, $current)),
+                        'max' => $max,
+                        'recovery' => $recovery,
+                        'recovery_custom' => trim((string) ($usage['recovery_custom'] ?? '')),
+                    ];
+                }
+
+                $features[] = [
+                    'title' => $title,
+                    'description' => $description,
+                    'usage' => $usage,
+                ];
+            }
+
+            $stages[$stage] = [
+                'lore' => trim((string) ($rawStage['lore'] ?? '')),
+                'features' => $features,
+            ];
+        }
+
+        return [
+            'enabled' => filter_var($source['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+            'current_stage' => $currentStage,
+            'stages' => $stages,
+        ];
+    }
+
     private function deriveLegacyFields(array $data): array
 
     {
@@ -1039,11 +1145,13 @@ class MasterVaultController extends Controller
 
 
 
-        if (!$isMagical) {
-
-            $data['rarity'] = null;
-
-        }
+        // Toda natureza (Maravilhoso, Tecnológico e Mundano) possui raridade.
+        // A natureza define se é mágico; a raridade não implica magia.
+        $data['rarity'] = in_array(
+            $data['rarity'] ?? 'common',
+            ['common', 'uncommon', 'rare', 'very_rare', 'legendary', 'artifact'],
+            true
+        ) ? ($data['rarity'] ?? 'common') : 'common';
 
 
 

@@ -11,10 +11,12 @@ class CampaignCharacter extends Model
         'campaign_id',
         'character_id',
         'is_active',
+        'experience_points',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
+        'experience_points' => 'integer',
     ];
 
     public function campaign(): BelongsTo

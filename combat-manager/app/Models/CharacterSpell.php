@@ -4,24 +4,38 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class CharacterSpell extends Model
 {
-    protected $table = 'character_spells';
-
     protected $fillable = [
         'character_id',
         'spell_id',
+        'spellcasting_id',
         'source_type',
         'source_class',
         'known',
         'prepared',
+        'always_prepared',
+        'free_casts_current',
+        'free_casts_max',
+        'free_casts_recovery',
+        'cast_without_slot',
         'overrides',
+        'personal_notes',
+        'personal_media_path',
     ];
 
     protected $casts = [
+        'character_id' => 'integer',
+        'spell_id' => 'integer',
+        'spellcasting_id' => 'integer',
         'known' => 'boolean',
         'prepared' => 'boolean',
+        'always_prepared' => 'boolean',
+        'free_casts_current' => 'integer',
+        'free_casts_max' => 'integer',
+        'cast_without_slot' => 'boolean',
         'overrides' => 'array',
     ];
 
@@ -35,31 +49,34 @@ class CharacterSpell extends Model
         return $this->belongsTo(Spell::class);
     }
 
+    public function spellcasting(): BelongsTo
+    {
+        return $this->belongsTo(CharacterSpellcasting::class, 'spellcasting_id');
+    }
+
+    public function castingProfiles(): HasMany
+    {
+        return $this->hasMany(CharacterSpellProfile::class, 'character_spell_id');
+    }
+
     public function isPrepared(): bool
     {
-        return $this->prepared;
+        return (bool) ($this->prepared || $this->always_prepared);
     }
 
     public function isKnown(): bool
     {
-        return $this->known;
+        return (bool) $this->known;
     }
 
     public function requiresConcentration(): bool
     {
-        return (bool) ($this->spell?->concentration ?? false);
+        return (bool) $this->spell?->concentration;
     }
 
-    public function canCast(): bool
+    public function hasFreeCast(): bool
     {
-        if (!$this->known) {
-            return false;
-        }
-
-        if ($this->spell?->level === 0) {
-            return true;
-        }
-
-        return $this->prepared;
+        return $this->free_casts_current !== null
+            && (int) $this->free_casts_current > 0;
     }
 }

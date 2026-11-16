@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Enums\RestType;
 use App\Models\Character;
 use App\Services\Characters\CharacterRestService;
+use App\Services\Spells\SpellRestRecoveryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,7 +18,8 @@ class CharacterRestController extends Controller
     public function store(
         Request $request,
         Character $character,
-        CharacterRestService $restService
+        CharacterRestService $restService,
+        SpellRestRecoveryService $spellRecovery
     ): JsonResponse {
         /*
         |--------------------------------------------------------------------------
@@ -53,11 +55,13 @@ class CharacterRestController extends Controller
             [
                 $character,
                 $featureTrackers,
+                $spellResources,
             ] = DB::transaction(
                 function () use (
                     $character,
                     $restType,
-                    $restService
+                    $restService,
+                    $spellRecovery
                 ): array {
                     $character = $restService->rest(
                         $character,
@@ -74,11 +78,18 @@ class CharacterRestController extends Controller
                         $restType
                     );
 
+                    $spellResources =
+                        $spellRecovery->recover(
+                            $character,
+                            $restType
+                        );
+
                     $character->load('combat');
 
                     return [
                         $character,
                         $featureTrackers,
+                        $spellResources,
                     ];
                 }
             );
@@ -157,6 +168,9 @@ class CharacterRestController extends Controller
                 ],
 
                 'feature_trackers' => $featureTrackers,
+
+                'spell_resources' =>
+                    $spellResources,
             ]);
 
         } catch (Throwable $exception) {

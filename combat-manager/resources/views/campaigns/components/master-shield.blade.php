@@ -189,6 +189,17 @@
                 )
             ),
 
+        experienceUpdateUrlTemplate:
+            @js(
+                route(
+                    'campaigns.master.experience.character.update',
+                    [
+                        'campaign' => $campaign,
+                        'character' => '__CHARACTER__',
+                    ]
+                )
+            ),
+
         removeMemberUrlTemplate:
             @js(
                 route(
@@ -636,6 +647,21 @@
             @js(
                 $hiddenPartyUserIds
             ),
+
+        experienceEnabled:
+            @js((bool) ($campaign->experience_enabled ?? false)),
+
+        experienceAmount:
+            0,
+
+        experienceSaving:
+            false,
+
+        experienceNotice:
+            null,
+
+        experienceError:
+            null,
 
         /*
         |--------------------------------------------------------------------------
@@ -1439,6 +1465,30 @@
                     this.syncHiddenMemberUserIds(
                         data.players
                     );
+                }
+
+                if (
+                    typeof data?.experience_enabled
+                    === 'boolean'
+                ) {
+                    this.experienceEnabled =
+                        data.experience_enabled;
+                }
+
+                if (
+                    this.characterModalOpen
+                    && this.characterTarget?.user_id
+                ) {
+                    const refreshedTarget =
+                        this.players.find(
+                            player =>
+                                Number(player?.user_id)
+                                === Number(this.characterTarget?.user_id)
+                        );
+
+                    if (refreshedTarget) {
+                        this.characterTarget = refreshedTarget;
+                    }
                 }
 
                 this.liveError =
@@ -10942,20 +10992,184 @@
                 return;
             }
 
-            this.drawer =
-                null;
+            this.drawer = null;
+            this.characterTarget = player;
+            this.characterTab = 'summary';
+            this.inventoryItemOpenId = null;
 
-            this.characterTarget =
-                player;
+            this.experienceAmount = 0;
+            this.experienceNotice = null;
+            this.experienceError = null;
 
-            this.characterTab =
-                'summary';
+            this.characterModalOpen = true;
+        },
 
-            this.inventoryItemOpenId =
-                null;
+        experienceUrl(characterId) {
+            return String(
+                this.experienceUpdateUrlTemplate
+                ?? ''
+            ).replace(
+                '__CHARACTER__',
+                encodeURIComponent(String(characterId))
+            );
+        },
 
-            this.characterModalOpen =
-                true;
+        formatExperience(value) {
+            return Number(
+                value
+                ?? 0
+            ).toLocaleString(
+                'pt-BR'
+            );
+        },
+
+        experienceProgressWidth(character) {
+            const value = Number(
+                character?.experience_percent
+                ?? 0
+            );
+
+            return Math.max(
+                0,
+                Math.min(
+                    100,
+                    Number.isFinite(value)
+                        ? value
+                        : 0
+                )
+            );
+        },
+
+        async changeExperience(mode) {
+            const character =
+                this.characterTarget?.character;
+
+            if (
+                !this.experienceEnabled
+                || !character?.id
+                || this.experienceSaving
+            ) {
+                return;
+            }
+
+            const amount = Math.max(
+                0,
+                parseInt(this.experienceAmount) || 0
+            );
+
+            if (
+                ['add', 'subtract'].includes(mode)
+                && amount < 1
+            ) {
+                this.experienceError =
+                    'Informe uma quantidade maior que zero.';
+                return;
+            }
+
+            this.experienceSaving = true;
+            this.experienceNotice = null;
+            this.experienceError = null;
+
+            try {
+                const response = await fetch(
+                    this.experienceUrl(character.id),
+                    {
+                        method: 'PATCH',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': this.csrf,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify({
+                            mode,
+                            amount,
+                        }),
+                    }
+                );
+
+                const data = await response
+                    .json()
+                    .catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(
+                        data?.message
+                        ?? 'Não foi possível alterar a experiência.'
+                    );
+                }
+
+                const next = Math.max(
+                    0,
+                    parseInt(data?.experience_points) || 0
+                );
+
+                const experiencePayload = {
+                    experience_points: next,
+
+                    experience_current_threshold:
+                        Number(
+                            data?.experience_current_threshold
+                            ?? character?.experience_current_threshold
+                            ?? 0
+                        ),
+
+                    experience_next_threshold:
+                        data?.experience_next_threshold
+                        ?? null,
+
+                    experience_remaining:
+                        Number(
+                            data?.experience_remaining
+                            ?? 0
+                        ),
+
+                    experience_percent:
+                        Number(
+                            data?.experience_percent
+                            ?? 0
+                        ),
+
+                    experience_max_level:
+                        !!data?.experience_max_level,
+                };
+
+                Object.assign(
+                    character,
+                    experiencePayload
+                );
+
+                const player = this.players.find(
+                    entry =>
+                        Number(entry?.character?.id)
+                        === Number(character.id)
+                );
+
+                if (player?.character) {
+                    Object.assign(
+                        player.character,
+                        experiencePayload
+                    );
+                }
+
+                this.experienceAmount = 0;
+                this.experienceNotice =
+                    data?.message
+                    ?? `${next} XP.`;
+
+            } catch (error) {
+                console.error(
+                    'Erro ao alterar experiência:',
+                    error
+                );
+
+                this.experienceError =
+                    error?.message
+                    ?? 'Não foi possível alterar a experiência.';
+
+            } finally {
+                this.experienceSaving = false;
+            }
         },
 
         closeCharacterModal() {
@@ -11479,6 +11693,73 @@
                 Combates
             </span>
         </button>
+
+        <a
+            href="{{ route('master.campaign.settings.index', $campaign) }}"
+            class="
+                group
+                relative
+                flex
+                h-11
+                w-11
+                items-center
+                justify-center
+                rounded-xl
+                border
+                border-[#cdbb9f]/65
+                bg-[#fffdf8]/95
+                text-[#7d604d]
+                shadow-[0_5px_16px_rgba(83,21,15,.07)]
+                backdrop-blur
+                transition
+                hover:-translate-x-0.5
+                hover:border-[#6b1d14]/35
+                hover:bg-[#eadbc8]
+                hover:text-[#53150f]
+            "
+            aria-label="Abrir Configurações"
+        >
+            <svg
+                class="h-[20px] w-[20px]"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+            >
+                <circle cx="12" cy="12" r="3.25" />
+                <path d="M19.2 13.2a7.8 7.8 0 0 0 .05-2.35l2-1.55-2-3.45-2.45.95a7.7 7.7 0 0 0-2.05-1.18L14.4 3h-4.05L10 5.62A7.7 7.7 0 0 0 7.95 6.8L5.5 5.85l-2 3.45 2 1.55a7.8 7.8 0 0 0 .05 2.35l-2.05 1.55 2 3.45 2.45-.95A7.7 7.7 0 0 0 10 18.48l.35 2.52h4.05l.35-2.52a7.7 7.7 0 0 0 2.05-1.18l2.45.95 2-3.45z" />
+            </svg>
+
+            <span
+                class="
+                    pointer-events-none
+                    absolute
+                    right-[calc(100%+8px)]
+                    top-1/2
+                    hidden
+                    -translate-y-1/2
+                    whitespace-nowrap
+                    rounded-lg
+                    border
+                    border-[#cdbb9f]/65
+                    bg-[#fffdf8]
+                    px-2.5
+                    py-1.5
+                    text-[9px]
+                    font-black
+                    uppercase
+                    tracking-[0.08em]
+                    text-[#6b1d14]
+                    shadow-lg
+                    group-hover:block
+                "
+            >
+                Configurações
+            </span>
+        </a>
     </nav>
 
 
@@ -11777,44 +12058,6 @@
                                 ></span>
 
 
-                                <span
-                                    x-show="
-                                        player
-                                            .character
-                                            .has_died
-                                    "
-                                    x-cloak
-                                    class="
-                                        absolute
-                                        left-1
-                                        top-7
-                                        rounded-md
-                                        border
-                                        border-white/35
-                                        bg-black/70
-                                        px-1.5
-                                        py-1
-                                        text-[5px]
-                                        font-black
-                                        uppercase
-                                        tracking-wider
-                                        text-white
-                                    "
-                                    :title="
-                                        `${player.character.death_count ?? 1} morte(s) registrada(s)`
-                                    "
-                                >
-                                    †
-                                    <span
-                                        x-text="
-                                            player
-                                                .character
-                                                .death_count
-                                            ?? 1
-                                        "
-                                    ></span>
-                                </span>
-
 
                                 <div
                                     class="
@@ -11842,6 +12085,44 @@
                                                 .name
                                         "
                                     ></p>
+
+                                    <div
+                                        x-show="
+                                            experienceEnabled
+                                            &&
+                                            player?.character?.experience_enabled
+                                        "
+                                        x-cloak
+                                        class="
+                                            mb-1
+                                            flex
+                                            items-center
+                                            justify-between
+                                            gap-2
+                                            text-[5.5px]
+                                            font-black
+                                            uppercase
+                                            tracking-[0.06em]
+                                            text-[#f4d88b]
+                                            drop-shadow
+                                        "
+                                    >
+                                        <span>
+                                            Nv
+                                            <span
+                                                x-text="player.character.level"
+                                            ></span>
+                                        </span>
+
+                                        <span
+                                            x-text="
+                                                formatExperience(
+                                                    player.character.experience_points
+                                                )
+                                                + ' XP'
+                                            "
+                                        ></span>
+                                    </div>
 
                                     <div
                                         class="
@@ -13459,95 +13740,183 @@
                         </div>
 
 
-                        <div
+                        {{-- EXPERIÊNCIA — RESUMO SOMENTE LEITURA --}}
+                        <section
                             x-show="
-                                characterTarget
-                                    .character
-                                    .has_died
+                                experienceEnabled
+                                &&
+                                characterTarget?.character
                             "
                             x-cloak
                             class="
                                 mt-2.5
-                                flex
-                                items-center
-                                justify-between
-                                gap-3
                                 rounded-xl
                                 border
-                                border-[#53150f]/30
-                                bg-[#efe1dc]
+                                border-[#cdbb9f]/55
+                                bg-[#fbf8f1]
                                 px-3
                                 py-2.5
                             "
                         >
-                            <div class="min-w-0">
-                                <p
-                                    class="
-                                        text-[8px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.10em]
-                                        text-[#6b1d14]
-                                    "
-                                >
-                                    Registro de morte
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-0.5
-                                        text-[10px]
-                                        font-bold
-                                        text-[#53150f]
-                                    "
-                                >
-                                    <span
-                                        x-text="
-                                            characterTarget
-                                                .character
-                                                .death_count
-                                            ?? 1
-                                        "
-                                    ></span>
-                                    <span> ocorrência(s) registrada(s)</span>
-                                </p>
-                            </div>
-
                             <div
                                 class="
-                                    shrink-0
-                                    text-right
+                                    flex
+                                    items-center
+                                    gap-3
                                 "
                             >
-                                <p
+                                <div
                                     class="
-                                        text-[7px]
+                                        flex
+                                        h-9
+                                        w-9
+                                        shrink-0
+                                        items-center
+                                        justify-center
+                                        rounded-full
+                                        border
+                                        border-[#c49a4c]/55
+                                        bg-[#f4ead5]
+                                        font-serif
+                                        text-[10px]
                                         font-black
-                                        uppercase
-                                        tracking-wider
-                                        text-[#8c6239]
+                                        text-[#7c561b]
                                     "
                                 >
-                                    Última morte
-                                </p>
+                                    XP
+                                </div>
 
-                                <p
-                                    class="
-                                        mt-0.5
-                                        text-[9px]
-                                        font-black
-                                        text-[#53150f]
-                                    "
-                                    x-text="
-                                        formatDeathDate(
-                                            characterTarget
-                                                .character
-                                                .last_death_at
-                                        )
-                                    "
-                                ></p>
+                                <div class="min-w-0 flex-1">
+                                    <div
+                                        class="
+                                            flex
+                                            items-end
+                                            justify-between
+                                            gap-3
+                                        "
+                                    >
+                                        <div class="min-w-0">
+                                            <p
+                                                class="
+                                                    text-[6.5px]
+                                                    font-black
+                                                    uppercase
+                                                    tracking-[0.11em]
+                                                    text-[#8c6239]
+                                                "
+                                            >
+                                                Experiência
+                                            </p>
+
+                                            <strong
+                                                class="
+                                                    mt-0.5
+                                                    block
+                                                    truncate
+                                                    font-serif
+                                                    text-[16px]
+                                                    leading-none
+                                                    text-[#53150f]
+                                                "
+                                            >
+                                                <span
+                                                    x-text="
+                                                        formatExperience(
+                                                            characterTarget
+                                                                ?.character
+                                                                ?.experience_points
+                                                        )
+                                                    "
+                                                ></span>
+
+                                                <small
+                                                    class="
+                                                        ml-0.5
+                                                        font-sans
+                                                        text-[7px]
+                                                        font-black
+                                                        uppercase
+                                                        tracking-wide
+                                                        text-[#8c6239]
+                                                    "
+                                                >
+                                                    XP
+                                                </small>
+                                            </strong>
+                                        </div>
+
+                                        <p
+                                            x-show="
+                                                !characterTarget
+                                                    ?.character
+                                                    ?.experience_max_level
+                                            "
+                                            class="
+                                                shrink-0
+                                                text-right
+                                                text-[6.5px]
+                                                font-bold
+                                                text-[#76553f]
+                                            "
+                                        >
+                                            Falta
+                                            <strong
+                                                class="text-[#6b1d14]"
+                                                x-text="
+                                                    formatExperience(
+                                                        characterTarget
+                                                            ?.character
+                                                            ?.experience_remaining
+                                                    )
+                                                "
+                                            ></strong>
+                                            XP
+                                        </p>
+
+                                        <p
+                                            x-show="
+                                                characterTarget
+                                                    ?.character
+                                                    ?.experience_max_level
+                                            "
+                                            class="
+                                                shrink-0
+                                                text-[6.5px]
+                                                font-black
+                                                uppercase
+                                                tracking-[0.08em]
+                                                text-[#8c6239]
+                                            "
+                                        >
+                                            Nível máximo
+                                        </p>
+                                    </div>
+
+                                    <div
+                                        class="
+                                            mt-2
+                                            h-1
+                                            overflow-hidden
+                                            rounded-full
+                                            bg-[#eadfcf]
+                                        "
+                                    >
+                                        <div
+                                            class="
+                                                h-full
+                                                rounded-full
+                                                bg-[linear-gradient(90deg,#8d641f_0%,#bd9142_55%,#ddbd72_100%)]
+                                                transition-all
+                                                duration-300
+                                            "
+                                            :style="
+                                                `width: ${experienceProgressWidth(characterTarget?.character)}%`
+                                            "
+                                        ></div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </section>
 
 
                         <div

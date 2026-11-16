@@ -9,148 +9,79 @@ use Symfony\Component\HttpFoundation\Response;
 class EnsureDashboardMode
 {
     /**
-     * Garante que o usuário tenha escolhido um modo antes de entrar
-     * em uma área do sistema.
-     *
-     * Exemplos:
-     *
-     * EnsureDashboardMode:player
-     * EnsureDashboardMode:master
-     * EnsureDashboardMode:master,player
+     * Seleção de área do Spellbound (não substitui autenticação, policies
+     * nem autorizações de recursos). O modo é lido da sessão uma vez por
+     * requisição, sem polling ou consultas extras ao banco de dados.
      */
     public function handle(
         Request $request,
         Closure $next,
         string ...$allowedModes
     ): Response {
-        $allowedModes = collect($allowedModes)
-            ->map(
-                fn (string $mode) =>
-                    strtolower(trim($mode))
-            )
-            ->filter(
-                fn (string $mode) =>
-                    in_array(
-                        $mode,
-                        ['master', 'player'],
-                        true
-                    )
-            )
-            ->values()
-            ->all();
+        $allowedModes = array_values(array_unique(array_filter(
+            array_map(static fn (string $mode): string => strtolower(trim($mode)), $allowedModes),
+            static fn (string $mode): bool => in_array($mode, ['master', 'player'], true)
+        )));
 
-        /*
-        | Sem parâmetros, considera os dois modos válidos.
-        */
-        if (empty($allowedModes)) {
-            $allowedModes = [
-                'master',
-                'player',
-            ];
+        if ($allowedModes === []) {
+            $allowedModes = ['master', 'player'];
         }
 
-        $currentMode = $request
-            ->session()
-            ->get('dashboard_mode');
+        $currentMode = $request->session()->get('dashboard_mode');
+        $hasValidMode = in_array($currentMode, ['master', 'player'], true);
+
+        if ($hasValidMode && in_array($currentMode, $allowedModes, true)) {
+            return $next($request);
+        }
+
+        $requiredLabel = count($allowedModes) === 1
+            ? ($allowedModes[0] === 'master' ? 'Mestre' : 'Player')
+            : 'Mestre ou Player';
+
+        $message = $hasValidMode
+            ? "Esta área exige o modo {$requiredLabel}. Escolha o modo para continuar."
+            : 'Escolha como deseja entrar no Spellbound para continuar.';
 
         /*
-        | O usuário ainda não escolheu nenhum modo.
-        |
-        | Guardamos a URL interna para que, se ele escolher o modo
-        | compatível, volte exatamente ao local que tentou acessar.
-        */
-        if (
-            ! in_array(
-                $currentMode,
-                ['master', 'player'],
-                true
-            )
-        ) {
-            $this->rememberIntendedArea(
-                $request,
-                $allowedModes
-            );
-
-            return redirect()
-                ->route('dashboard')
-                ->with(
-                    'mode_required',
-                    'Escolha como deseja entrar no SpellBound para continuar.'
-                );
+         * Requisições de atualização em segundo plano não são navegação.
+         * Não as redirecionamos para uma página HTML nem alteramos o modo
+         * selecionado: a aplicação pode tratar o erro 403 normalmente.
+         */
+        // Fetch comum pode usar Accept: */* em vez de application/json.
+        // Sec-Fetch-Dest: empty identifica essa chamada sem confundi-la
+        // com uma navegação normal do navegador (dest=document).
+        if ($request->expectsJson() || $request->header('Sec-Fetch-Dest') === 'empty') {
+            return response()->json([
+                'message' => $message,
+                'mode_required' => true,
+                'allowed_modes' => $allowedModes,
+            ], 403);
         }
 
         /*
-        | O usuário está em um modo diferente daquele exigido pela rota.
-        |
-        | Exemplo:
-        | está como Player e tenta abrir /combats.
-        |
-        | Nesse caso apagamos o modo atual e obrigamos uma nova escolha.
-        */
-        if (
-            ! in_array(
-                $currentMode,
-                $allowedModes,
-                true
-            )
-        ) {
-            $this->rememberIntendedArea(
-                $request,
-                $allowedModes
-            );
+         * Preserve o modo atual. O usuário decide se deseja alterná-lo.
+         * A implementação anterior apagava dashboard_mode ao acessar uma
+         * rota incompatível, podendo interromper outras abas e requests.
+         */
+        $this->rememberIntendedArea($request, $allowedModes);
 
-            $request
-                ->session()
-                ->forget('dashboard_mode');
-
-            $requiredLabel =
-                count($allowedModes) === 1
-                    ? $this->modeLabel(
-                        $allowedModes[0]
-                    )
-                    : 'Mestre ou Player';
-
-            return redirect()
-                ->route('dashboard')
-                ->with(
-                    'mode_required',
-                    "Esta área exige o modo {$requiredLabel}. Escolha o modo para continuar."
-                );
-        }
-
-        return $next($request);
+        return redirect()->route('dashboard')->with('mode_required', $message);
     }
 
-    private function rememberIntendedArea(
-        Request $request,
-        array $allowedModes
-    ): void {
+    private function rememberIntendedArea(Request $request, array $allowedModes): void
+    {
         /*
-        | getRequestUri() guarda somente path + query da própria aplicação,
-        | evitando usar uma URL externa como destino.
-        */
-        $request
-            ->session()
-            ->put(
-                'dashboard_intended_url',
-                $request->getRequestUri()
-            );
+         * Apenas páginas acessadas por GET/HEAD podem virar destino após
+         * a seleção. Redirecionar um GET para o endpoint de um POST/PATCH
+         * armazenado na sessão resulta em 405 e comportamento confuso.
+         */
+        if (! $request->isMethod('GET') && ! $request->isMethod('HEAD')) {
+            $request->session()->forget(['dashboard_intended_url', 'dashboard_intended_modes']);
 
-        $request
-            ->session()
-            ->put(
-                'dashboard_intended_modes',
-                $allowedModes
-            );
-    }
+            return;
+        }
 
-    private function modeLabel(
-        string $mode
-    ): string {
-        return match ($mode) {
-            'master' => 'Mestre',
-            'player' => 'Player',
-            default => ucfirst($mode),
-        };
+        $request->session()->put('dashboard_intended_url', $request->getRequestUri());
+        $request->session()->put('dashboard_intended_modes', $allowedModes);
     }
 }

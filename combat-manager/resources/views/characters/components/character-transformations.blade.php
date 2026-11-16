@@ -317,6 +317,26 @@
         };
 
 
+    /* Imagem padrão: retrato próprio do NPC, incluindo fontes importadas. */
+    $npcPortraitUrl = function ($npc) use ($publicImageUrl): ?string {
+        if (!$npc) return null;
+        $data = $npc->json_data ?? [];
+        if (is_string($data)) $data = json_decode($data, true) ?: [];
+        if (!is_array($data)) $data = [];
+        $paths = [
+            $npc->image_path ?? null,
+            data_get($data, 'image_path'),
+            data_get($data, 'image'),
+            data_get($data, 'portrait'),
+        ];
+        foreach ($paths as $path) {
+            if (!is_string($path) || trim($path) === '') continue;
+            $url = $publicImageUrl($path);
+            if ($url) return $url;
+        }
+        return null;
+    };
+
     /*
     |--------------------------------------------------------------------------
     | FICHA DE MONSTRO ATIVA — NPC BUILDER
@@ -381,10 +401,12 @@
      * A foto do Character principal NÃO é usada como fallback aqui:
      * ela já existe no cabeçalho da ficha e repeti-la seria redundante.
      */
-    $imageUrl =
-        $publicImageUrl(
-            $activeTransformation?->image_path
-        );
+    $imageUrl = $activeTransformation
+        ? ($publicImageUrl($activeTransformation->image_path)
+            ?: ($activeTransformation->isMonsterSheet()
+                ? $npcPortraitUrl($activeTransformation->sourceNpc)
+                : null))
+        : null;
 
     $typeLabels = [
         'character_sheet' =>
@@ -433,8 +455,11 @@
                     $durationLabels,
                     $character,
                     $isNpcBuilder,
-                    $publicImageUrl
+                    $publicImageUrl,
+                    $npcPortraitUrl
                 ) {
+                    $durationFormula = (string) data_get($transformation->settings, 'duration_formula', '');
+                    $durationMode = $durationFormula !== '' ? 'dice' : 'fixed';
                     $durationType =
                         (string) (
                             $transformation->duration_type
@@ -449,12 +474,13 @@
                             )
                             : null;
 
-                    $durationLabel =
-                        $durationLabels[$durationType]
-                        ?? null;
+                    $durationLabel = $durationFormula !== ''
+                        ? $durationFormula . ' rodadas'
+                        : ($durationLabels[$durationType] ?? null);
 
                     if (
-                        $durationType !== 'indefinite'
+                        $durationFormula === ''
+                        && $durationType !== 'indefinite'
                         && $durationValue !== null
                         && $durationLabel
                     ) {
@@ -490,10 +516,10 @@
                      * Sem foto própria, a interface usa apenas o emblema
                      * neutro do módulo — nunca a foto do personagem base.
                      */
-                    $photo =
-                        $publicImageUrl(
-                            $transformation->image_path
-                        );
+                    $photo = $publicImageUrl($transformation->image_path)
+                        ?: ($transformation->isMonsterSheet()
+                            ? $npcPortraitUrl($transformation->sourceNpc)
+                            : null);
 
                     $monsterSupported =
                         $transformation->type !== 'monster_sheet'
@@ -554,6 +580,9 @@
                                 ?? 'none'
                             ),
 
+                        'linked_spell_id' =>
+                            (int) data_get($transformation->settings, 'linked_spell_id', 0) ?: null,
+
                         'casting_label' =>
                             $castingLabels[
                                 $transformation->casting_time
@@ -567,8 +596,9 @@
                                 ?? false
                             ),
 
-                        'duration_type' =>
-                            $durationType,
+                        'duration_type' => $durationFormula !== '' ? 'dice' : $durationType,
+                        'duration_mode' => $durationMode,
+                        'duration_formula' => $durationFormula,
 
                         'duration_value' =>
                             $durationValue,
@@ -629,25 +659,57 @@
     $availableNpcs =
         collect();
 
-    try {
-        $availableNpcs =
-            collect(
-                app(
-                    \App\Services\NpcService::class
-                )->getAllByUser(
-                    (int) $character->user_id
-                )
-            );
-    } catch (\Throwable $exception) {
-        $availableNpcs =
-            collect();
+    if ($transformationsEnabled) {
+        try {
+            $availableNpcs =
+                collect(
+                    app(\App\Services\NpcService::class)
+                        ->getAllByUser((int) $character->user_id)
+                );
+        } catch (\Throwable $exception) {
+            report($exception);
+            $availableNpcs = collect();
+        }
     }
+
+    /* Magias de concentração que o personagem já possui no Grimório. */
+    $hasSpellMediaRoute = \Illuminate\Support\Facades\Route::has('characters.spellbook.spells.media.show');
+    $linkedSpellOptions = \App\Models\CharacterSpell::query()
+        ->where('character_id', $character->id)
+        ->with('spell')
+        ->get()
+        ->filter(fn ($entry) => $entry->spell && (bool) $entry->spell->concentration)
+        ->map(function ($entry) use ($character, $hasSpellMediaRoute) {
+            $mediaPath = trim((string) ($entry->personal_media_path ?? ''));
+            $mediaUrl = null;
+            if ($mediaPath !== '') {
+                // Quando presente, a rota autentica o dono da magia.
+                $mediaUrl = $hasSpellMediaRoute
+                    ? route('characters.spellbook.spells.media.show', [
+                        'character' => $character->id,
+                        'spell' => $entry->spell_id,
+                    ], false)
+                    : '/storage/' . ltrim($mediaPath, '/');
+            }
+            return [
+                'id' => (int) $entry->spell->id,
+                'name' => (string) $entry->spell->name,
+                'level' => (int) $entry->spell->level,
+                'image_url' => $mediaUrl,
+            ];
+        })
+        ->unique('id')
+        ->sortBy([['level','asc'],['name','asc']])
+        ->values()
+        ->all();
+    $encodedLinkedSpells = e(json_encode($linkedSpellOptions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 
     $npcPayload =
         $availableNpcs
             ->map(function ($npc) use (
                 $isNpcBuilder,
-                $publicImageUrl
+                $publicImageUrl,
+                $npcPortraitUrl
             ) {
                 $supported =
                     $isNpcBuilder(
@@ -669,9 +731,7 @@
                         ?? null,
 
                     'image_url' =>
-                        $publicImageUrl(
-                            $npc->image_path
-                        ),
+                        $npcPortraitUrl($npc),
 
                     'supported' =>
                         $supported,
@@ -737,6 +797,9 @@
 
 
 @if ($transformationsEnabled)
+
+    {{-- CSS global dos dados: carregado fora dos templates x-if do Alpine. --}}
+    @include('components.ui.poly-die-styles')
 
     @once
         <style>
@@ -2477,9 +2540,620 @@
                 background: color-mix(in srgb, var(--theme-state-damage) 12%, var(--theme-paper-strong)) !important;
             }
 
+
+            /* V54: help compact and universal dice UI. */
+            .character-sheet-theme[data-theme] .ct-v54-type-row {padding:0;}
+            .character-sheet-theme[data-theme] .ct-v54-type-option {position:relative;min-width:0;}
+            .character-sheet-theme[data-theme] .ct-v54-type-option > button:first-child {width:100%;padding-right:36px;}
+            .character-sheet-theme[data-theme] .ct-v51-switch .ct-v54-help {position:absolute; right:10px;top:50%;transform:translateY(-50%);display:grid;place-items:center;
+                width:20px;height:20px;min-height:20px;padding:0;border-radius:50%;border:1px solid var(--theme-border-strong);background:var(--theme-surface-raised);
+                color:var(--theme-text-secondary);font-size:11px;font-weight:800;z-index:5;}
+            .character-sheet-theme[data-theme] .ct-v54-help:hover,
+            .character-sheet-theme[data-theme] .ct-v54-help:focus-visible {color:var(--theme-text-strong);border-color:var(--theme-accent);background:var(--theme-accent-softer);}
+            .character-sheet-theme[data-theme] .ct-v54-help-copy {margin:9px 0 0;padding:11px 13px;border:1px solid var(--theme-border);
+                border-radius:10px;background:var(--theme-surface-card-alt);color:var(--theme-text-secondary);font-size:11px;line-height:1.55;}
+            .character-sheet-theme[data-theme] .ct-v54-help-copy strong {display:block;color:var(--theme-text-strong);margin-bottom:3px;}
+            .character-sheet-theme[data-theme] .ct-v54-duration {display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin-top:12px;}
+            .character-sheet-theme[data-theme] .ct-v54-duration-hint {flex-basis:100%;font-size:10px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme].ct-v54-overlay {z-index:360!important;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-modal {z-index:2;position:relative;display:flex;flex-direction:column;width:min(94vw,500px);
+                max-height:min(90dvh,690px);overflow:hidden;border:1px solid var(--theme-border);border-radius:16px;
+                background:var(--theme-modal-surface);color:var(--theme-text-primary);box-shadow:var(--theme-modal-shadow);}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head {display:flex;justify-content:space-between;align-items:start;gap:12px;padding:18px 20px;
+                border-bottom:1px solid var(--theme-border);background:var(--theme-modal-header-background);}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head small {text-transform:uppercase;color:var(--theme-label);font-size:9px;letter-spacing:.14em;font-weight:800;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head h2 {font-family:Georgia,serif;color:var(--theme-text-strong);font-size:23px;font-weight:900;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head p {font-size:11px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head button {min-width:30px;height:30px;border:1px solid var(--theme-border);border-radius:9px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v54-roll-body {padding:18px 20px;min-height:0;overflow:auto;}
+            .character-sheet-theme[data-theme] .ct-v54-expression {text-align:center;font-size:12px;color:var(--theme-text-secondary);font-weight:750;}
+            .character-sheet-theme[data-theme] .ct-v54-dice-row {margin:15px 0;display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap;}
+            .character-sheet-theme[data-theme] .ct-v54-die-cell {display:flex;}
+            .character-sheet-theme[data-theme] .ct-v54-modifier {font-family:Georgia,serif;font-size:22px;font-weight:900;color:var(--theme-accent-strong);}
+            .character-sheet-theme[data-theme] .ct-v54-result {display:flex;justify-content:center;align-items:baseline;gap:7px;}
+            .character-sheet-theme[data-theme] .ct-v54-result small {font-size:10px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v54-result strong {font-family:Georgia,serif;font-size:32px;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v54-result span {font-size:11px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v54-manual {display:grid;gap:7px;font-size:11px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v54-roll-error {font-size:11px;color:var(--theme-state-damage,#a33);margin-top:12px;}
+            .character-sheet-theme[data-theme] .ct-v54-description {font-size:10px;color:var(--theme-text-secondary);margin-top:16px;text-align:center;line-height:1.5;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-actions {display:flex;flex-wrap:wrap;justify-content:end;gap:8px;padding:13px 18px;border-top:1px solid var(--theme-border);}
+            .character-sheet-theme[data-theme] .ct-v54-roll-actions button:disabled {opacity:.5;cursor:wait;}
+            @media(max-width:520px) {.character-sheet-theme[data-theme] .ct-v54-roll-actions button {flex:1 1 42%;}}
+
+            /* V55 — acabamento inspirado nas referências, com temas sem HEX fixo. */
+            .character-sheet-theme[data-theme] .ct-v54-type-option {isolation:isolate;}
+            .character-sheet-theme[data-theme] .ct-v54-type-option:has(.ct-v55-help-wrap:hover),
+            .character-sheet-theme[data-theme] .ct-v54-type-option:has(.ct-v55-help-wrap:focus-within){z-index:20;}
+            .character-sheet-theme[data-theme] .ct-v55-help-wrap {position:absolute;right:12px;top:50%;transform:translateY(-50%);z-index:25;}
+            .character-sheet-theme[data-theme] .ct-v51-switch .ct-v55-help {
+                display:grid;place-items:center;min-height:0;width:17px;height:17px;padding:0;
+                border:1px solid var(--theme-border-strong);border-radius:50%;
+                background:var(--theme-surface-card);font:700 10px Georgia,serif;color:var(--theme-text-secondary);
+                opacity:.7;transition:opacity .16s,border-color .16s,color .16s;
+            }
+            .character-sheet-theme[data-theme] .ct-v55-help:hover,.character-sheet-theme[data-theme] .ct-v55-help:focus-visible {
+                opacity:1;border-color:var(--theme-accent);color:var(--theme-accent-strong);outline-offset:2px;
+            }
+            .character-sheet-theme[data-theme] .ct-v55-help-popup {
+                position:absolute;top:calc(100% + 13px);right:-9px;width:min(285px,75vw);
+                padding:12px 13px;border:1px solid var(--theme-border-strong);border-radius:11px;
+                background:var(--theme-modal-surface,var(--theme-surface-raised));box-shadow:var(--theme-modal-shadow,0 12px 30px #0002);
+                color:var(--theme-text-secondary);font-size:11px;line-height:1.5;letter-spacing:0;text-transform:none;
+                opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-5px);
+                transition:opacity .15s,transform .15s,visibility .15s;
+            }
+            .character-sheet-theme[data-theme] .ct-v55-help-wrap:hover .ct-v55-help-popup,
+            .character-sheet-theme[data-theme] .ct-v55-help-wrap:focus-within .ct-v55-help-popup {
+                opacity:1;visibility:visible;transform:translateY(0);
+            }
+            .character-sheet-theme[data-theme] .ct-v55-help-popup strong {display:block;color:var(--theme-text-strong);font:900 14px Georgia,serif;margin-bottom:4px;}
+            .character-sheet-theme[data-theme] .ct-v55-linked-art {overflow:hidden;border:1px solid var(--theme-border);width:43px;height:43px;flex:0 0 43px;font:900 19px Georgia,serif;}
+            .character-sheet-theme[data-theme] .ct-v55-linked-art img,
+            .character-sheet-theme[data-theme] .ct-v55-picker-art img {display:block;width:100%;height:100%;object-fit:cover;}
+            .character-sheet-theme[data-theme] .ct-v55-picker-art {overflow:hidden;width:44px;height:44px;flex:0 0 44px;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-modal {width:min(92vw,530px);border-radius:18px;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head {padding:17px 22px 16px;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-head h2 {font-size:24px;line-height:1.2;margin:3px 0;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-body {padding:20px 18px 17px;text-align:center;}
+            .character-sheet-theme[data-theme] .ct-v54-expression {font:900 22px Georgia,'Times New Roman',serif;color:var(--theme-text-strong);letter-spacing:.01em;}
+            .character-sheet-theme[data-theme] .ct-v54-dice-row {margin:13px 0 18px;gap:12px;min-height:83px;}
+            .character-sheet-theme[data-theme] .ct-v54-die-cell {padding:1px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.08));}
+            .character-sheet-theme[data-theme] .ct-v54-result {margin-top:4px;align-items:baseline;gap:9px;}
+            .character-sheet-theme[data-theme] .ct-v54-result small {text-transform:uppercase;letter-spacing:.11em;font-size:9px;font-weight:800;}
+            .character-sheet-theme[data-theme] .ct-v54-result strong {font-size:47px;line-height:1.15;}
+            .character-sheet-theme[data-theme] .ct-v54-result span {font-size:13px;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-actions {justify-content:center;gap:8px;padding:13px 18px;}
+            .character-sheet-theme[data-theme] .ct-v54-roll-actions .character-transformations-v14-create-button {min-height:38px;}
+            .character-sheet-theme[data-theme] .ct-v54-manual {max-width:240px;text-align:left;margin:16px auto;}
+            @media(max-width:520px) {
+                .character-sheet-theme[data-theme] .ct-v54-dice-row {gap:6px;}
+                .character-sheet-theme[data-theme] .ct-v55-help-popup {right:-5px;max-width:78vw;}
+            }
         </style>
     @endonce
 
+
+
+    {{-- V15: Cards compactos e contador de iniciativa. --}}
+    <style>
+      .character-transformations-v14-list { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+      .character-transformations-v14-option {
+        grid-template-columns: 76px minmax(0,1fr) auto;
+        align-items: center; gap: 12px; padding: 11px;
+        background: var(--theme-paper-strong,#fffdf8); border: 1px solid var(--theme-border,#d7c1a8);
+        border-radius: 14px; box-shadow: var(--theme-module-shadow,0 2px 6px #452a1808);
+      }
+      .character-transformations-v14-option:hover { background: var(--theme-hover,#f7efe4); }
+      .character-transformations-v14-option-image { width: 76px; height: 84px; flex-basis: 76px; }
+      .character-transformations-v14-option:last-child { border-bottom: 1px solid var(--theme-border,#d7c1a8); }
+      .character-transformations-v14-option-actions.ct-form-actions { max-width:none; flex-wrap:nowrap; gap:7px; }
+      .ct-form-primary { min-height:36px; padding:0 15px; font-size:9px; }
+      .ct-form-current { color:var(--theme-state-heal,#276749);font-size:9px;font-weight:900;text-transform:uppercase; }
+      .ct-form-more { position:relative; display:flex; flex-direction:column; align-items:flex-end; }
+      .ct-form-more-toggle { width:34px;height:36px;border:1px solid var(--theme-border,#cdb89b);
+        border-radius:9px;background:var(--theme-paper-strong,#fffdf8);color:var(--theme-label,#76543c);
+        font-weight:900;font-size:20px;line-height:1; }
+      .ct-form-more-options { position:static;margin-top:5px;width:185px;max-width:60vw;z-index:150;
+        background:var(--theme-paper-strong,#fffdf8);border:1px solid var(--theme-border,#cdb89b);
+        border-radius:10px;box-shadow:0 12px 35px #29140e30;padding:5px;display:flex;flex-direction:column; }
+      .ct-form-more-options button { width:100%;padding:9px 10px;text-align:left;border-radius:7px;
+        color:var(--theme-text,#34231b);font-size:10px;font-weight:700; }
+      .ct-form-more-options button:hover { background:var(--theme-hover,#f3e7d8); }
+      .ct-form-more-options button:disabled {opacity:.45;cursor:not-allowed}
+      .ct-form-more-options .ct-form-danger { color:var(--theme-state-damage,#991b1b); }
+      .ct-form-active-strip { display:flex;align-items:center;justify-content:space-between;gap:12px;
+        padding:10px 12px;background:var(--theme-panel-soft,#f8f0e6);
+        border:1px solid var(--theme-border-soft,#ddc8b0);border-radius:11px; }
+      .ct-form-active-strip strong { display:block;font:700 15px Georgia,serif;color:var(--theme-title,#53150f); }
+      .ct-form-active-strip small { display:block;margin-top:3px;color:var(--theme-text-secondary,#76543c);font-size:10px; }
+      .ct-form-active-actions { display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end; }
+      .ct-form-active-actions button {border:1px solid var(--theme-border,#c5ab8f);border-radius:8px;padding:8px 10px;
+        font-size:9px;font-weight:850;background:var(--theme-paper-strong,#fffdf8);color:var(--theme-title,#53150f); }
+      .ct-form-active-actions .ct-form-return-btn {background:var(--theme-button-background,#6b1d14);
+        color:var(--theme-button-text,#fffaf2); }
+      .ct-form-floating-timer {position:fixed;right:20px;bottom:20px;z-index:2147483100;
+        border:1px solid var(--theme-border,#b69879);border-radius:999px;background:var(--theme-button-background,#6b1d14);
+        color:var(--theme-button-text,#fffaf2);padding:10px 15px;box-shadow:0 10px 26px #200e0a4a;font-size:11px;font-weight:850; }
+      .ct-form-floating-timer span {font-size:17px;vertical-align:-1px;}
+      .ct-form-round-backdrop {position:fixed;inset:0;z-index:2147483200;display:flex;align-items:center;
+        justify-content:center;padding:16px;background:#1f100cb8;backdrop-filter:blur(5px);}
+      .ct-form-round-modal {width:min(480px,100%);border-radius:18px;overflow:hidden;border:1px solid var(--theme-border,#cdb394);
+        background:var(--theme-paper-strong,#fffdf8);color:var(--theme-text,#34231b);box-shadow:0 24px 70px #140b0955;}
+      .ct-form-round-header {display:flex;justify-content:space-between;gap:12px;align-items:center;padding:18px 20px;
+        background:var(--theme-panel,#eadbc8);border-bottom:1px solid var(--theme-border,#cdb394);}
+      .ct-form-round-header small {font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:var(--theme-label,#76543c);}
+      .ct-form-round-header h2 {font:800 23px Georgia,serif;color:var(--theme-title,#53150f);}
+      .ct-form-round-header button {width:32px;height:32px;border-radius:8px;background:var(--theme-paper-strong,#fffdf8);font-size:22px;}
+      .ct-form-round-body {padding:18px 20px;}
+      .ct-form-round-combat {font-size:11px;font-weight:700;color:var(--theme-text-secondary,#76543c);margin-bottom:12px;}
+      .ct-form-round-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;}
+      .ct-form-round-grid>div {background:var(--theme-panel-soft,#f8f0e6);border:1px solid var(--theme-border-soft,#ddc8b0);
+        border-radius:11px;text-align:center;padding:12px 8px;}
+      .ct-form-round-grid small {display:block;font-size:9px;font-weight:850;letter-spacing:.04em;text-transform:uppercase;color:var(--theme-label,#76543c);}
+      .ct-form-round-grid strong {display:block;margin-top:5px;font:800 28px Georgia,serif;color:var(--theme-title,#53150f);}
+      .ct-form-round-detail {margin-top:10px;font-size:11px;color:var(--theme-text-secondary,#76543c);}
+      .ct-form-round-concentration {display:flex;align-items:center;gap:8px;margin-top:13px;padding:10px 12px;
+        border:1px solid var(--theme-border-soft);border-radius:10px;
+        background:var(--theme-paper-alt, var(--theme-panel-soft));
+        color:var(--theme-text-secondary);font-size:11px;line-height:1.4;}
+      .ct-form-round-concentration.is-active {border-color:color-mix(in srgb, var(--theme-state-concentration,#75558a) 38%, var(--theme-border));
+        color:var(--theme-text-primary);} 
+      .ct-form-round-concentration-dot {width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:var(--theme-text-secondary);}
+      .ct-form-round-concentration.is-active .ct-form-round-concentration-dot {background:var(--theme-state-concentration,#75558a);}
+      .ct-form-round-error {margin-top:10px;color:var(--theme-state-damage,#991b1b);font-size:10px;}
+      .ct-form-round-footer {display:flex;justify-content:flex-end;gap:9px;padding:13px 20px;
+        border-top:1px solid var(--theme-border-soft,#ddc8b0);}
+      .ct-form-round-footer button {border:1px solid var(--theme-border,#cdb394);border-radius:9px;padding:8px 13px;font-size:10px;font-weight:850;}
+      .ct-form-round-footer button:last-child {background:var(--theme-button-background,#6b1d14);color:var(--theme-button-text,#fffaf2);}
+      @media(max-width:690px) {
+        .character-transformations-v14-option {grid-template-columns:64px minmax(0,1fr);gap:10px;}
+        .character-transformations-v14-option-image {width:64px;height:74px;flex-basis:64px;}
+        .character-transformations-v14-option-actions.ct-form-actions {grid-column:2;justify-content:flex-start;}
+        .ct-form-floating-timer {bottom:14px;right:14px;}
+      }
+
+      /* ================================================================
+         V16 — TEMA INTEGRAL DAS TRANSFORMAÇÕES
+         Todos os portais Alpine carregam data-theme, portanto as cores são
+         resolvidas pelo mesmo Theme Core da ficha (incluindo midnight).
+         O bloco está DEPOIS das regras V15 para não ser sobrescrito.
+         ================================================================ */
+      .character-sheet-theme[data-theme] .character-transformations-v14-modal,
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-modal,
+      .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal,
+      .character-sheet-theme[data-theme] .character-transformations-v14-special-modal,
+      .character-sheet-theme[data-theme].character-transformations-v14-concentration {
+        background: var(--theme-modal-surface, var(--theme-paper-strong, #fffdf8)) !important;
+        color: var(--theme-modal-text, var(--theme-text-primary, #34231b)) !important;
+        border-color: var(--theme-modal-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-modal > header,
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-header,
+      .character-sheet-theme[data-theme] .character-transformations-v14-special-header,
+      .character-sheet-theme[data-theme].character-transformations-v14-concentration > header {
+        background: var(--theme-modal-header-background, var(--theme-band-background, var(--theme-panel))) !important;
+        border-color: var(--theme-modal-border, var(--theme-border)) !important;
+        color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-modal > footer,
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-footer,
+      .character-sheet-theme[data-theme] .character-transformations-v14-special-footer {
+        background: var(--theme-modal-surface-soft, var(--theme-paper-alt, var(--theme-paper-strong))) !important;
+        color: var(--theme-modal-muted, var(--theme-text-secondary)) !important;
+        border-color: var(--theme-modal-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-list,
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-body,
+      .character-sheet-theme[data-theme] .character-transformations-v14-special-body {
+        background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+        color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-option,
+      .character-sheet-theme[data-theme] .character-transformations-v14-type,
+      .character-sheet-theme[data-theme] .character-transformations-v14-npc {
+        background: var(--theme-card-background, var(--theme-surface-card)) !important;
+        color: var(--theme-text-primary) !important;
+        border-color: var(--theme-border) !important;
+        box-shadow: var(--theme-module-shadow, none) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-option:hover,
+      .character-sheet-theme[data-theme] .character-transformations-v14-type:hover,
+      .character-sheet-theme[data-theme] .character-transformations-v14-npc:hover {
+        background: var(--theme-card-hover, var(--theme-hover)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-option-image,
+      .character-sheet-theme[data-theme] .character-transformations-v14-option-image-fallback {
+        background: var(--theme-surface-inset, var(--theme-panel-soft)) !important;
+        color: var(--theme-accent-strong, var(--theme-text-strong)) !important;
+        border-color: var(--theme-border) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-tag,
+      .character-sheet-theme[data-theme] .character-transformations-v14-format-badge:not(.unsupported) {
+        color: var(--theme-text-secondary, var(--theme-label)) !important;
+        background: var(--theme-surface-inset, var(--theme-panel-soft)) !important;
+        border-color: var(--theme-border, var(--theme-border-soft)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-option .font-serif,
+      .character-sheet-theme[data-theme] .ct-form-active-strip strong,
+      .character-sheet-theme[data-theme] .character-transformations-v14-modal > header h2,
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-header h2,
+      .character-sheet-theme[data-theme] .ct-form-round-header h2 {
+        color: var(--theme-text-strong, var(--theme-title)) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-active-strip,
+      .character-sheet-theme[data-theme] .ct-form-round-grid > div {
+        border-color: var(--theme-border-soft, var(--theme-border)) !important;
+        background: var(--theme-surface-inset, var(--theme-panel-soft)) !important;
+        color: var(--theme-text-primary) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-more-toggle,
+      .character-sheet-theme[data-theme] .ct-form-more-options,
+      .character-sheet-theme[data-theme] .ct-form-active-actions button:not(.ct-form-return-btn),
+      .character-sheet-theme[data-theme] .ct-form-round-footer button:not(:last-child),
+      .character-sheet-theme[data-theme] .ct-form-round-header button {
+        background: var(--theme-surface-raised, var(--theme-paper-strong)) !important;
+        color: var(--theme-text-strong) !important;
+        border-color: var(--theme-border) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-more-options button {
+        color: var(--theme-text-primary) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-more-options button:hover,
+      .character-sheet-theme[data-theme] .ct-form-more-toggle:hover,
+      .character-sheet-theme[data-theme] .ct-form-active-actions button:not(.ct-form-return-btn):hover {
+        background: var(--theme-card-hover, var(--theme-hover)) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-more-options .ct-form-danger {
+        color: var(--theme-state-damage, #c56b65) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-current {
+        color: var(--theme-state-heal, var(--theme-accent-strong)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-button,
+      .character-sheet-theme[data-theme] .character-transformations-v14-action.transform,
+      .character-sheet-theme[data-theme] .ct-form-return-btn,
+      .character-sheet-theme[data-theme] .ct-form-round-footer button:last-child,
+      .character-sheet-theme[data-theme].ct-form-floating-timer {
+        background: var(--theme-button-background, var(--theme-accent-strong)) !important;
+        color: var(--theme-button-text, var(--theme-on-accent, #fff)) !important;
+        border-color: var(--theme-button-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-create-button:hover,
+      .character-sheet-theme[data-theme] .character-transformations-v14-action.transform:hover,
+      .character-sheet-theme[data-theme] .ct-form-return-btn:hover,
+      .character-sheet-theme[data-theme].ct-form-floating-timer:hover {
+        background: var(--theme-button-hover-background, var(--theme-button-background)) !important;
+      }
+      .character-sheet-theme[data-theme].ct-form-round-backdrop {
+        background: var(--theme-modal-backdrop, rgba(0,0,0,.78)) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-round-modal {
+        background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+        color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+        border-color: var(--theme-modal-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-round-header {
+        background: var(--theme-modal-header-background, var(--theme-band-background, var(--theme-panel))) !important;
+        border-color: var(--theme-modal-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-round-grid strong {
+        color: var(--theme-text-strong) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-round-grid small,
+      .character-sheet-theme[data-theme] .ct-form-round-combat,
+      .character-sheet-theme[data-theme] .ct-form-round-detail,
+      .character-sheet-theme[data-theme] .ct-form-active-strip small,
+      .character-sheet-theme[data-theme] .character-transformations-v14-modal > footer {
+        color: var(--theme-text-secondary) !important;
+      }
+      .character-sheet-theme[data-theme] .ct-form-round-footer {
+        background: var(--theme-modal-surface-soft, var(--theme-paper-alt)) !important;
+        border-color: var(--theme-modal-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-input,
+      .character-sheet-theme[data-theme] .character-transformations-v14-select {
+        background: var(--theme-input-bg, var(--theme-paper-strong)) !important;
+        color: var(--theme-input-text, var(--theme-text-primary)) !important;
+        border-color: var(--theme-input-border, var(--theme-border)) !important;
+      }
+      .character-sheet-theme[data-theme] .character-transformations-v14-input::placeholder {
+        color: var(--theme-input-placeholder, var(--theme-text-secondary)) !important;
+      }
+
+      /* Transforma utilitários Tailwind de cor fixa da UI antiga em tokens
+         semânticos, SOMENTE dentro dos modais de Transformações. */
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#53150f]"] { color: var(--theme-text-strong, var(--theme-title)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#6b1d14]"] { color: var(--theme-accent-strong, var(--theme-text-strong)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#34231b]"] { color: var(--theme-text-primary) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#755847]"] { color: var(--theme-text-secondary) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#674936]"] { color: var(--theme-text-secondary) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#6f4c36]"] { color: var(--theme-text-secondary) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#8c6239]"] { color: var(--theme-label, var(--theme-text-secondary)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#93623d]"] { color: var(--theme-label, var(--theme-text-secondary)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#704326]"] { color: var(--theme-label, var(--theme-text-secondary)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#8b2a20]"] { color: var(--theme-state-damage, #c56b65) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#fffaf2]"] { color: var(--theme-button-text, var(--theme-on-accent)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="text-[#315d45]"] { color: var(--theme-state-heal, var(--theme-accent-strong)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#eadbc8]"] { background-color: var(--theme-modal-header-background, var(--theme-band-background, var(--theme-panel))) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#eadbc8]/45"] { background-color: color-mix(in srgb, var(--theme-panel, var(--theme-band-background)) 45%, transparent) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#f3e7d8]"] { background-color: var(--theme-surface-inset, var(--theme-panel-soft)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#f7f0e6]/55"] { background-color: color-mix(in srgb, var(--theme-panel-soft, var(--theme-paper-alt)) 55%, transparent) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#fffdf8]"] { background-color: var(--theme-paper-strong, var(--theme-modal-surface)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#fbf8f1]"] { background-color: var(--theme-modal-surface, var(--theme-paper-strong)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#6b1d14]"] { background-color: var(--theme-button-background, var(--theme-accent-strong)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="bg-[#7f261d]"] { background-color: var(--theme-state-damage, #aa453f) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#93623d]/20"] { border-color: var(--theme-border, var(--theme-modal-border)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#a0774d]/30"] { border-color: var(--theme-border, var(--theme-modal-border)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#a0774d]/24"] { border-color: var(--theme-border, var(--theme-modal-border)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#a0774d]/22"] { border-color: var(--theme-border, var(--theme-modal-border)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#b08c62]/40"] { border-color: var(--theme-border, var(--theme-modal-border)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#b98e63]/60"] { border-color: var(--theme-border, var(--theme-modal-border)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="border-[#7f261d]/25"] { border-color: var(--theme-state-damage) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="hover:bg-[#fffdf8]/55"]:hover,
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="hover:bg-[#eadbc8]/80"]:hover,
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="hover:bg-[#f3e7d8]"]:hover { background-color: var(--theme-card-hover, var(--theme-hover)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="hover:bg-[#6b1d14]"]:hover,
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="hover:bg-[#53150f]"]:hover { background-color: var(--theme-button-hover-background, var(--theme-button-background)) !important; }
+      :is(.character-sheet-theme[data-theme] .character-transformations-v14-modal, .character-sheet-theme[data-theme] .character-transformations-v14-create-modal, .character-sheet-theme[data-theme] .character-transformations-v14-delete-modal, .character-sheet-theme[data-theme] .character-transformations-v14-special-modal, .character-sheet-theme[data-theme].character-transformations-v14-concentration) [class~="hover:text-[#53150f]"]:hover { color: var(--theme-text-strong) !important; }
+      .character-sheet-theme[data-theme] .character-transformations-v14-option .character-transformations-v14-tag[style*="background"] {
+        background: color-mix(in srgb, var(--theme-state-damage) 10%, var(--theme-card-background)) !important;
+        color: var(--theme-state-damage) !important;
+        border-color: color-mix(in srgb, var(--theme-state-damage) 36%, var(--theme-border)) !important;
+      }
+
+            /* V50 — criação sem poluição visual e seleção em modal próprio. */
+            .character-sheet-theme[data-theme] .character-transformations-v14-create-modal {
+                width: min(94vw, 740px);
+                max-height: 90dvh;
+                border-color: var(--theme-modal-border,var(--theme-border));
+                background: var(--theme-modal-surface,var(--theme-paper-strong));
+                color: var(--theme-text-primary);
+            }
+            .character-sheet-theme[data-theme] .character-transformations-v14-create-header {
+                box-shadow: none !important; background-image: none !important;
+            }
+            .character-sheet-theme[data-theme] .character-transformations-v14-create-body { padding: 16px 19px 19px; }
+            .character-sheet-theme[data-theme] .character-transformations-v14-type { min-height: 66px; padding: 10px 12px; }
+            .character-sheet-theme[data-theme] .character-transformations-v14-type > span:last-child { display: none; }
+            .character-sheet-theme[data-theme] .character-transformations-v14-type-grid { gap: 8px; }
+            .character-sheet-theme[data-theme] .character-transformations-v14-section { margin-top: 13px; padding-top: 13px; }
+            .character-sheet-theme[data-theme] .character-transformations-v14-section-title { font-size: 15px; }
+            .character-sheet-theme[data-theme] .ct-v50-line { display:flex;align-items:center;justify-content:space-between;gap:14px; }
+            .character-sheet-theme[data-theme] .ct-v50-light-button {
+                flex:0 0 auto;min-height:34px;border:1px solid var(--theme-border);border-radius:9px;
+                padding:0 12px;color:var(--theme-text-strong);background:var(--theme-surface-raised);font-size:10px;font-weight:800;
+            }
+            .character-sheet-theme[data-theme] .ct-v50-light-button:hover { background:var(--theme-card-hover); }
+            .character-sheet-theme[data-theme] .ct-v50-linked-spell {margin-top:11px; display:grid;gap:7px;}
+            .character-sheet-theme[data-theme] .ct-v50-simple-duration {display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;}
+            .character-sheet-theme[data-theme] .ct-v50-check { display:flex;align-items:center;gap:10px;min-height:40px;white-space:nowrap;color:var(--theme-text-strong);font-size:10px;font-weight:800; }
+            .character-sheet-theme[data-theme] .ct-v50-duration-label { display:grid; gap:5px; min-width:140px;flex:1; }
+            .character-sheet-theme[data-theme] .ct-v50-advanced > summary { cursor:pointer;list-style:none;font-size:11px;font-weight:850;color:var(--theme-text-strong);display:flex;justify-content:space-between;gap:10px;align-items:center; }
+            .character-sheet-theme[data-theme] .ct-v50-advanced > summary::-webkit-details-marker {display:none;}
+            .character-sheet-theme[data-theme] .ct-v50-advanced > summary::before { content:'+'; font-size:17px;line-height:1; color:var(--theme-accent); }
+            .character-sheet-theme[data-theme] .ct-v50-advanced[open] > summary::before {content:'−';}
+            .character-sheet-theme[data-theme] .ct-v50-advanced > summary span {margin-left:auto;font-size:9px;font-weight:500;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme].ct-v50-overlay {position:fixed !important;inset:0 !important;z-index:320 !important;display:flex;align-items:center;justify-content:center;padding:16px;isolation:isolate;}
+            .character-sheet-theme[data-theme] .ct-v50-picker { position:relative; z-index:2; display:flex; flex-direction:column;width:min(94vw,640px);max-height:min(80dvh,700px);}
+            .character-sheet-theme[data-theme] .ct-v50-picker-head {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 19px;border-bottom:1px solid var(--theme-border);}
+            .character-sheet-theme[data-theme] .ct-v50-picker-head h2,
+            .character-sheet-theme[data-theme] .ct-v50-confirm h2 {font-family:Georgia,serif;font-size:22px;font-weight:900;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v50-picker-head button {width:30px;height:30px;border-radius:9px;color:var(--theme-text-secondary);background:var(--theme-surface-raised);}
+            .character-sheet-theme[data-theme] .ct-v50-kicker {margin:0 0 3px;text-transform:uppercase;letter-spacing:.1em;font-size:9px;font-weight:850;color:var(--theme-label);}
+            .character-sheet-theme[data-theme] .ct-v50-picker-body {min-height:0;overflow-y:auto;padding:14px 18px 19px;}
+            .character-sheet-theme[data-theme] .ct-v50-picker-body .character-transformations-v14-npc-list {max-height:none;margin-top:10px;}
+            .character-sheet-theme[data-theme] .ct-v50-picker-empty {font-size:11px;color:var(--theme-text-secondary);margin-top:12px;}
+            .character-sheet-theme[data-theme] .ct-v50-confirm {z-index:2;position:relative;padding:20px 22px;width:min(92vw,430px);}
+            .character-sheet-theme[data-theme] .ct-v50-confirm > p:not(.ct-v50-kicker):not(.character-transformations-v14-error) {font-size:12px;color:var(--theme-text-secondary);line-height:1.55;margin:12px 0 16px;}
+            .character-sheet-theme[data-theme] .ct-v50-confirm-actions {display:flex;justify-content:flex-end;gap:8px;}
+            .character-sheet-theme[data-theme] .ct-v50-cast-choices {display:grid;gap:7px;margin:10px 0 16px;}
+            .character-sheet-theme[data-theme] .ct-v50-cast-choices button {text-align:left;background:var(--theme-surface-raised);border:1px solid var(--theme-border);border-radius:9px;padding:9px 11px;font-size:11px;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v50-cast-choices button.is-selected {background:var(--theme-accent-softer);border-color:var(--theme-accent);}
+
+
+            /* V51: apresentação enxuta de nome, tipo, origem e ativação. */
+            .character-sheet-theme[data-theme] .ct-v51-setup {padding:0 0 15px;border-bottom:1px solid var(--theme-border-soft);}
+            .character-sheet-theme[data-theme] .ct-v51-identity {display:grid;grid-template-columns:minmax(0,1fr) 66px;gap:14px;align-items:end;}
+            .character-sheet-theme[data-theme] .ct-v51-label {display:block;margin:0 0 7px;font-size:9px;letter-spacing:.09em;text-transform:uppercase;font-weight:900;color:var(--theme-label);}
+            .character-sheet-theme[data-theme] .ct-v51-name {height:44px;font-size:14px;font-weight:750;}
+            .character-sheet-theme[data-theme] .ct-v51-image-wrap {position:relative;width:66px;height:66px;}
+            .character-sheet-theme[data-theme] .ct-v51-photo-remove {position:absolute;z-index:3;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--theme-border);background:var(--theme-surface-raised);color:var(--theme-text-strong);font-size:15px;line-height:1;}
+            .character-sheet-theme[data-theme] .ct-v51-photo-remove:hover {background:var(--theme-accent-softer);}
+            .character-sheet-theme[data-theme] .ct-v51-image-select {cursor:pointer;display:flex;width:66px;height:66px;align-items:center;justify-content:center;position:relative;border:1px dashed var(--theme-border-strong);border-radius:11px;background:var(--theme-surface-inset);color:var(--theme-text-secondary);overflow:hidden;}
+            .character-sheet-theme[data-theme] .ct-v51-image-select:hover {border-color:var(--theme-accent);background:var(--theme-accent-softer);}
+            .character-sheet-theme[data-theme] .ct-v51-image-select img {height:100%;width:100%;object-fit:cover;object-position:top center;}
+            .character-sheet-theme[data-theme] .ct-v51-image-select .ct-v51-photo-label {position:absolute;bottom:0;left:0;right:0;padding:4px 2px;font-size:8px;font-weight:900;text-align:center;background:var(--theme-surface-card);color:var(--theme-text-strong);border-top:1px solid var(--theme-border-soft);}
+            .character-sheet-theme[data-theme] .ct-v51-type-head {margin:14px 0 8px;}
+            .character-sheet-theme[data-theme] .ct-v51-switch {display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+            .character-sheet-theme[data-theme] .ct-v51-switch button {min-height:42px;padding:9px 12px;border:1px solid var(--theme-border);border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--theme-surface-raised);color:var(--theme-text-secondary);font-size:11px;font-weight:850;transition:background .14s,border-color .14s,color .14s;}
+            .character-sheet-theme[data-theme] .ct-v51-switch button:hover {background:var(--theme-card-hover);}
+            .character-sheet-theme[data-theme] .ct-v51-switch button.is-active {border-color:var(--theme-accent);background:var(--theme-accent-softer);color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v51-npc-selection {margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;padding:9px 11px;border:1px solid var(--theme-border);border-radius:10px;background:var(--theme-surface-card);}
+            .character-sheet-theme[data-theme] .ct-v51-npc-selection strong {display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v51-npc-selection small {display:block;margin-top:2px;font-size:9px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v51-npc-selection button {flex:0 0 auto;border:1px solid var(--theme-border-strong);border-radius:8px;padding:8px 11px;background:var(--theme-surface-raised);font-size:10px;font-weight:850;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v51-activation {margin-top:15px;padding-top:0;border:0;}
+            .character-sheet-theme[data-theme] .ct-v51-activation .ct-v51-switch {margin-top:10px;}
+            .character-sheet-theme[data-theme] .ct-v51-linked-selection {width:100%;min-height:64px;display:flex;align-items:center;gap:12px;margin-top:10px;padding:10px 12px;border:1px solid var(--theme-border);border-radius:11px;text-align:left;background:var(--theme-surface-card);color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v51-linked-selection:hover {border-color:var(--theme-accent);background:var(--theme-card-hover);}
+            .character-sheet-theme[data-theme] .ct-v51-linked-icon {display:flex;width:36px;height:36px;flex:0 0 36px;align-items:center;justify-content:center;border-radius:9px;background:var(--theme-accent-softer);color:var(--theme-accent-strong);font-size:18px;}
+            .character-sheet-theme[data-theme] .ct-v51-linked-copy {flex:1;min-width:0;}
+            .character-sheet-theme[data-theme] .ct-v51-linked-copy strong {display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:Georgia,serif;font-size:15px;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v51-linked-copy small {display:block;margin-top:3px;font-size:10px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v51-linked-arrow {font-size:16px;color:var(--theme-label);}
+            .character-sheet-theme[data-theme] .ct-v51-helper {margin:7px 1px 0;font-size:10px;line-height:1.5;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v51-spell-row {width:100%;display:flex;align-items:center;gap:12px;padding:11px;border:1px solid var(--theme-border);border-radius:10px;text-align:left;background:var(--theme-surface-raised);color:var(--theme-text-strong);transition:background .14s,border-color .14s;}
+            .character-sheet-theme[data-theme] .ct-v51-spell-row:hover,.character-sheet-theme[data-theme] .ct-v51-spell-row.is-active {background:var(--theme-accent-softer);border-color:var(--theme-accent);}
+            .character-sheet-theme[data-theme] .ct-v51-spell-level {display:flex;width:38px;height:38px;flex:0 0 38px;align-items:center;justify-content:center;border:1px solid var(--theme-border);border-radius:9px;background:var(--theme-surface-inset);font-family:Georgia,serif;font-weight:900;font-size:16px;}
+            .character-sheet-theme[data-theme] .ct-v51-spell-row-copy {min-width:0;flex:1;}
+            .character-sheet-theme[data-theme] .ct-v51-spell-row-copy strong {display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-family:Georgia,serif;font-size:14px;}
+            .character-sheet-theme[data-theme] .ct-v51-spell-row-copy small {display:block;margin-top:4px;font-size:10px;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v51-selection-mark {color:var(--theme-accent-strong);font-size:16px;font-weight:900;}
+            .character-sheet-theme[data-theme] .ct-v51-picker-search {position:relative;}
+            .character-sheet-theme[data-theme] .ct-v51-picker-search input {width:100%;padding-left:35px;}
+            .character-sheet-theme[data-theme] .ct-v51-picker-search > span {position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--theme-text-secondary);pointer-events:none;}
+            .character-sheet-theme[data-theme] .ct-v51-picker-list {display:grid;gap:8px;margin-top:12px;max-height:53dvh;overflow:auto;}
+            .character-sheet-theme[data-theme] .ct-v51-picker-note {margin-top:12px;font-size:10px;line-height:1.55;color:var(--theme-text-secondary);}
+            .character-sheet-theme[data-theme] .ct-v50-picker .character-transformations-v14-npc:disabled {cursor:not-allowed;opacity:.58;}
+            .character-sheet-theme[data-theme] .ct-v50-picker .character-transformations-v14-npc:disabled:hover {border-color:var(--theme-border);background:var(--theme-surface-raised);}
+            .character-sheet-theme[data-theme] .ct-v50-picker-head {background:var(--theme-modal-header-background);}
+            .character-sheet-theme[data-theme] .ct-v50-picker {overflow:hidden;}
+            @media(max-width:520px) { .character-sheet-theme[data-theme] .ct-v51-identity {grid-template-columns:minmax(0,1fr) 60px;gap:9px;} .character-sheet-theme[data-theme] .ct-v51-image-wrap,.character-sheet-theme[data-theme] .ct-v51-image-select{width:60px;height:60px;} .character-sheet-theme[data-theme] .ct-v51-npc-selection{align-items:flex-start;flex-wrap:wrap;} }
+
+            /* V52 — fluxo visual: escolha da ficha antes da identidade. */
+            .character-sheet-theme[data-theme] .ct-v51-setup {padding-bottom:18px;}
+            .character-sheet-theme[data-theme] .ct-v52-step-head {display:flex;align-items:center;gap:9px;margin:1px 0 12px;}
+            .character-sheet-theme[data-theme] .ct-v52-step-number {width:24px;height:24px;flex:0 0 24px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--theme-border);border-radius:8px;background:var(--theme-surface-inset);color:var(--theme-label);font-size:9px;font-weight:900;letter-spacing:.02em;}
+            .character-sheet-theme[data-theme] .ct-v52-step-title {margin:0;font-family:Georgia, 'Times New Roman', serif;font-size:16px;font-weight:900;line-height:1.1;color:var(--theme-text-strong);}
+            .character-sheet-theme[data-theme] .ct-v52-type-switch {gap:10px;}
+            .character-sheet-theme[data-theme] .ct-v52-type-switch button {position:relative;min-height:56px;justify-content:flex-start;gap:12px;padding:12px 14px;font-size:12px;text-align:left;border-radius:11px;transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease;}
+            .character-sheet-theme[data-theme] .ct-v52-type-switch button.is-active {box-shadow:inset 3px 0 0 var(--theme-accent),0 0 0 1px color-mix(in srgb,var(--theme-accent) 10%,transparent);}
+            .character-sheet-theme[data-theme] .ct-v52-type-switch button:focus-visible {outline:2px solid var(--theme-accent);outline-offset:2px;}
+            .character-sheet-theme[data-theme] .ct-v52-type-symbol {width:31px;height:31px;flex:0 0 31px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--theme-border-soft);border-radius:9px;background:var(--theme-surface-inset);color:var(--theme-label);font-size:17px;}
+            .character-sheet-theme[data-theme] .ct-v52-type-switch button.is-active .ct-v52-type-symbol {border-color:var(--theme-border-strong);background:var(--theme-surface-raised);color:var(--theme-accent-strong);}
+            .character-sheet-theme[data-theme] .ct-v52-identity-head {margin:17px 0 11px;padding-top:17px;border-top:1px solid var(--theme-border-soft);}
+            .character-sheet-theme[data-theme] .ct-v51-identity {align-items:end;gap:12px;}
+            .character-sheet-theme[data-theme] .ct-v51-name {height:45px;}
+            .character-sheet-theme[data-theme] .ct-v51-image-select {border-style:solid;background:var(--theme-surface-card);}
+            .character-sheet-theme[data-theme] .ct-v51-npc-selection {margin-top:10px;padding:10px 12px;}
+            .character-sheet-theme[data-theme] .ct-v52-npc-icon {width:33px;height:33px;flex:0 0 33px;display:flex;align-items:center;justify-content:center;border-radius:9px;background:var(--theme-accent-softer);color:var(--theme-accent-strong);font-size:16px;}
+            .character-sheet-theme[data-theme] .ct-v52-npc-copy {flex:1;}
+            .character-sheet-theme[data-theme] .ct-v51-npc-selection button:hover {border-color:var(--theme-accent);background:var(--theme-accent-softer);}
+            .character-sheet-theme[data-theme] .ct-v51-activation {margin-top:17px;}
+            .character-sheet-theme[data-theme] .ct-v51-activation > .ct-v52-step-head {margin-bottom:9px;}
+            .character-sheet-theme[data-theme] .ct-v51-activation .ct-v51-switch {margin-top:0;}
+            @media (max-width:520px) {
+                .character-sheet-theme[data-theme] .ct-v52-type-switch {gap:7px;}
+                .character-sheet-theme[data-theme] .ct-v52-type-switch button {padding:9px 10px;gap:7px;min-height:52px;font-size:10px;}
+                .character-sheet-theme[data-theme] .ct-v52-type-symbol {width:26px;height:26px;flex-basis:26px;font-size:14px;}
+                .character-sheet-theme[data-theme] .ct-v52-step-title {font-size:15px;}
+            }
+            @media(max-width:550px) { .character-sheet-theme[data-theme] .ct-v50-simple-duration {display:grid;grid-template-columns:1fr 1fr;} .character-sheet-theme[data-theme] .ct-v50-check {grid-column:1/-1;} }
+
+            /* V53 — Transformações: cartões claros e organização sem numeração. */
+            .character-sheet-theme[data-theme] .ct-v52-step-head {
+                gap: 0; margin-bottom: 12px;
+            }
+            .character-sheet-theme[data-theme] .ct-v52-step-title {
+                font-size: 17px; letter-spacing: -.015em;
+            }
+            .character-sheet-theme[data-theme] .ct-v51-setup,
+            .character-sheet-theme[data-theme] .ct-v51-activation {
+                padding-bottom: 0;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-list {
+                display: grid; gap: 12px; padding: 15px;
+                max-height: min(65dvh, 630px); overflow-y: auto;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-card {
+                display: grid;
+                grid-template-columns: 114px minmax(0, 1fr) auto;
+                gap: 17px; align-items: center;
+                min-height: 148px; padding: 13px;
+                border: 1px solid var(--theme-border);
+                border-radius: 16px;
+                background: var(--theme-card-background, var(--theme-surface-card));
+                color: var(--theme-text-primary);
+                box-shadow: none;
+                transition: border-color .16s ease, background .16s ease;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-card:hover,
+            .character-sheet-theme[data-theme] .ct-v53-card:focus-within {
+                border-color: var(--theme-border-strong);
+                background: var(--theme-card-hover, var(--theme-surface-card));
+            }
+            .character-sheet-theme[data-theme] .ct-v53-card.is-active {
+                border-color: var(--theme-accent);
+            }
+            .character-sheet-theme[data-theme] .ct-v53-portrait {
+                position: relative; width: 114px; height: 120px;
+                display: flex; align-items: center; justify-content: center;
+                overflow: hidden; border-radius: 12px;
+                border: 1px solid var(--theme-border-soft);
+                background: var(--theme-surface-inset);
+                color: var(--theme-label);
+            }
+            .character-sheet-theme[data-theme] .ct-v53-portrait img {
+                width:100%;height:100%;object-fit:cover;object-position:center top;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-portrait svg { width: 30px; height: 30px; }
+            .character-sheet-theme[data-theme] .ct-v53-current-dot {
+                position:absolute;inset:auto 6px 6px auto;
+                display:inline-flex;align-items:center;justify-content:center;
+                width:20px;height:20px;border-radius:50%;
+                background:var(--theme-state-heal);color:var(--theme-button-text);
+                box-shadow:0 1px 7px rgba(0,0,0,.15);font-size:12px;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-content { min-width: 0; }
+            .character-sheet-theme[data-theme] .ct-v53-name {
+                margin:0; font: 800 21px/1.16 Georgia, 'Times New Roman', serif;
+                color:var(--theme-text-strong);overflow-wrap:anywhere;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-kind {
+                display:block; margin-top:5px; color:var(--theme-text-secondary);
+                font-size:11px;font-weight:600;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-meta {
+                display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:11px;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-tag {
+                display:inline-flex;align-items:center;min-height:23px;
+                padding:3px 8px;border:1px solid var(--theme-border-soft);
+                border-radius:999px;background:var(--theme-surface-card-alt);
+                color:var(--theme-text-secondary);font-size:9px;font-weight:750;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-tag.is-magic {
+                background:var(--theme-accent-softer);color:var(--theme-accent-strong);
+            }
+            .character-sheet-theme[data-theme] .ct-v53-tag.is-active {
+                border-color:var(--theme-accent);color:var(--theme-text-strong);
+            }
+            .character-sheet-theme[data-theme] .ct-v53-actions {
+                display:flex;gap:8px;align-items:center;justify-content:flex-end;
+                align-self:stretch;max-width:none;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-actions .ct-form-primary {
+                min-height:38px;white-space:nowrap;border-radius:10px;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-actions .ct-form-more-toggle {
+                width:36px;height:38px;border-radius:10px;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-magic-hint {
+                max-width:135px; font-size:10px;line-height:1.4;
+                color:var(--theme-text-secondary);text-align:center;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-card .ct-form-more {
+                align-self:center;
+            }
+            .character-sheet-theme[data-theme] .ct-v53-card .ct-form-more-options {
+                position:static;
+                width:190px;max-width:min(60vw,220px);
+                margin-top:7px;z-index:180;
+                background:var(--theme-surface-raised);
+                border:1px solid var(--theme-border);
+                box-shadow:var(--theme-shadow-strong);
+            }
+            .character-sheet-theme[data-theme] .ct-v53-list {overflow-x:visible;}
+            @media(max-width:700px) {
+                .character-sheet-theme[data-theme] .ct-v53-card {
+                    grid-template-columns:90px minmax(0,1fr);gap:11px;min-height:122px;
+                }
+                .character-sheet-theme[data-theme] .ct-v53-portrait {width:90px;height:100px;}
+                .character-sheet-theme[data-theme] .ct-v53-name {font-size:17px;}
+                .character-sheet-theme[data-theme] .ct-v53-actions {
+                    grid-column:2;justify-content:flex-start;align-self:auto;
+                }
+                .character-sheet-theme[data-theme] .ct-v53-magic-hint {max-width:none;text-align:left;}
+            }
+            @media(max-width:430px) {
+                .character-sheet-theme[data-theme] .ct-v53-card {
+                    grid-template-columns:76px minmax(0,1fr);padding:10px;
+                }
+                .character-sheet-theme[data-theme] .ct-v53-portrait {width:76px;height:90px;}
+                .character-sheet-theme[data-theme] .ct-v53-meta {margin-top:7px;}
+            }
+    </style>
 
     <section
         x-data="{
@@ -2505,6 +3179,36 @@
 
             saveError: null,
             actionError: null,
+            concentrationConflictItem: null,
+            concentrationConflictCurrent: null,
+            concentrationConfirmLoading: false,
+            activeDurationRemaining: @js($activeState?->duration_remaining),
+
+            handleDurationUpdate(timer) {
+                if (!this.active) return;
+                if (timer && Number(timer.transformation_id) === Number(this.active.id)) {
+                    this.activeDurationRemaining = timer.duration_remaining;
+                    this.roundInfo = { ...this.roundInfo, ...timer };
+                } else if (this.activeDurationRemaining !== null
+                    && this.activeDurationRemaining !== undefined) {
+                    // A duração pode ter vencido enquanto a ficha estava aberta.
+                    window.location.reload();
+                }
+            },
+
+            cancelConcentrationReplacement() {
+                this.concentrationConflictItem = null;
+                this.concentrationConflictCurrent = null;
+                this.actionError = null;
+            },
+
+            async confirmConcentrationReplacement() {
+                const item = this.concentrationConflictItem;
+                if (!item) return;
+                this.concentrationConflictItem = null;
+                this.concentrationConflictCurrent = null;
+                await this.activateTransformation(item, true);
+            },
 
             editingId: null,
 
@@ -2513,6 +3217,60 @@
             imageRemove: false,
 
             monsterSearch: '',
+            optionMenuId: null,
+            roundModalOpen: false,
+            roundLoading: false,
+            roundError: '',
+            roundInfo: {
+                current_round: @js($activeState?->combat?->current_round),
+                current_turn: @js($activeState?->combat?->current_turn),
+                combat_name: @js($activeState?->combat?->name),
+                combat_active: @js((bool) ($activeState?->combat?->is_active ?? false)),
+                started_round: @js($activeState?->activated_round),
+                started_turn: @js($activeState?->activated_turn),
+                initiative: null,
+                duration_remaining: @js($activeState?->duration_remaining),
+            },
+
+            currentNpcImage() {
+                if (this.form.type !== 'monster_sheet') return null;
+                const npc = this.npcs.find(n => Number(n.id) === Number(this.form.source_npc_id));
+                return npc?.image_url || null;
+            },
+
+            async refreshRoundInfo() {
+                if (!this.active || this.roundLoading) return;
+                this.roundLoading = true;
+                this.roundError = '';
+                try {
+                    const url = this.concentrationStateUrl
+                        + (this.concentrationStateUrl.includes('?') ? '&' : '?')
+                        + 'scope=concentration';
+                    const response = await this.timedFetch(url, {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        cache: 'no-store',
+                    });
+                    const data = await this.jsonResponse(response);
+                    const timer = data?.transformation_timer;
+                    if (timer && Number(timer.transformation_id) === Number(this.active.id)) {
+                        this.roundInfo = { ...this.roundInfo, ...timer };
+                        this.activeDurationRemaining = timer.duration_remaining;
+                    } else if (this.active) {
+                        // A forma pode ter terminado por duração, falha ou conjuração.
+                        window.location.reload();
+                    }
+                } catch (error) {
+                    this.roundError = error?.message || 'Não foi possível atualizar a iniciativa.';
+                } finally {
+                    this.roundLoading = false;
+                }
+            },
+
+            openRoundTracker() {
+                if (!this.active) return;
+                this.roundModalOpen = true;
+                this.refreshRoundInfo();
+            },
 
             transformations: JSON.parse(
                 $el.dataset.transformations
@@ -2528,6 +3286,200 @@
                 $el.dataset.npcs
                 || '[]'
             ),
+
+            linkedSpells: JSON.parse($el.dataset.linkedSpells || '[]'),
+            npcPickerOpen: false,
+            spellPickerOpen: false,
+            spellSearch: '',
+            helpType: null,
+            castTransformationPrompt: null,
+            castTransformationMatches: [],
+            castTransformationError: '',
+            durationModalOpen: false,
+            durationCandidate: null,
+            durationConfirmedReplacement: false,
+            durationFromSpell: false,
+            durationRollMode: 'automatic',
+            durationRollResult: null,
+            durationRollError: '',
+            durationRollBusy: false,
+            durationManualValue: '',
+            durationDieFaces: [],
+            durationAnimInterval: null,
+            durationAnimTimeout: null,
+
+            durationFormulaParts(formula) {
+                const match = String(formula || '').replace(/\s+/g, '').match(/^(\d{1,2})d(4|6|8|10|12|20|100)([+-]\d{1,3})?$/i);
+                if (!match) return null;
+                const count = Number(match[1]);
+                const sides = Number(match[2]);
+                const modifier = Number(match[3] || 0);
+                if (count < 1 || count > 12 || modifier < -100 || modifier > 100 || count + modifier < 1 || count * sides + modifier > 10000) return null;
+                return { count, sides, modifier };
+            },
+
+            get durationParts() { return this.durationFormulaParts(this.durationCandidate?.duration_formula); },
+
+            clearDurationAnimation() {
+                if (this.durationAnimInterval !== null) clearInterval(this.durationAnimInterval);
+                if (this.durationAnimTimeout !== null) clearTimeout(this.durationAnimTimeout);
+                this.durationAnimInterval = null;
+                this.durationAnimTimeout = null;
+            },
+
+            closeDurationModal() {
+                if (this.actingId !== null || this.durationRollBusy) return;
+                this.clearDurationAnimation();
+                this.durationModalOpen = false;
+                this.durationCandidate = null;
+                this.durationRollResult = null;
+                this.durationRollError = '';
+            },
+
+            openDurationModal(item, confirmedReplacement, fromSpell) {
+                this.clearDurationAnimation();
+                this.durationCandidate = item;
+                this.durationConfirmedReplacement = !!confirmedReplacement;
+                this.durationFromSpell = !!fromSpell;
+                this.durationRollMode = 'automatic';
+                this.durationRollResult = null;
+                this.durationManualValue = '';
+                this.durationRollError = '';
+                this.durationDieFaces = Array.from({length: this.durationFormulaParts(item.duration_formula)?.count || 0}, () => 1);
+                this.durationModalOpen = true;
+                this.$nextTick(() => this.rollDurationDice());
+            },
+
+            async rollDurationDice() {
+                if (this.durationRollBusy || !this.durationCandidate) return;
+                const parts = this.durationParts;
+                if (!parts) { this.durationRollError = 'Fórmula inválida nesta transformação.'; return; }
+                this.durationRollBusy = true;
+                this.durationRollMode = 'automatic';
+                this.durationRollResult = null;
+                this.durationRollError = '';
+                this.clearDurationAnimation();
+                const started = Date.now();
+                const generatePreview = () => {
+                    this.durationDieFaces = this.durationDieFaces.map(() =>
+                        1 + Math.floor(Math.random() * parts.sides)
+                    );
+                };
+                generatePreview();
+                this.durationAnimInterval = setInterval(generatePreview, 75);
+                try {
+                    // Uma chamada ao serviço existente POR dado permite exibir as
+                    // faces reais retornadas pelo backend, não valores inventados.
+                    const rolls = await Promise.all(Array.from({length: parts.count}, async () => {
+                        const response = await this.timedFetch(this.diceRollUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken(),
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: JSON.stringify({expression: '1d' + parts.sides}),
+                        });
+                        const data = await this.jsonResponse(response);
+                        const face = this.extractRollTotal(data);
+                        if (!Number.isInteger(face) || face < 1 || face > parts.sides) {
+                            throw new Error('O serviço de dados não retornou uma face válida.');
+                        }
+                        return face;
+                    }));
+                    await new Promise(resolve => {
+                        this.durationAnimTimeout = setTimeout(resolve,
+                            Math.max(0, 900 - (Date.now() - started)));
+                    });
+                    this.clearDurationAnimation();
+                    this.durationDieFaces = rolls;
+                    this.durationRollResult = rolls.reduce((sum, value) => sum + value, parts.modifier);
+                } catch (error) {
+                    this.durationRollError = error?.message || 'Não foi possível rolar os dados.';
+                    this.durationRollResult = null;
+                    this.durationDieFaces = [];
+                } finally {
+                    this.clearDurationAnimation();
+                    this.durationRollBusy = false;
+                }
+            },
+
+            async applyDurationRoll() {
+                if (!this.durationCandidate || this.durationRollBusy || this.actingId !== null) return;
+                const parts = this.durationParts;
+                if (!parts) return;
+                const value = this.durationRollMode === 'manual' ? Number(this.durationManualValue) : this.durationRollResult;
+                if (!Number.isInteger(value) || value < parts.count + parts.modifier || value > parts.count * parts.sides + parts.modifier) {
+                    this.durationRollError = 'Informe um resultado possível para a fórmula.'; return;
+                }
+                this.durationRollError = '';
+                await this.activateTransformation(this.durationCandidate, this.durationConfirmedReplacement, this.durationFromSpell, value, this.durationRollMode);
+                if (this.actionError) this.durationRollError = this.actionError;
+            },
+
+            handleLinkedSpellCast(detail) {
+                const spellId = Number(detail?.spell_id || 0);
+                if (!spellId || this.active || this.createOpen) return;
+                const matches = this.transformations.filter(item =>
+                    item.casting_time === 'spell'
+                    && Number(item.linked_spell_id) === spellId
+                );
+                if (!matches.length) return;
+                this.castTransformationMatches = matches;
+                this.castTransformationError = '';
+                this.castTransformationPrompt = matches[0];
+            },
+
+            async confirmLinkedTransformation() {
+                const form = this.castTransformationPrompt;
+                if (!form || this.actingId !== null) return;
+                this.castTransformationError = '';
+                await this.activateTransformation(form, false, true);
+                if (this.actionError) {
+                    this.castTransformationError = this.actionError;
+                } else {
+                    this.castTransformationPrompt = null;
+                }
+            },
+
+            linkedSpellName(item) {
+                const linkedId = Number(item?.linked_spell_id || 0);
+                const spell = this.linkedSpells.find(entry => Number(entry.id) === linkedId);
+                return spell?.name || 'Feitiço vinculado';
+            },
+
+            get selectedLinkedSpell() {
+                return this.linkedSpells.find(s => Number(s.id) === Number(this.form.linked_spell_id)) || null;
+            },
+
+            get filteredLinkedSpells() {
+                const search = String(this.spellSearch || '').trim().toLocaleLowerCase('pt-BR');
+                return this.linkedSpells.filter(spell =>
+                    !search || String(spell.name || '').toLocaleLowerCase('pt-BR').includes(search)
+                    || String(spell.level) === search
+                );
+            },
+
+            openNpcPicker() {
+                this.spellPickerOpen = false;
+                this.monsterSearch = '';
+                this.npcPickerOpen = true;
+            },
+
+            openSpellPicker() {
+                this.npcPickerOpen = false;
+                this.spellSearch = '';
+                this.spellPickerOpen = true;
+            },
+
+            selectLinkedSpell(id) {
+                const spell = this.linkedSpells.find(spell => Number(spell.id) === Number(id));
+                if (!spell) return;
+                this.form.linked_spell_id = Number(spell.id);
+                this.form.requires_concentration = true;
+                this.spellPickerOpen = false;
+            },
 
             storeUrl:
                 $el.dataset.storeUrl
@@ -2557,6 +3509,10 @@
                 $el.dataset.concentrationUrl
                 || '',
 
+            concentrationStateUrl:
+                $el.dataset.concentrationStateUrl
+                || '',
+
             diceRollUrl:
                 $el.dataset.diceRollUrl
                 || '',
@@ -2572,9 +3528,11 @@
                 type: 'character_sheet',
                 source_npc_id: null,
                 casting_time: 'none',
+                linked_spell_id: null,
                 requires_concentration: false,
                 duration_type: 'indefinite',
                 duration_value: 1,
+                duration_formula: '2d6+1',
                 is_special: false,
                 special_trigger: 'half_hp',
                 has_limited_uses: false,
@@ -2932,9 +3890,11 @@
                     type: 'character_sheet',
                     source_npc_id: null,
                     casting_time: 'none',
+                    linked_spell_id: null,
                     requires_concentration: false,
                     duration_type: 'indefinite',
                     duration_value: 1,
+                    duration_formula: '2d6+1',
                     is_special: false,
                     special_trigger: 'half_hp',
                     has_limited_uses: false,
@@ -2948,6 +3908,7 @@
                 this.imageFile = null;
                 this.imagePreview = null;
                 this.imageRemove = false;
+                this.helpType = null;
 
                 this.monsterSearch = '';
                 this.saveError = null;
@@ -2984,8 +3945,8 @@
                         ?? null,
 
                     casting_time:
-                        item.casting_time
-                        || 'none',
+                        ['spell', 'none'].includes(item.casting_time) ? item.casting_time : 'none',
+                    linked_spell_id: item.linked_spell_id || null,
 
                     requires_concentration:
                         !!item.requires_concentration,
@@ -2993,6 +3954,7 @@
                     duration_type:
                         item.duration_type
                         || 'indefinite',
+                    duration_formula: item.duration_formula || '2d6+1',
 
                     duration_value:
                         item.duration_value
@@ -3045,6 +4007,8 @@
                 }
 
                 this.createOpen = false;
+                this.npcPickerOpen = false;
+                this.spellPickerOpen = false;
                 this.resetEditor();
             },
 
@@ -3069,8 +4033,10 @@
             },
 
             selectNpc(id) {
-                this.form.source_npc_id =
-                    Number(id);
+                const npc = this.npcs.find(n => Number(n.id) === Number(id));
+                if (!npc || !npc.supported) return;
+                this.form.source_npc_id = Number(id);
+                this.npcPickerOpen = false;
             },
 
             handleImage(event) {
@@ -3409,6 +4375,9 @@
                     return;
                 }
 
+                const reloadRequired =
+                    !!this.concentrationRoll?.transformationEnded;
+
                 this.concentrationCheck =
                     null;
 
@@ -3417,6 +4386,10 @@
 
                 this.concentrationError =
                     null;
+
+                if (reloadRequired) {
+                    window.location.reload();
+                }
             },
 
             extractRollTotal(data) {
@@ -3537,19 +4510,43 @@
                             || 10
                         );
 
-                    const passed =
-                        total
-                        >= difficultyClass;
+                    // O servidor conclui o efeito, aplica exaustão e encerra
+                    // a forma em caso de falha. O resultado da rolagem não
+                    // pode ficar apenas no estado visual do Alpine.
+                    const resolutionResponse = await this.timedFetch(
+                        this.concentrationUrl,
+                        {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken(),
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                            body: JSON.stringify({
+                                damage: Math.max(1, Number(check.damage) || 1),
+                                transformation_id: Number(check.context?.transformation_id),
+                                roll_total: total,
+                            }),
+                        }
+                    );
+                    const resolution = await this.jsonResponse(resolutionResponse);
+                    const passed = !!resolution?.result?.passed;
 
                     this.concentrationRoll = {
                         die,
                         total,
                         modifier,
                         passed,
+                        transformationEnded: !!resolution?.result?.transformation_ended,
                         formatted:
                             data?.formatted
                             ?? expression,
                     };
+
+                    if (resolution?.result?.concentration_ended) {
+                        window.dispatchEvent(new CustomEvent('character-concentration-changed'));
+                    }
 
                     window.dispatchEvent(
                         new CustomEvent(
@@ -3641,26 +4638,21 @@
                     );
                 }
 
-                body.append(
-                    'casting_time',
-                    this.form.casting_time
-                );
+                body.append('casting_time', this.form.casting_time);
+                if (this.form.casting_time === 'spell') {
+                    body.append('linked_spell_id', String(this.form.linked_spell_id || ''));
+                }
 
-                body.append(
-                    'requires_concentration',
-                    this.form.requires_concentration
-                        ? '1'
-                        : '0'
-                );
+                body.append('requires_concentration',
+                    this.form.casting_time === 'spell' || this.form.requires_concentration ? '1' : '0');
 
-                body.append(
-                    'duration_type',
-                    this.form.duration_type
-                );
-
+                body.append('duration_type', this.form.duration_type === 'dice' ? 'dice' : this.form.duration_type);
+                if (this.form.duration_type === 'dice') {
+                    body.append('duration_formula', String(this.form.duration_formula || '').replace(/\s+/g, ''));
+                }
                 if (
-                    this.form.duration_type
-                        !== 'indefinite'
+                    this.form.duration_type !== 'dice'
+                    && this.form.duration_type !== 'indefinite'
                 ) {
                     body.append(
                         'duration_value',
@@ -3773,6 +4765,10 @@
                     return 'Informe o nome da transformação.';
                 }
 
+                if (this.form.casting_time === 'spell' && !this.form.linked_spell_id) {
+                    return 'Selecione uma magia do seu Grimório.';
+                }
+
                 if (
                     this.form.type
                         === 'monster_sheet'
@@ -3790,8 +4786,12 @@
                     return 'Esta criatura usa um formato externo. Transformações aceitam somente fichas criadas pelo Construtor de NPC do Spellbound.';
                 }
 
+                if (this.form.duration_type === 'dice' && !this.durationFormulaParts(this.form.duration_formula)) {
+                    return 'Informe uma fórmula válida, como 2d6+1 (até 12 dados).';
+                }
                 if (
-                    this.form.duration_type
+                    this.form.duration_type !== 'dice'
+                    && this.form.duration_type
                         !== 'indefinite'
                     && (
                         !parseInt(
@@ -4013,7 +5013,7 @@
             },
 
 
-            async activateTransformation(item) {
+            async activateTransformation(item, confirmedReplacement = false, fromSpell = false, durationOverride = null, durationRollMode = null) {
                 if (
                     !item
                     || this.actingId !== null
@@ -4046,6 +5046,43 @@
                 ) {
                     this.actionError =
                         'Esta transformação usa uma criatura de formato externo. Escolha uma ficha criada pelo Construtor de NPC do Spellbound.';
+                    return;
+                }
+
+                if (item.casting_time === 'spell' && !fromSpell) {
+                    this.actionError = 'Conjure a magia vinculada pelo Grimório para ativar esta forma.';
+                    return;
+                }
+
+                if (item.requires_concentration && item.casting_time !== 'spell' && !confirmedReplacement) {
+                    this.concentrationConfirmLoading = true;
+                    try {
+                        const url = this.concentrationStateUrl
+                            + (this.concentrationStateUrl.includes('?') ? '&' : '?')
+                            + 'scope=concentration';
+                        const response = await this.timedFetch(url, {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+                        const data = await this.jsonResponse(response);
+                        if (data?.concentration?.active) {
+                            this.concentrationConflictItem = item;
+                            this.concentrationConflictCurrent = data.concentration;
+                            return;
+                        }
+                    } catch (error) {
+                        this.actionError = error?.message
+                            || 'Não foi possível conferir a concentração. Tente novamente.';
+                        return;
+                    } finally {
+                        this.concentrationConfirmLoading = false;
+                    }
+                }
+
+                if (item.duration_mode === 'dice' && durationOverride === null) {
+                    this.openDurationModal(item, confirmedReplacement, fromSpell);
                     return;
                 }
 
@@ -4085,7 +5122,13 @@
                                 },
 
                                 body:
-                                    JSON.stringify({}),
+                                    JSON.stringify({
+                                        confirm_replace_concentration: !!confirmedReplacement,
+                                        ...(durationOverride !== null ? {
+                                            duration_total: durationOverride,
+                                            duration_roll_mode: durationRollMode || 'manual',
+                                        } : {}),
+                                    }),
                             }
                         );
 
@@ -4308,6 +5351,7 @@
         data-transformations="{!! $encodedTransformations !!}"
         data-active="{!! $encodedActive !!}"
         data-npcs="{!! $encodedNpcs !!}"
+        data-linked-spells="{!! $encodedLinkedSpells !!}"
         data-store-url="{{ route(
             'characters.transformations.store',
             $character
@@ -4346,6 +5390,7 @@
             'characters.transformations.concentration.check',
             $character
         ) }}"
+        data-concentration-state-url="{{ route('characters.spellbook.state', $character) }}"
 
         data-dice-roll-url="{{ url('/api/roll') }}"
 
@@ -4353,6 +5398,10 @@
             'characters.transformations.deactivate',
             $character
         ) }}"
+
+        @character-transformation-duration-changed.window="handleDurationUpdate($event.detail)"
+        x-on:spellbound-spell-cast.window="handleLinkedSpellCast($event.detail)"
+        @character-open-transformation-rounds.window="openRoundTracker()"
 
         @character-hp-changed.window="
             handleCharacterHpChanged(
@@ -4367,10 +5416,20 @@
         "
 
         @keydown.escape.window="
-            if (specialPrompt) {
+            if (durationModalOpen) {
+                closeDurationModal()
+            } else if (concentrationConflictItem) {
+                cancelConcentrationReplacement()
+            } else if (specialPrompt) {
                 dismissSpecialPrompt()
             } else if (deleteCandidate) {
                 cancelDelete()
+            } else if (npcPickerOpen) {
+                npcPickerOpen = false
+            } else if (spellPickerOpen) {
+                spellPickerOpen = false
+            } else if (castTransformationPrompt) {
+                castTransformationPrompt = null
             } else if (createOpen) {
                 closeCreate()
             } else if (open) {
@@ -4455,6 +5514,14 @@
                             @if ($activeTransformation->requires_concentration)
                                 <span>·</span>
                                 <span>Concentração</span>
+                            @endif
+
+                            @if ($activeState?->duration_remaining !== null)
+                                <span>·</span>
+                                <span x-text="activeDurationRemaining === 1
+                                    ? '1 rodada restante'
+                                    : `${activeDurationRemaining} rodadas restantes`">
+                                </span>
                             @endif
                         @else
                             <span>
@@ -4548,6 +5615,37 @@
             @endif
         </div>
 
+
+        {{-- Confirmação de troca, antes de gastar usos ou encerrar concentração. --}}
+        <template x-teleport="body">
+            <div x-show="concentrationConflictItem" x-cloak
+                class="character-sheet-theme fixed inset-0 z-[350] flex items-center justify-center p-4"
+                data-theme="{{ $characterTheme }}"
+                style="background: var(--theme-modal-backdrop, rgba(0,0,0,.78))"
+                @click.self="cancelConcentrationReplacement()">
+                <section role="alertdialog" aria-modal="true" aria-label="Substituir concentração"
+                    class="w-full max-w-md rounded-2xl border p-5 shadow-2xl"
+                    style="background: var(--theme-modal-surface, var(--theme-surface-card)); color: var(--theme-text-strong); border-color: var(--theme-border)">
+                    <p class="text-[9px] font-black uppercase tracking-wide" style="color:var(--theme-label)">Concentração ativa</p>
+                    <h3 class="mt-1 font-serif text-xl font-black">Substituir concentração?</h3>
+                    <p class="mt-3 text-sm leading-relaxed" style="color:var(--theme-text-secondary)">
+                        Você está concentrado em
+                        <strong x-text="concentrationConflictCurrent?.effect_name || concentrationConflictCurrent?.spell_name || 'outro efeito'"></strong>.
+                        Ativar <strong x-text="concentrationConflictItem?.name"></strong> encerrará essa concentração.
+                        <span x-show="concentrationConflictCurrent?.source === 'transformation'">A forma anterior será encerrada.</span>
+                    </p>
+                    <div class="mt-5 flex justify-end gap-2">
+                        <button type="button" @click="cancelConcentrationReplacement()"
+                            class="rounded-lg border px-4 py-2 text-sm" style="border-color:var(--theme-border)">Cancelar</button>
+                        <button type="button" @click="confirmConcentrationReplacement()"
+                            class="rounded-lg px-4 py-2 text-sm font-bold"
+                            style="background:var(--theme-button-background, var(--theme-accent-strong)); color:var(--theme-on-accent, white)">
+                            Encerrar e transformar
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </template>
 
         {{-- ================================================================
              ALERTA — CONCENTRAÇÃO DA NOVA FICHA
@@ -5386,122 +6484,22 @@
                     </header>
 
 
-                    <div class="character-transformations-v14-list">
+                    <div class="character-transformations-v14-list ct-v53-list">
 
-                        {{-- FORMA NORMAL --}}
-                        <div class="character-transformations-v14-option">
-                            <div
-                                class="character-transformations-v14-option-image"
-                                aria-hidden="true"
-                            >
-                                <svg
-                                    class="h-5 w-5"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                    stroke="currentColor"
-                                >
-                                    <circle
-                                        cx="12"
-                                        cy="12"
-                                        r="7"
-                                        stroke-width="1.5"
-                                    />
-                                    <path
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        stroke-width="1.5"
-                                        d="M9.5 12h5M12 9.5v5"
-                                    />
-                                </svg>
+                        {{-- A ficha original já é a Forma Normal. O retorno aparece somente quando transformado. --}}
+                        <template x-if="active">
+                            <div class="ct-form-active-strip">
+                                <div class="min-w-0">
+                                    <strong x-text="active?.name || 'Transformação ativa'"></strong>
+                                    <small>Forma ativa · Volte à ficha original quando desejar.</small>
+                                </div>
+                                <div class="ct-form-active-actions">
+                                    <button type="button" @click="openRoundTracker()" class="ct-form-track-btn">Rodadas</button>
+                                    <button type="button" @click="returnToNormal()" :disabled="normalizing || actingId !== null"
+                                        class="ct-form-return-btn" x-text="normalizing ? 'Voltando...' : 'Encerrar forma'"></button>
+                                </div>
                             </div>
-
-                            <div class="min-w-0">
-                                <p
-                                    class="
-                                        font-serif
-                                        text-[17px]
-                                        font-black
-                                        text-[#53150f]
-                                    "
-                                >
-                                    Forma Normal
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-1
-                                        text-[10px]
-                                        leading-relaxed
-                                        text-[#755847]
-                                    "
-                                >
-                                    A ficha original de {{ $character->name }}.
-                                </p>
-
-                                @if (!$activeTransformation)
-                                    <span
-                                        class="
-                                            mt-2
-                                            inline-flex
-                                            rounded-full
-                                            bg-[#eadbc8]
-                                            px-2
-                                            py-1
-                                            text-[8px]
-                                            font-black
-                                            uppercase
-                                            tracking-[0.08em]
-                                            text-[#53150f]
-                                        "
-                                    >
-                                        Forma atual
-                                    </span>
-                                @endif
-                            </div>
-
-                            <div class="character-transformations-v14-option-actions">
-                                <template x-if="active">
-                                    <button
-                                        type="button"
-                                        @click="returnToNormal()"
-                                        :disabled="
-                                            normalizing
-                                            || actingId !== null
-                                        "
-                                        class="
-                                            character-transformations-v14-action
-                                            normal
-                                        "
-                                    >
-                                        <span x-show="!normalizing">
-                                            Voltar à Forma Normal
-                                        </span>
-
-                                        <span
-                                            x-show="normalizing"
-                                            x-cloak
-                                        >
-                                            Voltando...
-                                        </span>
-                                    </button>
-                                </template>
-
-                                <template x-if="!active">
-                                    <span
-                                        class="
-                                            text-[9px]
-                                            font-black
-                                            uppercase
-                                            tracking-[0.08em]
-                                            text-[#6f4c36]/60
-                                        "
-                                    >
-                                        Ativa
-                                    </span>
-                                </template>
-                            </div>
-                        </div>
-
+                        </template>
 
                         {{-- FORMAS CADASTRADAS --}}
                         <template
@@ -5512,372 +6510,85 @@
                                 item.id
                             "
                         >
-                            <div class="character-transformations-v14-option">
-                                <div class="character-transformations-v14-option-image">
-
-                                    <span class="character-transformations-v14-option-image-fallback">
-                                        <svg
-                                            class="h-6 w-6"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                            aria-hidden="true"
-                                        >
-                                            <path
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                stroke-width="1.5"
-                                                d="M7.5 7.5A6.36 6.36 0 0 1 12 5.64c2.06 0 3.9.98 5.07 2.5M16.5 16.5A6.36 6.36 0 0 1 12 18.36a6.36 6.36 0 0 1-5.07-2.5M17.07 8.14V4.5m0 3.64h-3.64M6.93 15.86v3.64m0-3.64h3.64"
-                                            />
-                                        </svg>
-                                    </span>
-
+                            <article
+                                class="ct-v53-card"
+                                :class="{'is-active': active && Number(active.id) === Number(item.id)}"
+                            >
+                                <div class="ct-v53-portrait">
                                     <template x-if="item.image_url">
-                                        <img
-                                            :src="item.image_url"
-                                            :alt="`Retrato de ${item.name}`"
-                                            x-on:error="
-                                                $el.remove()
-                                            "
-                                        >
+                                        <img :src="item.image_url" :alt="'Retrato de ' + item.name" loading="lazy"
+                                            x-on:error="$el.style.display='none'">
                                     </template>
-
+                                    <template x-if="!item.image_url">
+                                        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4" aria-hidden="true">
+                                            <path d="M12 3 4 7v10l8 4 8-4V7l-8-4ZM4 7l8 5 8-5M12 12v9"/>
+                                        </svg>
+                                    </template>
+                                    <span x-show="active && Number(active.id) === Number(item.id)"
+                                        x-cloak class="ct-v53-current-dot" aria-label="Forma ativa">✓</span>
                                 </div>
 
-                                <div class="min-w-0">
-                                    <div
-                                        class="
-                                            flex
-                                            min-w-0
-                                            flex-wrap
-                                            items-center
-                                            gap-1.5
-                                        "
-                                    >
-                                        <p
-                                            class="
-                                                min-w-0
-                                                truncate
-                                                font-serif
-                                                text-[18px]
-                                                font-black
-                                                text-[#53150f]
-                                            "
-                                            x-text="item.name"
-                                        ></p>
-
-                                        <span
-                                            class="character-transformations-v14-tag"
-                                            x-text="typeLabel(item)"
-                                        ></span>
-
-                                        <template
-                                            x-if="
-                                                item.type === 'monster_sheet'
-                                                && item.monster_supported === false
-                                            "
-                                        >
-                                            <span
-                                                class="character-transformations-v14-tag"
-                                                style="
-                                                    border-color: rgba(127,38,29,.30);
-                                                    background: #fff2ee;
-                                                    color: #7f261d;
-                                                "
-                                            >
-                                                Formato externo
-                                            </span>
-                                        </template>
-                                    </div>
-
-                                    <div
-                                        class="
-                                            mt-2
-                                            flex
-                                            flex-wrap
-                                            items-center
-                                            gap-1.5
-                                        "
-                                    >
-                                        <template x-if="item.casting_label">
-                                            <span
-                                                class="character-transformations-v14-tag"
-                                                x-text="item.casting_label"
-                                            ></span>
-                                        </template>
-
-                                        <template x-if="item.requires_concentration">
-                                            <span class="character-transformations-v14-tag">
-                                                Concentração
-                                            </span>
-                                        </template>
-
-                                        <template x-if="item.duration_label">
-                                            <span
-                                                class="character-transformations-v14-tag"
-                                                x-text="item.duration_label"
-                                            ></span>
-                                        </template>
-
-                                        <template x-if="item.is_special">
-                                            <span class="character-transformations-v14-tag">
-                                                Especial
-                                            </span>
-                                        </template>
-
-                                        <span
-                                            class="character-transformations-v14-tag"
-                                            x-text="recoveryLabel(item)"
-                                        ></span>
-
-                                        <template
-                                            x-if="
-                                                item.applies_exhaustion
-                                                && item.exhaustion_levels > 0
-                                            "
-                                        >
-                                            <span
-                                                class="character-transformations-v14-tag"
-                                                x-text="
-                                                    `+${item.exhaustion_levels} Exaustão`
-                                                "
-                                            ></span>
-                                        </template>
-                                    </div>
-                                </div>
-
-                                <div class="character-transformations-v14-option-actions">
-                                    <template x-if="item.type === 'character_sheet'">
-                                        <button
-                                            type="button"
-                                            @click="openCharacterSheet(item)"
-                                            :disabled="
-                                                saving
-                                                || actingId !== null
-                                                || normalizing
-                                                || preparingSheetId !== null
-                                                || (
-                                                    active
-                                                    && Number(active.id)
-                                                        !== Number(item.id)
-                                                )
-                                            "
-                                            class="
-                                                character-transformations-v14-action
-                                                edit
-                                            "
-                                            :title="
-                                                item.form_character_id
-                                                    ? 'Editar ficha mecânica'
-                                                    : 'Preparar ficha mecânica'
-                                            "
-                                        >
-                                            <svg
-                                                class="h-3 w-3"
-                                                viewBox="0 0 24 24"
-                                                fill="none"
-                                                stroke="currentColor"
-                                                stroke-width="1.7"
-                                                stroke-linecap="round"
-                                                stroke-linejoin="round"
-                                                aria-hidden="true"
-                                            >
-                                                <path d="M4 5.5h16v13H4z" />
-                                                <path d="M8 9h8M8 12h8M8 15h5" />
-                                            </svg>
-
-                                            <span
-                                                x-show="
-                                                    Number(preparingSheetId)
-                                                        !== Number(item.id)
-                                                "
-                                                x-text="
-                                                    item.form_character_id
-                                                        ? 'Editar Ficha'
-                                                        : 'Criar Ficha'
-                                                "
-                                            ></span>
-
-                                            <span
-                                                x-show="
-                                                    Number(preparingSheetId)
-                                                        === Number(item.id)
-                                                "
-                                                x-cloak
-                                            >
-                                                Preparando...
-                                            </span>
-                                        </button>
-                                    </template>
-
-                                    <button
-                                        type="button"
-                                        @click="openEdit(item)"
-                                        :disabled="
-                                            saving
-                                            || actingId !== null
-                                            || normalizing
-                                        "
-                                        class="
-                                            character-transformations-v14-action
-                                            edit
-                                        "
-                                        title="Editar transformação"
-                                    >
-                                        <svg
-                                            class="h-3 w-3"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.7"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            aria-hidden="true"
-                                        >
-                                            <path d="M4 20h4l11-11-4-4L4 16v4Z" />
-                                            <path d="m13.5 6.5 4 4" />
-                                        </svg>
-
-                                        Editar
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        @click="
-                                            requestDelete(
-                                                item
-                                            )
-                                        "
-                                        :disabled="
-                                            saving
-                                            || actingId !== null
-                                            || normalizing
-                                            || deletingId !== null
-                                            || (
-                                                active
-                                                && Number(active.id)
-                                                    === Number(item.id)
-                                            )
-                                        "
-                                        class="
-                                            character-transformations-v14-action
-                                            delete
-                                        "
-                                        title="Excluir transformação"
-                                        aria-label="Excluir transformação"
-                                    >
-                                        <svg
-                                            class="h-3 w-3"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.7"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                            aria-hidden="true"
-                                        >
-                                            <path d="M4 7h16" />
-                                            <path d="M9 7V4h6v3" />
-                                            <path d="m7 7 1 13h8l1-13" />
-                                            <path d="M10 11v5M14 11v5" />
-                                        </svg>
-
-                                        Excluir
-                                    </button>
-
-                                    <template
-                                        x-if="
-                                            active
-                                            && Number(active.id)
-                                                === Number(item.id)
-                                        "
-                                    >
-                                        <span
-                                            class="
-                                                text-[9px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.08em]
-                                                text-[#53150f]
-                                            "
-                                        >
-                                            Forma atual
+                                <div class="ct-v53-content">
+                                    <h3 class="ct-v53-name" x-text="item.name"></h3>
+                                    <span class="ct-v53-kind" x-text="typeLabel(item)"></span>
+                                    <div class="ct-v53-meta">
+                                        <span class="ct-v53-tag is-magic" x-show="item.casting_time === 'spell'" x-cloak
+                                            x-text="'✧ ' + linkedSpellName(item)"></span>
+                                        <span class="ct-v53-tag" x-show="item.casting_time !== 'spell'" x-cloak>Ativação manual</span>
+                                        <span class="ct-v53-tag" x-show="item.requires_concentration" x-cloak>Concentração</span>
+                                        <span class="ct-v53-tag" x-show="item.duration_label && item.casting_time !== 'spell'" x-cloak
+                                            x-text="item.duration_label"></span>
+                                        <span class="ct-v53-tag" x-show="item.uses_max !== null && item.uses_max !== undefined" x-cloak
+                                            x-text="'Usos ' + (item.uses_current ?? item.uses_max) + '/' + item.uses_max"></span>
+                                        <span class="ct-v53-tag" x-show="item.type === 'monster_sheet' && item.monster_supported === false" x-cloak>
+                                            Formato externo
                                         </span>
+                                        <span class="ct-v53-tag is-active"
+                                            x-show="active && Number(active.id) === Number(item.id)" x-cloak>Ativa</span>
+                                    </div>
+                                </div>
+
+                                <div class="ct-v53-actions">
+                                    <template x-if="active && Number(active.id) === Number(item.id)">
+                                        <span class="ct-form-current">Em uso</span>
                                     </template>
-
-                                    <template
-                                        x-if="
-                                            !active
-                                            || Number(active.id)
-                                                !== Number(item.id)
-                                        "
-                                    >
-                                        <button
-                                            type="button"
-                                            @click="activateTransformation(item)"
-                                            :disabled="
-                                                actingId !== null
-                                                || normalizing
-                                                || (
-                                                    active
-                                                    && Number(active.id)
-                                                        !== Number(item.id)
-                                                )
-                                                || (
-                                                    item.uses_max !== null
-                                                    && item.uses_max !== undefined
-                                                    && Number(item.uses_current) < 1
-                                                )
-                                                || (
-                                                    item.type === 'monster_sheet'
-                                                    && item.monster_supported === false
-                                                )
-                                            "
-                                            class="
-                                                character-transformations-v14-action
-                                                transform
-                                            "
-                                            :title="
-                                                active
-                                                && Number(active.id)
-                                                    !== Number(item.id)
-                                                    ? 'Volte à Forma Normal primeiro'
-                                                    : (
-                                                        item.type === 'monster_sheet'
-                                                        && item.monster_supported === false
-                                                            ? 'Formato externo não suportado'
-                                                            : (
-                                                                item.uses_max !== null
-                                                                && item.uses_max !== undefined
-                                                                && Number(item.uses_current) < 1
-                                                                    ? 'Sem usos disponíveis'
-                                                                    : 'Transformar'
-                                                            )
-                                                    )
-                                            "
-                                        >
-                                            <span
-                                                x-show="
-                                                    Number(actingId)
-                                                        !== Number(item.id)
-                                                "
-                                            >
-                                                Transformar
-                                            </span>
-
-                                            <span
-                                                x-show="
-                                                    Number(actingId)
-                                                        === Number(item.id)
-                                                "
-                                                x-cloak
-                                            >
-                                                Transformando...
-                                            </span>
+                                    <template x-if="(!active || Number(active.id) !== Number(item.id)) && item.casting_time !== 'spell'">
+                                        <button type="button"
+                                            class="character-transformations-v14-action transform ct-form-primary"
+                                            x-on:click="activateTransformation(item)"
+                                            :disabled="actingId !== null || normalizing
+                                                || (active && Number(active.id) !== Number(item.id))
+                                                || (item.uses_max !== null && item.uses_max !== undefined && Number(item.uses_current) < 1)
+                                                || (item.type === 'monster_sheet' && item.monster_supported === false)"
+                                            x-text="Number(actingId) === Number(item.id) ? 'Transformando...' : 'Transformar'">
                                         </button>
                                     </template>
+                                    <template x-if="(!active || Number(active.id) !== Number(item.id)) && item.casting_time === 'spell'">
+                                        <span class="ct-v53-magic-hint">Conjure pelo Grimório</span>
+                                    </template>
+                                    <div class="ct-form-more"
+                                        x-on:click.outside="if (optionMenuId === Number(item.id)) optionMenuId = null">
+                                        <button type="button" class="ct-form-more-toggle"
+                                            x-on:click="optionMenuId = optionMenuId === Number(item.id) ? null : Number(item.id)"
+                                            :aria-expanded="optionMenuId === Number(item.id)"
+                                            :aria-label="'Opções de ' + item.name" title="Mais opções">⋯</button>
+                                        <div class="ct-form-more-options" x-show="optionMenuId === Number(item.id)" x-cloak>
+                                            <template x-if="item.type === 'character_sheet'">
+                                                <button type="button" x-on:click="optionMenuId = null; openCharacterSheet(item)"
+                                                    :disabled="saving || actingId !== null || preparingSheetId !== null">
+                                                    Editar ficha mecânica
+                                                </button>
+                                            </template>
+                                            <button type="button" x-on:click="optionMenuId = null; openEdit(item)"
+                                                :disabled="saving || actingId !== null || normalizing">Editar configuração</button>
+                                            <button type="button" class="ct-form-danger"
+                                                x-on:click="optionMenuId = null; requestDelete(item)"
+                                                :disabled="saving || actingId !== null || normalizing || deletingId !== null
+                                                    || (active && Number(active.id) === Number(item.id))">Excluir forma</button>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            </article>
                         </template>
 
 
@@ -6281,16 +6992,7 @@
                                 <span x-text="modalTitle"></span>
                             </h2>
 
-                            <p
-                                class="
-                                    mt-1.5
-                                    text-[11px]
-                                    leading-relaxed
-                                    text-[#6f4c36]
-                                "
-                            >
-                                Defina ou ajuste a origem, aparência e regras desta forma.
-                            </p>
+
                         </div>
 
                         <button
@@ -6332,540 +7034,139 @@
 
                     <div class="character-transformations-v14-create-body">
 
-                        {{-- TIPO --}}
-                        <section class="character-transformations-v14-section">
-                            <h3 class="character-transformations-v14-section-title">
-                                Tipo de transformação
-                            </h3>
-
-                            <p class="character-transformations-v14-section-copy">
-                                Escolha qual ficha mecânica será usada quando esta forma estiver ativa.
-                            </p>
-
-                            <div class="character-transformations-v14-type-grid">
-                                <button
-                                    type="button"
-                                    @click="setType('character_sheet')"
-                                    class="character-transformations-v14-type"
-                                    :class="{
-                                        'is-active':
-                                            form.type === 'character_sheet'
-                                    }"
-                                >
-                                    <span
-                                        class="
-                                            flex
-                                            h-8
-                                            w-8
-                                            items-center
-                                            justify-center
-                                            rounded-lg
-                                            bg-[#eadbc8]
-                                            text-[#6b1d14]
-                                        "
-                                    >
-                                        <svg
-                                            class="h-4 w-4"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.6"
-                                            aria-hidden="true"
-                                        >
-                                            <path d="M6 4h12v16H6z" />
-                                            <path d="M9 8h6M9 12h6M9 16h4" />
-                                        </svg>
-                                    </span>
-
-                                    <span
-                                        class="
-                                            mt-2
-                                            block
-                                            font-serif
-                                            text-[14px]
-                                            font-black
-                                            text-[#53150f]
-                                        "
-                                    >
-                                        Nova Ficha
-                                    </span>
-
-                                    <span
-                                        class="
-                                            mt-1
-                                            block
-                                            text-[10px]
-                                            leading-relaxed
-                                            text-[#755847]
-                                        "
-                                    >
-                                        Uma ficha mecânica alternativa do próprio personagem.
-                                    </span>
-                                </button>
-
-                                <button
-                                    type="button"
-                                    @click="setType('monster_sheet')"
-                                    class="character-transformations-v14-type"
-                                    :class="{
-                                        'is-active':
-                                            form.type === 'monster_sheet'
-                                    }"
-                                >
-                                    <span
-                                        class="
-                                            flex
-                                            h-8
-                                            w-8
-                                            items-center
-                                            justify-center
-                                            rounded-lg
-                                            bg-[#eadbc8]
-                                            text-[#6b1d14]
-                                        "
-                                    >
-                                        <svg
-                                            class="h-4 w-4"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.6"
-                                            aria-hidden="true"
-                                        >
-                                            <path d="M6.5 8.5 9 5l3 2 3-2 2.5 3.5V15L12 19l-5.5-4V8.5Z" />
-                                            <path d="M9.5 11h.01M14.5 11h.01" />
-                                        </svg>
-                                    </span>
-
-                                    <span
-                                        class="
-                                            mt-2
-                                            block
-                                            font-serif
-                                            text-[14px]
-                                            font-black
-                                            text-[#53150f]
-                                        "
-                                    >
-                                        Ficha de Monstro
-                                    </span>
-
-                                    <span
-                                        class="
-                                            mt-1
-                                            block
-                                            text-[10px]
-                                            leading-relaxed
-                                            text-[#755847]
-                                        "
-                                    >
-                                        Usa uma criatura criada no Construtor de NPC do Spellbound.
-                                    </span>
-                                </button>
-                            </div>
-                        </section>
-
-
-                        {{-- IDENTIDADE --}}
-                        <section class="character-transformations-v14-section">
-                            <h3 class="character-transformations-v14-section-title">
-                                Identidade da forma
-                            </h3>
-
-                            <div class="mt-3">
-                                <label>
-                                    <span class="character-transformations-v14-label">
-                                        Nome
-                                    </span>
-
-                                    <input
-                                        type="text"
-                                        maxlength="120"
-                                        x-model="form.name"
-                                        placeholder="Ex.: Forma Demoníaca"
-                                        class="character-transformations-v14-input"
-                                    >
-                                </label>
+                        {{-- V52: fluxo da criação — origem, identidade, ativação. --}}
+                        <section class="ct-v51-setup">
+                            <div class="ct-v52-step-head">
+                                <span class="ct-v52-step-title">Escolha o formato</span>
                             </div>
 
-                            <div class="character-transformations-v14-photo">
-                                <div class="character-transformations-v14-photo-preview">
-                                    <template x-if="imagePreview">
-                                        <img
-                                            :src="imagePreview"
-                                            alt="Prévia da transformação"
-                                        >
-                                    </template>
-
-                                    <template x-if="!imagePreview">
-                                        <svg
-                                            class="h-5 w-5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1.5"
-                                            aria-hidden="true"
-                                        >
-                                            <path d="M4 5h16v14H4z" />
-                                            <path d="m7 16 4-4 3 3 2-2 4 4" />
-                                            <circle cx="9" cy="9" r="1" />
-                                        </svg>
-                                    </template>
+                            <div class="ct-v51-switch ct-v52-type-switch ct-v54-type-row" role="group" aria-label="Formato da transformação">
+                                <div class="ct-v54-type-option">
+                                    <button type="button" x-on:click="setType('character_sheet')"
+                                        :aria-pressed="form.type === 'character_sheet'" :class="{'is-active':form.type === 'character_sheet'}">
+                                        <span class="ct-v52-type-symbol" aria-hidden="true">▤</span>
+                                        <span>Nova ficha</span>
+                                    </button>
+                                    <div class="ct-v55-help-wrap">
+                                        <button type="button" class="ct-v55-help" aria-label="Como funciona a Nova ficha?" aria-describedby="ct-v55-help-sheet">i</button>
+                                        <div class="ct-v55-help-popup" id="ct-v55-help-sheet" role="tooltip">
+                                            <strong>Nova ficha</strong>
+                                            Uma ficha alternativa personalizável para atributos, vida e habilidades. Seu personagem, inventário e Grimório continuam os mesmos.
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <div class="min-w-0">
-                                    <span class="character-transformations-v14-label">
-                                        Foto da transformação
-                                    </span>
-
-                                    <p class="text-[10px] leading-relaxed text-[#755847]">
-                                        Opcional. Esta foto aparece apenas quando esta forma existir.
-                                    </p>
-
-                                    <div class="mt-2 flex flex-wrap gap-2">
-                                        <label
-                                            class="
-                                                inline-flex
-                                                cursor-pointer
-                                                items-center
-                                                rounded-lg
-                                                border
-                                                border-[#b08c62]/40
-                                                bg-[#fffdf8]
-                                                px-3
-                                                py-2
-                                                text-[9px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.06em]
-                                                text-[#6b1d14]
-                                                transition
-                                                hover:bg-[#f3e7d8]
-                                            "
-                                        >
-                                            Escolher foto
-
-                                            <input
-                                                type="file"
-                                                accept="image/jpeg,image/png,image/webp"
-                                                @click="$event.target.value = null"
-                                                @change="handleImage($event)"
-                                                class="hidden"
-                                            >
-                                        </label>
-
-                                        <button
-                                            x-show="imagePreview"
-                                            x-cloak
-                                            type="button"
-                                            @click="removeImage()"
-                                            class="
-                                                rounded-lg
-                                                px-3
-                                                py-2
-                                                text-[9px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.06em]
-                                                text-red-700
-                                                transition
-                                                hover:bg-red-50
-                                            "
-                                        >
-                                            Remover
-                                        </button>
+                                <div class="ct-v54-type-option">
+                                    <button type="button" x-on:click="setType('monster_sheet')"
+                                        :aria-pressed="form.type === 'monster_sheet'" :class="{'is-active':form.type === 'monster_sheet'}">
+                                        <span class="ct-v52-type-symbol" aria-hidden="true">♜</span>
+                                        <span>Criatura do Cofre</span>
+                                    </button>
+                                    <div class="ct-v55-help-wrap">
+                                        <button type="button" class="ct-v55-help" aria-label="Como funciona a Ficha de Monstro?" aria-describedby="ct-v55-help-monster">i</button>
+                                        <div class="ct-v55-help-popup" id="ct-v55-help-monster" role="tooltip">
+                                            <strong>Criatura do Cofre</strong>
+                                            Para Polymorph, True Polymorph, Forma Selvagem e itens mágicos que concedem a ficha de uma criatura.
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </section>
 
-
-                        {{-- CRIATURA --}}
-                        <section
-                            x-show="form.type === 'monster_sheet'"
-                            x-cloak
-                            class="character-transformations-v14-section"
-                        >
-                            <h3 class="character-transformations-v14-section-title">
-                                Criatura do Cofre
-                            </h3>
-
-                            <p class="character-transformations-v14-section-copy">
-                                A criatura é usada como modelo. Apenas fichas criadas no Construtor de NPC do Spellbound podem ser usadas em Transformações.
-                            </p>
-
-                            <input
-                                type="search"
-                                x-model="monsterSearch"
-                                placeholder="Buscar criatura..."
-                                class="character-transformations-v14-input mt-3"
-                            >
-
-                            <div
-                                x-show="npcs.length === 0"
-                                x-cloak
-                                class="
-                                    mt-3
-                                    rounded-xl
-                                    border
-                                    border-dashed
-                                    border-[#b08c62]/40
-                                    bg-[#f7f0e6]/55
-                                    px-4
-                                    py-5
-                                    text-center
-                                    text-[10px]
-                                    text-[#755847]
-                                "
-                            >
-                                Nenhuma criatura disponível no seu Cofre.
-                            </div>
-
-                            <div
-                                x-show="npcs.length > 0"
-                                x-cloak
-                                class="character-transformations-v14-npc-list"
-                            >
-                                <template
-                                    x-for="npc in filteredNpcs"
-                                    :key="npc.id"
-                                >
-                                    <button
-                                        type="button"
-                                        @click="selectNpc(npc.id)"
-                                        class="character-transformations-v14-npc"
-                                        :class="{
-                                            'is-active':
-                                                Number(form.source_npc_id)
-                                                === Number(npc.id),
-
-                                            'is-unsupported':
-                                                !npc.supported
-                                        }"
-                                    >
-                                        <span class="character-transformations-v14-npc-image">
-                                            <template x-if="npc.image_url">
-                                                <img
-                                                    :src="npc.image_url"
-                                                    alt=""
-                                                >
-                                            </template>
-
-                                            <template x-if="!npc.image_url">
-                                                <svg
-                                                    class="h-4 w-4"
-                                                    viewBox="0 0 24 24"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    stroke-width="1.5"
-                                                    aria-hidden="true"
-                                                >
-                                                    <path d="M6.5 8.5 9 5l3 2 3-2 2.5 3.5V15L12 19l-5.5-4V8.5Z" />
-                                                </svg>
-                                            </template>
-                                        </span>
-
-                                        <span class="min-w-0">
-                                            <span
-                                                class="
-                                                    block
-                                                    truncate
-                                                    font-serif
-                                                    text-[12px]
-                                                    font-black
-                                                    text-[#53150f]
-                                                "
-                                                x-text="npc.name"
-                                            ></span>
-
-                                            <span
-                                                class="
-                                                    mt-1
-                                                    block
-                                                    text-[9px]
-                                                    font-bold
-                                                    text-[#755847]
-                                                "
-                                                x-text="
-                                                    npc.challenge_rating !== null
-                                                        && npc.challenge_rating !== undefined
-                                                        ? `ND ${npc.challenge_rating}`
-                                                        : 'Criatura'
-                                                "
-                                            ></span>
-
-                                            <span
-                                                class="character-transformations-v14-format-badge"
-                                                :class="{
-                                                    'unsupported':
-                                                        !npc.supported
-                                                }"
-                                                x-text="npc.format_label"
-                                            ></span>
-                                        </span>
-                                    </button>
-                                </template>
-                            </div>
-
-                            <div
-                                x-show="
-                                    selectedNpc
-                                    && !selectedNpc.supported
-                                "
-                                x-cloak
-                                class="character-transformations-v14-format-warning"
-                            >
-                                <strong>
-                                    Formato não compatível
-                                </strong>
-
-                                Esta criatura foi importada ou usa um formato diferente do Construtor de NPC do Spellbound.
-                                Ela continua disponível normalmente no Cofre, mas não pode ser usada como Ficha de Monstro em Transformações.
-                                Escolha uma criatura marcada como “Criada no Spellbound”.
-                            </div>
-                        </section>
-
-
-                        {{-- ATIVAÇÃO --}}
-                        <section class="character-transformations-v14-section">
-                            <h3 class="character-transformations-v14-section-title">
-                                Ativação
-                            </h3>
-
-                            <p class="character-transformations-v14-section-copy">
-                                A opção Feitiço é apenas uma categoria desta transformação e não se conecta ao Grimório.
-                            </p>
-
-                            <div class="mt-3">
-                                <span class="character-transformations-v14-label">
-                                    Tempo de Conjuração
-                                </span>
-
-                                <div class="character-transformations-v14-segmented cols-4">
-                                    <button
-                                        type="button"
-                                        @click="form.casting_time = 'none'"
-                                        :class="{
-                                            'is-active':
-                                                form.casting_time === 'none'
-                                        }"
-                                    >
-                                        Nenhum
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        @click="form.casting_time = 'spell'"
-                                        :class="{
-                                            'is-active':
-                                                form.casting_time === 'spell'
-                                        }"
-                                    >
-                                        Feitiço
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        @click="form.casting_time = 'bonus_action'"
-                                        :class="{
-                                            'is-active':
-                                                form.casting_time === 'bonus_action'
-                                        }"
-                                    >
-                                        Ação Bônus
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        @click="form.casting_time = 'action'"
-                                        :class="{
-                                            'is-active':
-                                                form.casting_time === 'action'
-                                        }"
-                                    >
-                                        Ação Padrão
-                                    </button>
+                            <div class="ct-v51-npc-selection" x-show="form.type === 'monster_sheet'" x-cloak>
+                                <div class="ct-v52-npc-icon" aria-hidden="true">♜</div>
+                                <div class="min-w-0 ct-v52-npc-copy">
+                                    <strong x-text="selectedNpc?.name || 'Nenhuma criatura selecionada'"></strong>
+                                    <small x-text="selectedNpc ? (selectedNpc.format_label + (selectedNpc.challenge_rating != null ? ' · ND ' + selectedNpc.challenge_rating : '')) : 'Escolha uma criatura do seu Cofre'"></small>
                                 </div>
+                                <button type="button" x-on:click.stop="openNpcPicker()" x-text="selectedNpc ? 'Trocar' : 'Escolher'"></button>
                             </div>
 
-                            <div class="character-transformations-v14-grid-2 mt-3">
-                                <button
-                                    type="button"
-                                    @click="
-                                        form.requires_concentration =
-                                            !form.requires_concentration
-                                    "
-                                    class="character-transformations-v14-toggle-row"
-                                >
-                                    <span class="min-w-0 text-left">
-                                        <span class="block font-serif text-[12px] font-black text-[#53150f]">
-                                            Concentração
-                                        </span>
-
-                                        <span class="mt-1 block text-[9px] text-[#755847]">
-                                            A forma exige concentração?
-                                        </span>
-                                    </span>
-
-                                    <span
-                                        class="character-transformations-v14-switch"
-                                        :class="{
-                                            'is-active':
-                                                form.requires_concentration
-                                        }"
-                                    ></span>
-                                </button>
-
-                                <div>
-                                    <span class="character-transformations-v14-label">
-                                        Duração
-                                    </span>
-
-                                    <select
-                                        x-model="form.duration_type"
-                                        class="character-transformations-v14-select"
-                                    >
-                                        <option value="indefinite">
-                                            Até ser encerrada
-                                        </option>
-
-                                        <option value="rounds">
-                                            Rodadas
-                                        </option>
-
-                                        <option value="minutes">
-                                            Minutos
-                                        </option>
-
-                                        <option value="hours">
-                                            Horas
-                                        </option>
-                                    </select>
-                                </div>
+                            <div class="ct-v52-step-head ct-v52-identity-head">
+                                <span class="ct-v52-step-title">Identidade</span>
                             </div>
-
-                            <div
-                                x-show="form.duration_type !== 'indefinite'"
-                                x-cloak
-                                class="mt-3"
-                            >
-                                <label>
-                                    <span class="character-transformations-v14-label">
-                                        Quantidade
-                                    </span>
-
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="1000000"
-                                        x-model.number="form.duration_value"
-                                        class="character-transformations-v14-input"
-                                    >
+                            <div class="ct-v51-identity">
+                                <label class="min-w-0">
+                                    <span class="ct-v51-label">Nome da forma</span>
+                                    <input type="text" maxlength="120" x-model="form.name"
+                                        placeholder="Ex.: Forma Demoníaca"
+                                        class="character-transformations-v14-input ct-v51-name">
                                 </label>
+                                <div class="ct-v51-image-wrap">
+                                    <label class="ct-v51-image-select" title="Escolher imagem da forma">
+                                        <template x-if="imagePreview || currentNpcImage()">
+                                            <img :src="imagePreview || currentNpcImage()" alt="Imagem da forma">
+                                        </template>
+                                        <template x-if="!imagePreview && !currentNpcImage()">
+                                            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8" cy="9" r="1.5"/><path d="m4 17 5-5 3 3 3-3 5 5"/></svg>
+                                        </template>
+                                        <span class="ct-v51-photo-label">Foto</span>
+                                        <input class="sr-only" type="file" accept="image/jpeg,image/png,image/webp"
+                                            x-on:click="$event.target.value = null" x-on:change="handleImage($event)">
+                                    </label>
+                                    <button type="button" class="ct-v51-photo-remove" x-show="imagePreview" x-cloak
+                                        x-on:click.stop="removeImage()" aria-label="Remover foto da forma" title="Remover foto">×</button>
+                                </div>
                             </div>
                         </section>
 
+                        {{-- V51: vínculo de feitiço com seletor dedicado --}}
+                        <section class="ct-v51-activation">
+                            <div class="ct-v52-step-head">
+                                <h3 class="ct-v52-step-title">Ativação</h3>
+                            </div>
+                            <div class="ct-v51-switch" role="group" aria-label="Ativação da forma">
+                                <button type="button" x-on:click="form.casting_time='none';form.linked_spell_id=null"
+                                    :aria-pressed="form.casting_time !== 'spell'" :class="{'is-active': form.casting_time !== 'spell'}">Manual</button>
+                                <button type="button" x-on:click="form.casting_time='spell';form.requires_concentration=true"
+                                    :aria-pressed="form.casting_time === 'spell'" :class="{'is-active': form.casting_time === 'spell'}">Vincular feitiço</button>
+                            </div>
+                            <div x-show="form.casting_time === 'spell'" x-cloak>
+                                <button type="button" class="ct-v51-linked-selection" x-on:click.stop="openSpellPicker()">
+                                    <span class="ct-v51-linked-icon ct-v55-linked-art" aria-hidden="true">
+                                        <img x-show="selectedLinkedSpell?.image_url && !selectedLinkedSpell?._imageFailed" x-cloak
+                                            :src="selectedLinkedSpell?.image_url || null" alt="" loading="lazy"
+                                            x-on:error="if (selectedLinkedSpell) selectedLinkedSpell._imageFailed = true">
+                                        <span x-show="!selectedLinkedSpell?.image_url || selectedLinkedSpell?._imageFailed" x-text="selectedLinkedSpell ? (Number(selectedLinkedSpell.level) === 0 ? 'T' : selectedLinkedSpell.level) : '✧'"></span>
+                                    </span>
+                                    <span class="ct-v51-linked-copy">
+                                        <strong x-text="selectedLinkedSpell?.name || 'Escolher feitiço do Grimório'"></strong>
+                                        <small x-text="selectedLinkedSpell ? (selectedLinkedSpell.level === 0 ? 'Truque' : selectedLinkedSpell.level + 'º círculo') + ' · Concentração' : 'Selecione a magia que ativa esta forma'"></small>
+                                    </span>
+                                    <span class="ct-v51-linked-arrow" aria-hidden="true">›</span>
+                                </button>
+                                <p class="ct-v51-helper" x-show="linkedSpells.length === 0">Nenhum feitiço de concentração encontrado no Grimório.</p>
+                                <p class="ct-v51-helper" x-show="linkedSpells.length > 0">Ao conjurar, você poderá assumir esta forma. A concentração será a mesma da magia.</p>
+                            </div>
+                            <div class="ct-v54-duration">
+                                <button x-show="form.casting_time !== 'spell'" x-cloak type="button" @click="form.requires_concentration = !form.requires_concentration"
+                                    class="ct-v50-check" :aria-pressed="form.requires_concentration ? 'true' : 'false'">
+                                    <span class="character-transformations-v14-switch" :class="{ 'is-active': form.requires_concentration }"></span>
+                                    <span>Exige concentração</span>
+                                </button>
+                                <label class="ct-v50-duration-label">
+                                    <span class="character-transformations-v14-label">Duração da forma</span>
+                                    <select x-model="form.duration_type" class="character-transformations-v14-select">
+                                        <option value="indefinite">Até encerrar</option>
+                                        <option value="rounds">Rodadas fixas</option>
+                                        <option value="minutes">Minutos fixos</option>
+                                        <option value="hours">Horas fixas</option>
+                                        <option value="dice">Por dados</option>
+                                    </select>
+                                </label>
+                                <label x-show="!['indefinite','dice'].includes(form.duration_type)" x-cloak class="ct-v50-duration-label">
+                                    <span class="character-transformations-v14-label">Quantidade</span>
+                                    <input type="number" min="1" max="1000000" x-model.number="form.duration_value" class="character-transformations-v14-input">
+                                </label>
+                                <label x-show="form.duration_type === 'dice'" x-cloak class="ct-v50-duration-label">
+                                    <span class="character-transformations-v14-label">Fórmula · em rodadas</span>
+                                    <input type="text" maxlength="14" spellcheck="false" placeholder="2d6+1"
+                                        x-model="form.duration_formula" class="character-transformations-v14-input" autocomplete="off">
+                                </label>
+                                <small x-show="form.duration_type === 'dice'" x-cloak class="ct-v54-duration-hint">Ao transformar, role os dados na tela ou informe o resultado obtido na mesa.</small>
+                            </div>
+                        </section>
 
+                        <details class="ct-v50-advanced character-transformations-v14-section">
+                            <summary>Regras opcionais <span>Gatilhos, usos e exaustão</span></summary>
                         {{-- ESPECIAL --}}
                         <section class="character-transformations-v14-section">
                             <button
@@ -7075,6 +7376,8 @@
                         </section>
 
 
+                        </details>
+
                         <div
                             x-show="saveError"
                             x-cloak
@@ -7143,6 +7446,272 @@
             </div>
         </template>
 
+
+        {{-- Modal próprio: cofre de criaturas --}}
+        <template x-teleport="body">
+            <div x-show="npcPickerOpen" x-cloak class="ct-v50-overlay character-sheet-theme" data-theme="{{ $characterTheme }}"
+                role="dialog" aria-modal="true" aria-label="Escolher criatura do Cofre">
+                <div class="character-transformations-v14-backdrop absolute inset-0" @click="npcPickerOpen = false"></div>
+                <div class="ct-v50-picker character-transformations-v14-create-modal">
+                    <header class="ct-v50-picker-head">
+                        <div><p class="ct-v50-kicker">Cofre</p><h2>Escolher criatura</h2></div>
+                        <button type="button" @click="npcPickerOpen = false" aria-label="Fechar">×</button>
+                    </header>
+                    <div class="ct-v50-picker-body">
+                        <div class="ct-v51-picker-search"><span aria-hidden="true">⌕</span><input type="search" x-model="monsterSearch" placeholder="Pesquisar no Cofre..." class="character-transformations-v14-input"></div>
+                        <p class="ct-v50-picker-empty" x-show="npcs.length === 0">O Cofre não possui criaturas disponíveis.</p>
+                        <p class="ct-v50-picker-empty" x-show="npcs.length > 0 && filteredNpcs.length === 0">Nenhuma criatura corresponde à pesquisa.</p>
+                        <p class="ct-v51-picker-note" x-show="npcs.some(n => !n.supported)">Criaturas em formato externo aparecem para consulta, mas só fichas compatíveis podem ser escolhidas.</p>
+                            <div
+                                x-show="npcs.length > 0"
+                                x-cloak
+                                class="character-transformations-v14-npc-list"
+                            >
+                                <template
+                                    x-for="npc in filteredNpcs"
+                                    :key="npc.id"
+                                >
+                                    <button
+                                        type="button"
+                                        @click="selectNpc(npc.id)"
+                                        :disabled="!npc.supported"
+                                        :title="npc.supported ? 'Selecionar ' + npc.name : 'Formato ainda não aceito para transformações'"
+                                        class="character-transformations-v14-npc"
+                                        :class="{
+                                            'is-active':
+                                                Number(form.source_npc_id)
+                                                === Number(npc.id),
+
+                                            'is-unsupported':
+                                                !npc.supported
+                                        }"
+                                    >
+                                        <span class="character-transformations-v14-npc-image">
+                                            <template x-if="npc.image_url">
+                                                <img
+                                                    :src="npc.image_url"
+                                                    alt=""
+                                                >
+                                            </template>
+
+                                            <template x-if="!npc.image_url">
+                                                <svg
+                                                    class="h-4 w-4"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="1.5"
+                                                    aria-hidden="true"
+                                                >
+                                                    <path d="M6.5 8.5 9 5l3 2 3-2 2.5 3.5V15L12 19l-5.5-4V8.5Z" />
+                                                </svg>
+                                            </template>
+                                        </span>
+
+                                        <span class="min-w-0">
+                                            <span
+                                                class="
+                                                    block
+                                                    truncate
+                                                    font-serif
+                                                    text-[12px]
+                                                    font-black
+                                                    text-[#53150f]
+                                                "
+                                                x-text="npc.name"
+                                            ></span>
+
+                                            <span
+                                                class="
+                                                    mt-1
+                                                    block
+                                                    text-[9px]
+                                                    font-bold
+                                                    text-[#755847]
+                                                "
+                                                x-text="
+                                                    npc.challenge_rating !== null
+                                                        && npc.challenge_rating !== undefined
+                                                        ? `ND ${npc.challenge_rating}`
+                                                        : 'Criatura'
+                                                "
+                                            ></span>
+
+                                            <span
+                                                class="character-transformations-v14-format-badge"
+                                                :class="{
+                                                    'unsupported':
+                                                        !npc.supported
+                                                }"
+                                                x-text="npc.format_label"
+                                            ></span>
+                                        </span>
+                                    </button>
+                                </template>
+                            </div>
+
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        {{-- V51: seletor pesquisável de magias, aberto sobre a criação. --}}
+        <template x-teleport="body">
+            <div x-show="spellPickerOpen" x-cloak class="ct-v50-overlay character-sheet-theme" data-theme="{{ $characterTheme }}"
+                role="dialog" aria-modal="true" aria-label="Escolher feitiço do Grimório">
+                <div class="character-transformations-v14-backdrop absolute inset-0" x-on:click="spellPickerOpen=false"></div>
+                <div class="ct-v50-picker character-transformations-v14-create-modal" x-on:click.stop>
+                    <header class="ct-v50-picker-head">
+                        <div><p class="ct-v50-kicker">Grimório</p><h2>Vincular feitiço</h2></div>
+                        <button type="button" x-on:click="spellPickerOpen=false" aria-label="Fechar seleção de feitiço">×</button>
+                    </header>
+                    <div class="ct-v50-picker-body">
+                        <div class="ct-v51-picker-search"><span aria-hidden="true">⌕</span>
+                            <input type="search" x-model="spellSearch" class="character-transformations-v14-input" placeholder="Pesquisar magias conhecidas...">
+                        </div>
+                        <div class="ct-v51-picker-list" x-show="filteredLinkedSpells.length > 0" x-cloak>
+                            <template x-for="spell in filteredLinkedSpells" :key="'linked-spell-' + spell.id">
+                                <button type="button" class="ct-v51-spell-row"
+                                    :class="{'is-active': Number(form.linked_spell_id) === Number(spell.id)}"
+                                    x-on:click="selectLinkedSpell(spell.id)">
+                                    <span class="ct-v51-spell-level ct-v55-picker-art" aria-hidden="true">
+                                        <img x-show="spell.image_url && !spell._imageFailed" x-cloak :src="spell.image_url || null"
+                                            loading="lazy" alt="" x-on:error="spell._imageFailed = true">
+                                        <span x-show="!spell.image_url || spell._imageFailed" x-text="Number(spell.level) === 0 ? 'T' : spell.level"></span>
+                                    </span>
+                                    <span class="ct-v51-spell-row-copy">
+                                        <strong x-text="spell.name"></strong>
+                                        <small x-text="(Number(spell.level) === 0 ? 'Truque' : spell.level + 'º círculo') + ' · Concentração'"></small>
+                                    </span>
+                                    <span class="ct-v51-selection-mark" x-show="Number(form.linked_spell_id) === Number(spell.id)" aria-hidden="true">✓</span>
+                                </button>
+                            </template>
+                        </div>
+                        <p class="ct-v50-picker-empty" x-show="filteredLinkedSpells.length === 0"
+                            x-text="linkedSpells.length === 0 ? 'Nenhuma magia de concentração no Grimório. Adicione uma magia primeiro.' : 'Nenhuma magia corresponde à pesquisa.'"></p>
+                        <p class="ct-v51-picker-note">A transformação compartilha a concentração da magia escolhida. Não consome outro espaço de magia.</p>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        {{-- O feitiço já foi conjurado; não há novo consumo de slot. --}}
+        <template x-teleport="body">
+            <div x-show="castTransformationPrompt" x-cloak class="ct-v50-overlay character-sheet-theme" data-theme="{{ $characterTheme }}"
+                role="dialog" aria-modal="true" aria-label="Transformar após conjuração">
+                <div class="character-transformations-v14-backdrop absolute inset-0" @click="castTransformationPrompt = null"></div>
+                <div class="ct-v50-confirm character-transformations-v14-create-modal" @click.stop>
+                    <p class="ct-v50-kicker">Feitiço conjurado</p>
+                    <h2 x-text="castTransformationPrompt?.name || 'Nova forma'"></h2>
+                    <p>Deseja assumir esta transformação agora? Ela usa a mesma concentração do feitiço que você acabou de lançar.</p>
+                    <div x-show="castTransformationMatches.length > 1" x-cloak class="ct-v50-cast-choices">
+                        <template x-for="form in castTransformationMatches" :key="form.id">
+                            <button type="button" @click="castTransformationPrompt = form"
+                                :class="{ 'is-selected': castTransformationPrompt?.id === form.id }"
+                                x-text="form.name"></button>
+                        </template>
+                    </div>
+                    <p class="character-transformations-v14-error" x-show="castTransformationError" x-text="castTransformationError"></p>
+                    <div class="ct-v50-confirm-actions">
+                        <button type="button" class="ct-v50-light-button" @click="castTransformationPrompt = null">Agora não</button>
+                        <button type="button" class="character-transformations-v14-create-button" :disabled="actingId !== null"
+                            @click="confirmLinkedTransformation()" x-text="actingId !== null ? 'Transformando...' : 'Transformar agora'"></button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        {{-- V54: resultado de duração escolhido antes de ativar e gastar usos. --}}
+        <template x-teleport="body">
+            <div x-show="durationModalOpen" x-cloak class="ct-v50-overlay ct-v54-overlay character-sheet-theme"
+                data-theme="{{ $characterTheme }}" role="dialog" aria-modal="true" aria-label="Duração da transformação">
+                <div class="character-transformations-v14-backdrop absolute inset-0" @click="closeDurationModal()"></div>
+                <section class="ct-v54-roll-modal" @click.stop>
+                    <header class="ct-v54-roll-head">
+                        <div><small>Transformação</small><h2>Duração da forma</h2>
+                            <p x-text="durationCandidate?.name || ''"></p></div>
+                        <button type="button" title="Fechar" aria-label="Fechar" :disabled="durationRollBusy || actingId !== null" @click="closeDurationModal()">×</button>
+                    </header>
+                    <div class="ct-v54-roll-body">
+                        <p class="ct-v54-expression" x-text="(durationCandidate?.duration_formula || '') + ' rodadas'"></p>
+                        <div class="ct-v54-dice-row" x-show="durationRollMode === 'automatic'" :class="{'is-animating': durationRollBusy}">
+                            <template x-for="(face, index) in durationDieFaces" :key="index">
+                                <div class="ct-v54-die-cell">
+                                    <template x-if="durationParts?.sides === 4"><x-ui.poly-die :sides="4" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                    <template x-if="durationParts?.sides === 6"><x-ui.poly-die :sides="6" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                    <template x-if="durationParts?.sides === 8"><x-ui.poly-die :sides="8" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                    <template x-if="durationParts?.sides === 10"><x-ui.poly-die :sides="10" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                    <template x-if="durationParts?.sides === 12"><x-ui.poly-die :sides="12" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                    <template x-if="durationParts?.sides === 20"><x-ui.poly-die :sides="20" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                    <template x-if="durationParts?.sides === 100"><x-ui.poly-die :sides="100" :size="76" x-bind:class="durationRollBusy ? 'is-rolling' : (durationRollResult !== null ? 'is-landed' : '')"><span x-text="face"></span></x-ui.poly-die></template>
+                                </div>
+                            </template>
+                            <span class="ct-v54-modifier" x-show="durationParts?.modifier" x-text="durationParts?.modifier > 0 ? '+' + durationParts.modifier : durationParts?.modifier"></span>
+                        </div>
+                        <div class="ct-v54-result" x-show="durationRollMode === 'automatic'" x-cloak>
+                            <small x-text="durationRollBusy ? 'Rolando…' : 'Total'"></small>
+                            <strong x-text="durationRollBusy ? '···' : (durationRollResult ?? '—')"></strong>
+                            <span>rodadas</span>
+                        </div>
+                        <label x-show="durationRollMode === 'manual'" x-cloak class="ct-v54-manual">
+                            <span>Resultado dos dados lançados na mesa</span>
+                            <input type="number" step="1" min="1" max="10000" x-model="durationManualValue" placeholder="Informe o total" class="character-transformations-v14-input" inputmode="numeric">
+                        </label>
+                        <p class="ct-v54-roll-error" x-show="durationRollError" x-cloak x-text="durationRollError"></p>
+
+                    </div>
+                    <footer class="ct-v54-roll-actions">
+                        <button type="button" class="ct-v50-light-button" :disabled="durationRollBusy || actingId !== null"
+                            @click="durationRollMode === 'automatic' ? (durationRollMode = 'manual') : (durationRollMode = 'automatic')"
+                            x-text="durationRollMode === 'automatic' ? 'Rolar na mesa' : 'Resultado automático'"></button>
+                        <button type="button" class="ct-v50-light-button" :disabled="durationRollBusy || actingId !== null"
+                            x-show="durationRollMode === 'automatic'" @click="rollDurationDice()">Rolar novamente</button>
+                        <button type="button" class="character-transformations-v14-create-button"
+                            :disabled="durationRollBusy || actingId !== null || (durationRollMode === 'automatic' && durationRollResult === null)"
+                            @click="applyDurationRoll()" x-text="actingId !== null ? 'Transformando…' : 'Usar resultado'"></button>
+                    </footer>
+                </section>
+            </div>
+        </template>
+
+        {{-- O acesso rápido está no trilho original do show.blade.php;
+             este componente fornece o mesmo modal por evento. --}}
+
+        {{-- Modal compartilhável futuramente com efeitos e habilidades. --}}
+        <template x-teleport="body">
+            <div x-show="roundModalOpen" x-cloak class="ct-form-round-backdrop character-sheet-theme" data-theme="{{ $characterTheme }}" @click.self="roundModalOpen = false"
+                @keydown.escape.window="roundModalOpen = false">
+                <section class="ct-form-round-modal" role="dialog" aria-modal="true" aria-label="Acompanhamento de rodadas">
+                    <header class="ct-form-round-header">
+                        <div><small>Iniciativa · Acompanhamento</small>
+                        <h2 x-text="active?.name || 'Transformação'"></h2></div>
+                        <button type="button" @click="roundModalOpen = false" aria-label="Fechar">×</button>
+                    </header>
+                    <div class="ct-form-round-body">
+                        <p class="ct-form-round-combat" x-text="roundInfo.combat_name || 'Sem combate associado'"></p>
+                        <div class="ct-form-round-grid">
+                            <div><small>Rodada atual</small><strong x-text="roundInfo.current_round ?? '—'"></strong></div>
+                            <div><small>Começou na</small><strong x-text="roundInfo.started_round ?? '—'"></strong></div>
+                            <div><small>Rodadas decorridas</small><strong x-text="roundInfo.elapsed_rounds ?? (roundInfo.current_round != null && roundInfo.started_round != null ? Math.max(0, roundInfo.current_round - roundInfo.started_round) : '—')"></strong></div>
+                            <div><small>Restantes</small><strong x-text="roundInfo.duration_remaining == null ? '∞' : roundInfo.duration_remaining"></strong></div>
+                        </div>
+                        <p class="ct-form-round-detail" x-show="roundInfo.combat_active && roundInfo.current_turn != null"
+                            x-text="`Turno atual da iniciativa: ${Number(roundInfo.current_turn) + 1}${roundInfo.initiative != null ? ' · Sua iniciativa: ' + roundInfo.initiative : ''}`"></p>
+                        <p class="ct-form-round-detail" x-show="!roundInfo.combat_active">Contagem pausada: é necessário um combate ativo para avançar rodadas.</p>
+                        <div class="ct-form-round-concentration" :class="active?.requires_concentration ? 'is-active' : 'is-inactive'">
+                            <span class="ct-form-round-concentration-dot" aria-hidden="true"></span>
+                            <span x-text="active?.requires_concentration ? 'Concentração ativa — mantenha os salvamentos de Constituição após sofrer dano.' : 'Esta transformação não exige concentração.'"></span>
+                        </div>
+                        <p class="ct-form-round-error" x-show="roundError" x-text="roundError"></p>
+                    </div>
+                    <footer class="ct-form-round-footer">
+                        <button type="button" @click="refreshRoundInfo()" :disabled="roundLoading"
+                            x-text="roundLoading ? 'Atualizando...' : 'Atualizar'"></button>
+                        <button type="button" @click="roundModalOpen = false">Fechar</button>
+                    </footer>
+                </section>
+            </div>
+        </template>
 
         @if (
             $activeTransformation

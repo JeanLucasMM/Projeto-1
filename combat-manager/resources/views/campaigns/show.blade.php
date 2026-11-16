@@ -698,7 +698,10 @@
                                                 "
                                             >
                                                 <a
-                                                    href="{{ route('characters.show', $character) }}"
+                                                    href="{{ route('characters.show', [
+                                                        'character' => $character,
+                                                        'campaign_id' => $campaign->id,
+                                                    ]) }}"
                                                     class="
                                                         rounded-lg
                                                         bg-[#6b1d14]
@@ -1311,7 +1314,10 @@
 
                             @if($myActiveCharacters->isNotEmpty())
                                 <a
-                                    href="{{ route('characters.show', $myActiveCharacters->first()) }}"
+                                    href="{{ route('characters.show', [
+                                        'character' => $myActiveCharacters->first(),
+                                        'campaign_id' => $campaign->id,
+                                    ]) }}"
                                     class="
                                         mt-4
                                         inline-flex

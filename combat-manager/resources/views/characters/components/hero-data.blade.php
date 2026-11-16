@@ -123,34 +123,74 @@
     }
 
     /*
-
     |--------------------------------------------------------------------------
-
-    | EXPERIÊNCIA
-
+    | EXPERIÊNCIA DA CAMPANHA
     |--------------------------------------------------------------------------
-
+    |
+    | XP pertence ao Character original dentro da campanha.
+    | Formas/transformações podem trocar a ficha mecânica, mas não criam
+    | progressão paralela de experiência.
+    |
     */
 
     $xpEnabled = (bool) (
-
-        $mechanicalCharacter->experience_enabled
-
-        ?? $mechanicalCharacter->xp_enabled
-
+        $character->campaign_experience_enabled
         ?? false
-
     );
 
-    $experience =
+    $experience = $xpEnabled
+        ? max(
+            0,
+            (int) (
+                $character->campaign_experience_points
+                ?? 0
+            )
+        )
+        : null;
 
-        $mechanicalCharacter->experience
+    $experienceCampaignName = $xpEnabled
+        ? (
+            $character->campaign_experience_name
+            ?? null
+        )
+        : null;
 
-        ?? $mechanicalCharacter->experience_points
+    $experienceLevel =
+        max(
+            1,
+            min(
+                \App\Support\CharacterExperience::MAX_LEVEL,
+                (int) ($character->level ?? 1)
+            )
+        );
 
-        ?? $mechanicalCharacter->xp
+    $experienceProgress =
+        $xpEnabled
+            ? (
+                is_array(
+                    $character->campaign_experience_progress
+                    ?? null
+                )
+                    ? $character->campaign_experience_progress
+                    : \App\Support\CharacterExperience::progress(
+                        $experienceLevel,
+                        (int) ($experience ?? 0)
+                    )
+            )
+            : null;
 
-        ?? null;
+    // Circunferência real do anel SVG; sempre proporcional ao XP do nível.
+    $xpRingPercent = max(0.0, min(100.0, (float) ($experienceProgress['percent'] ?? 0)));
+    $xpRingCircumference = 2 * pi() * 20;
+    $xpRingOffset = $xpRingCircumference * (1 - ($xpRingPercent / 100));
+    $xpRingAngle = deg2rad($xpRingPercent * 3.6);
+    $xpRingHeadX = 24 + 20 * sin($xpRingAngle);
+    $xpRingHeadY = 24 - 20 * cos($xpRingAngle);
+    $xpRingGradientId = 'hero-xp-ring-' . (int) $character->getKey() . '-' . (int) $mechanicalCharacter->getKey();
+
+    $experienceCanLevelUp = $xpEnabled
+        && !($experienceProgress['max_level'] ?? true)
+        && (bool) ($experienceProgress['ready_for_next_level'] ?? false);
 
     $sheetSettings =
 
@@ -1271,6 +1311,519 @@
                 }
             }
 
+
+
+            /*
+            |--------------------------------------------------------------------------
+            | EXPERIÊNCIA — PROGRESSÃO D&D 1–20
+            |--------------------------------------------------------------------------
+            */
+
+            .character-sheet-theme[data-theme] {
+                --hero-xp-gold: #c69a47;
+                --hero-xp-gold-strong: #8a611d;
+
+                /*
+                 * O dourado da experiência continua presente, mas se adapta ao
+                 * accent do tema para não parecer um elemento estranho.
+                 */
+                --hero-xp-ring:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 72%,
+                        var(--theme-accent-strong) 28%
+                    );
+
+                --hero-xp-ring-strong:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold-strong) 62%,
+                        var(--theme-accent-strong) 38%
+                    );
+
+                --hero-xp-ring-bright:
+                    color-mix(
+                        in srgb,
+                        #f7e0a4 54%,
+                        var(--hero-xp-ring) 46%
+                    );
+
+                --hero-xp-gold-soft:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-ring) 32%,
+                        transparent
+                    );
+
+                --hero-xp-track:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-ring) 24%,
+                        var(--theme-border-strong) 76%
+                    );
+
+                --hero-xp-track-inner:
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-raised) 72%,
+                        var(--hero-xp-ring) 28%
+                    );
+            }
+
+            .character-sheet-theme:is(
+                [data-theme="midnight"],
+                [data-theme="obsidian"]
+            ) {
+                --hero-xp-gold: #e0bc70;
+                --hero-xp-gold-strong: #f0d28f;
+
+                --hero-xp-ring:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 82%,
+                        var(--theme-accent-strong) 18%
+                    );
+
+                --hero-xp-ring-strong:
+                    var(--hero-xp-gold-strong);
+
+                --hero-xp-ring-bright:
+                    color-mix(
+                        in srgb,
+                        #ffe8ad 68%,
+                        var(--hero-xp-ring) 32%
+                    );
+
+                --hero-xp-track:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-ring) 30%,
+                        var(--theme-border-strong) 70%
+                    );
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-level-badge--xp {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-ring) 66%,
+                        var(--theme-border) 34%
+                    ) !important;
+
+                background:
+                    linear-gradient(
+                        180deg,
+                        color-mix(in srgb, var(--theme-surface-raised) 92%, #ffffff 8%),
+                        var(--theme-surface-raised)
+                    ) !important;
+
+                color:
+                    var(--theme-text-strong) !important;
+
+                box-shadow:
+                    0 0 0 2px
+                    color-mix(
+                        in srgb,
+                        var(--theme-surface-raised) 94%,
+                        transparent
+                    ),
+                    0 0 0 4px
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-ring) 28%,
+                        transparent
+                    ),
+                    0 4px 14px
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-ring) 18%,
+                        transparent
+                    ) !important;
+
+                cursor:
+                    pointer;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-level-badge--xp:hover {
+                border-color:
+                    var(--hero-xp-ring-bright) !important;
+
+                background:
+                    var(--theme-card-hover) !important;
+
+                transform:
+                    translateY(-1px);
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-level-ring {
+                position: absolute;
+                inset: -4px;
+                border-radius: 999px;
+                background:
+                    radial-gradient(
+                        circle at center,
+                        transparent calc(100% - 6px),
+                        var(--hero-xp-track-inner) calc(100% - 6px),
+                        var(--hero-xp-track-inner) calc(100% - 4px),
+                        transparent calc(100% - 4px)
+                    ),
+                    conic-gradient(
+                        from -90deg,
+                        var(--hero-xp-ring-bright) 0deg,
+                        var(--hero-xp-ring) calc(var(--hero-xp-progress-angle, 0deg) * .72),
+                        var(--hero-xp-ring-strong) var(--hero-xp-progress-angle, 0deg),
+                        var(--hero-xp-track) var(--hero-xp-progress-angle, 0deg),
+                        var(--hero-xp-track) 360deg
+                    );
+
+                -webkit-mask:
+                    radial-gradient(
+                        farthest-side,
+                        transparent calc(100% - 5px),
+                        #000 calc(100% - 4px)
+                    );
+
+                mask:
+                    radial-gradient(
+                        farthest-side,
+                        transparent calc(100% - 5px),
+                        #000 calc(100% - 4px)
+                    );
+
+                pointer-events: none;
+                filter:
+                    drop-shadow(0 0 4px var(--hero-xp-gold-soft));
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-level-progress-head {
+                position: absolute;
+                inset: -4px;
+                border-radius: 999px;
+                pointer-events: none;
+                transform: rotate(var(--hero-xp-progress-angle, 0deg));
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-level-progress-head::after {
+                content: "";
+                position: absolute;
+                left: 50%;
+                top: 1px;
+                width: 6px;
+                height: 6px;
+                border-radius: 999px;
+                transform: translateX(-50%);
+                background:
+                    radial-gradient(circle at 35% 35%, #fff9eb 0%, var(--hero-xp-ring-bright) 36%, var(--hero-xp-ring-strong) 100%);
+                box-shadow:
+                    0 0 0 2px var(--theme-surface-raised),
+                    0 0 9px color-mix(in srgb, var(--hero-xp-ring) 48%, transparent);
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-progress {
+                overflow: hidden;
+                border:
+                    1px solid
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 26%,
+                        var(--theme-border) 74%
+                    );
+                background:
+                    var(--theme-surface-inset);
+                box-shadow:
+                    inset 0 1px 2px rgba(0,0,0,.08);
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-progress-fill {
+                height: 100%;
+                border-radius: inherit;
+                background:
+                    linear-gradient(
+                        90deg,
+                        color-mix(
+                            in srgb,
+                            var(--hero-xp-ring-strong) 86%,
+                            #6a4616 14%
+                        ),
+                        var(--hero-xp-ring),
+                        color-mix(
+                            in srgb,
+                            var(--hero-xp-gold) 76%,
+                            #f8df9c 24%
+                        )
+                    );
+                box-shadow:
+                    0 0 7px var(--hero-xp-gold-soft);
+            }
+
+            /*
+             * O modal de XP é um portal global. Ele não pode participar do
+             * stacking context da ficha nem ficar escondido sob drawers.
+             */
+            .character-sheet-theme[data-theme].hero-data-xp-modal-layer {
+                position: fixed !important;
+                inset: 0 !important;
+                z-index: 9999 !important;
+                isolation: isolate;
+            }
+
+            .character-sheet-theme[data-theme].hero-data-xp-modal-layer
+            .character-theme-modal-backdrop {
+                position: absolute !important;
+                inset: 0 !important;
+                z-index: 0 !important;
+
+                background:
+                    var(
+                        --theme-modal-backdrop,
+                        rgba(18, 14, 12, .64)
+                    ) !important;
+
+                -webkit-backdrop-filter:
+                    blur(4px);
+
+                backdrop-filter:
+                    blur(4px);
+            }
+
+            .character-sheet-theme[data-theme].hero-data-xp-modal-layer
+            .hero-data-xp-modal {
+                position: relative !important;
+                z-index: 2 !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal {
+                width: min(520px, calc(100vw - 28px));
+                overflow: hidden;
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+                background:
+                    var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                color:
+                    var(--theme-modal-text, var(--theme-text-primary)) !important;
+                box-shadow:
+                    var(--theme-modal-shadow, 0 28px 80px rgba(0,0,0,.30)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal-header {
+                border-color:
+                    var(--theme-modal-border, var(--theme-border)) !important;
+
+                background:
+                    var(
+                        --theme-modal-header-background,
+                        var(--theme-band-background)
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal {
+                border-top:
+                    3px solid
+                    var(--hero-xp-ring) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal-kicker,
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal-label {
+                color:
+                    var(--theme-modal-label, var(--theme-label)) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal-title,
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal-value {
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-modal-copy {
+                color:
+                    var(--theme-text-secondary) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-level-seal {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 40%,
+                        var(--theme-border) 60%
+                    ) !important;
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 10%,
+                        var(--theme-surface-raised) 90%
+                    ) !important;
+                box-shadow:
+                    inset 0 0 0 2px var(--theme-surface-raised),
+                    inset 0 0 0 3px color-mix(in srgb, var(--hero-xp-gold) 18%, transparent),
+                    0 3px 9px color-mix(in srgb, var(--hero-xp-gold) 12%, transparent);
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-stat {
+                border-color:
+                    var(--theme-border) !important;
+                background:
+                    var(--theme-surface-card) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-highlight {
+                border-color:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 34%,
+                        var(--theme-border) 66%
+                    ) !important;
+                background:
+                    color-mix(
+                        in srgb,
+                        var(--hero-xp-gold) 9%,
+                        var(--theme-surface-inset) 91%
+                    ) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-gold {
+                color:
+                    var(--hero-xp-gold-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-close {
+                border:
+                    1px solid var(--theme-border);
+                background:
+                    var(--theme-surface-raised) !important;
+                color:
+                    var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .hero-data-xp-close:hover {
+                background:
+                    var(--theme-card-hover) !important;
+            }
+
+            @media (max-width: 520px) {
+                .character-sheet-theme[data-theme]
+                .hero-data-xp-modal {
+                    width: calc(100vw - 20px);
+                    border-radius: 15px;
+                }
+            }
+
+
+            .character-sheet-theme[data-theme] .hero-data-xp-level-action {
+                border: 1px solid color-mix(in srgb, var(--hero-xp-ring) 73%, var(--theme-border));
+                background: color-mix(in srgb, var(--hero-xp-ring) 76%, var(--theme-accent-strong));
+                color: var(--theme-button-text);
+            }
+            .character-sheet-theme[data-theme] .hero-data-xp-level-action:hover {
+                filter: brightness(1.09);
+            }
+            /* XP: progresso apenas na roda; prontidão destacada no retrato. */
+            .character-sheet-theme[data-theme] .hero-data-level-caption {
+                color: var(--theme-label) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-data-level-number {
+                color: var(--theme-text-strong) !important;
+            }
+            @keyframes spellbound-xp-level-ready {
+                0%, 100% {
+                    filter: drop-shadow(0 0 5px color-mix(in srgb, var(--hero-xp-ring) 34%, transparent));
+                }
+                50% {
+                    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--hero-xp-ring-bright) 86%, transparent));
+                }
+            }
+            .character-sheet-theme[data-theme] .hero-data-portrait--level-ready {
+                border-color: var(--hero-xp-ring) !important;
+                box-shadow:
+                    0 0 0 2px color-mix(in srgb, var(--hero-xp-ring) 58%, transparent),
+                    0 0 20px color-mix(in srgb, var(--hero-xp-ring) 34%, transparent) !important;
+                animation: spellbound-xp-level-ready 2.2s ease-in-out infinite;
+            }
+            .character-sheet-theme[data-theme] .hero-data-level-badge--ready {
+                border-color: var(--hero-xp-ring-bright) !important;
+                box-shadow:
+                    0 0 0 2px var(--theme-surface-raised),
+                    0 0 0 5px color-mix(in srgb, var(--hero-xp-ring) 62%, transparent),
+                    0 0 24px color-mix(in srgb, var(--hero-xp-ring-bright) 44%, transparent) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-data-level-ready-cta {
+                border-color: color-mix(in srgb, var(--hero-xp-ring) 68%, var(--theme-border));
+                background: color-mix(in srgb, var(--hero-xp-ring) 17%, var(--theme-surface-card));
+                color: var(--theme-text-strong);
+                box-shadow: 0 0 12px color-mix(in srgb, var(--hero-xp-ring) 23%, transparent);
+            }
+            .character-sheet-theme[data-theme] .hero-data-level-ready-cta:hover {
+                background: color-mix(in srgb, var(--hero-xp-ring) 28%, var(--theme-surface-card));
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .character-sheet-theme[data-theme] .hero-data-portrait--level-ready { animation: none !important; }
+            }
+
+            /* Anel do XP: duas linhas nítidas e arco SVG preciso em todos os temas. */
+            .character-sheet-theme[data-theme] .hero-data-xp-ring-svg {
+                position: absolute;
+                inset: -6px;
+                width: calc(100% + 12px);
+                height: calc(100% + 12px);
+                overflow: visible;
+                pointer-events: none;
+                filter: drop-shadow(0 0 2.3px color-mix(in srgb, var(--hero-xp-ring) 32%, transparent));
+            }
+            .character-sheet-theme[data-theme] .hero-data-xp-ring-track {
+                fill: none;
+                stroke: var(--hero-xp-track);
+                stroke-width: 4.2;
+                opacity: .98;
+            }
+            .character-sheet-theme[data-theme] .hero-data-xp-ring-fill {
+                fill: none;
+                stroke-width: 4.2;
+                stroke-linecap: round;
+                transform: rotate(-90deg);
+                transform-origin: 24px 24px;
+                transition: stroke-dashoffset .55s ease;
+                filter: drop-shadow(0 0 1.4px color-mix(in srgb, var(--hero-xp-ring) 64%, transparent));
+            }
+            .character-sheet-theme[data-theme] .hero-data-xp-ring-head {
+                fill: var(--hero-xp-ring-bright);
+                stroke: var(--theme-surface-raised);
+                stroke-width: 1.25;
+                filter: drop-shadow(0 0 2.4px var(--hero-xp-ring));
+            }
+            .character-sheet-theme[data-theme] .hero-data-level-badge--xp {
+                border-color: color-mix(in srgb, var(--hero-xp-ring) 46%, var(--theme-border) 54%) !important;
+                box-shadow: 0 0 0 1.5px var(--theme-surface-raised),
+                            0 0 0 2.7px color-mix(in srgb, var(--hero-xp-ring) 28%, transparent),
+                            0 3px 11px color-mix(in srgb, var(--hero-xp-ring) 22%, transparent) !important;
+            }
+            .character-sheet-theme[data-theme] .hero-data-level-badge--ready {
+                box-shadow: 0 0 0 2px var(--theme-surface-raised),
+                            0 0 0 4px color-mix(in srgb, var(--hero-xp-ring) 72%, transparent),
+                            0 0 18px color-mix(in srgb, var(--hero-xp-ring-bright) 50%, transparent) !important;
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .character-sheet-theme[data-theme] .hero-data-xp-ring-fill { transition: none; }
+            }
         </style>
     @endpush
 @endonce
@@ -1343,7 +1896,7 @@
 
                             detail: {
 
-                                tab: 'themes'
+                                tab: 'identity'
 
                             }
 
@@ -1358,6 +1911,7 @@
             class="
 
                 hero-data-portrait
+                @if ($experienceCanLevelUp) hero-data-portrait--level-ready @endif
 
                 group
 
@@ -1479,9 +2033,9 @@
 
                             w-full
 
-                            object-cover
+                            object-contain
 
-                            object-top
+                            object-center
 
                             transition-all
 
@@ -1843,224 +2397,187 @@
 
         {{-- ========================================================
 
-             NÍVEL
-
-        ========================================================= --}}
-
-        <div
-
-            class="
-
-                hero-data-level-badge
-
-                absolute
-
-                right-2
-
-                top-2
-
-                z-30
-
-                flex
-
-                h-[40px]
-
-                w-[40px]
-
-                items-center
-
-                justify-center
-
-                rounded-full
-
-                border
-
-                border-[#cdbb9f]/80
-
-                bg-[#fffaf4]/95
-
-                shadow-[0_2px_6px_rgba(83,21,15,.06)]
-
-            "
-
-        >
-
-            <div
-
-                class="
-
-                    hero-data-level-content
-
-                    relative
-
-                    z-10
-
-                    flex
-
-                    flex-col
-
-                    items-center
-
-                    justify-center
-
-                "
-
-            >
-
-                <span
-
-                    class="
-
-                        text-[5px]
-
-                        font-black
-
-                        uppercase
-
-                        leading-none
-
-                        tracking-[0.13em]
-
-                        text-[#7d604d]
-
-                    "
-
-                >
-
-                    Nível
-
-                </span>
-
-                <span
-
-                    class="
-
-                        mt-[2px]
-
-                        font-serif
-
-                        text-[16px]
-
-                        font-black
-
-                        leading-none
-
-                        text-[#6b1d14]
-
-                    "
-
-                >
-
-                    {{ $mechanicalCharacter->level }}
-
-                </span>
-
-            </div>
-
-        </div>
-
-
-
-
-
-        {{-- ========================================================
-
-             XP OPCIONAL
+             NÍVEL + PROGRESSO DE EXPERIÊNCIA
 
         ========================================================= --}}
 
         @if ($xpEnabled)
 
-            <div
+            <button
+                type="button"
 
-                class="
-
-                    hero-data-xp-badge
-
-                    absolute
-
-                    right-2
-
-                    top-[48px]
-
-                    z-20
-
-                    flex
-
-                    min-w-[54px]
-
-                    items-center
-
-                    justify-center
-
-                    gap-1
-
-                    rounded-md
-
-                    border
-
-                    border-[#d8c7ab]/70
-
-                    bg-[#faf8f2]
-
-                    px-1.5
-
-                    py-1
-
-                    shadow-[0_2px_5px_rgba(83,21,15,.07)]
-
+                @click.stop="
+                    xpProgressOpen =
+                        true
                 "
 
+                class="
+                    hero-data-level-badge
+                    hero-data-level-badge--xp
+                    @if ($experienceCanLevelUp) hero-data-level-badge--ready @endif
+
+                    absolute
+                    right-2
+                    top-2
+                    z-30
+
+                    flex
+                    h-[36px]
+                    w-[36px]
+                    items-center
+                    justify-center
+
+                    rounded-full
+                    border
+
+                    shadow-[0_2px_6px_rgba(83,21,15,.06)]
+
+                    transition
+                    duration-150
+
+                    focus:outline-none
+                    focus-visible:ring-2
+                    focus-visible:ring-[#b88a3b]/35
+                "
+
+
+
+                title="Abrir progresso de experiência"
+                aria-label="Abrir progresso de experiência"
             >
+                <svg
+                    class="hero-data-xp-ring-svg"
+                    viewBox="0 0 48 48"
+                    aria-hidden="true"
+                    focusable="false"
+                >
+                    <defs>
+                        <linearGradient id="{{ $xpRingGradientId }}" x1="0" y1="0" x2="1" y2="1">
+                            <stop offset="0%" stop-color="var(--hero-xp-ring-bright)" />
+                            <stop offset="62%" stop-color="var(--hero-xp-ring)" />
+                            <stop offset="100%" stop-color="var(--hero-xp-ring-strong)" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="hero-data-xp-ring-track" cx="24" cy="24" r="20" />
+                    <circle
+                        class="hero-data-xp-ring-fill"
+                        cx="24" cy="24" r="20"
+                        stroke="url(#{{ $xpRingGradientId }})"
+                        stroke-dasharray="{{ number_format($xpRingCircumference, 3, '.', '') }}"
+                        stroke-dashoffset="{{ number_format($xpRingOffset, 3, '.', '') }}"
+                    />
+                    @if ($xpRingPercent > 0.1)
+                        <circle
+                            class="hero-data-xp-ring-head"
+                            cx="{{ number_format($xpRingHeadX, 3, '.', '') }}"
+                            cy="{{ number_format($xpRingHeadY, 3, '.', '') }}"
+                            r="3.1"
+                        />
+                    @endif
+                </svg>
 
                 <span
-
                     class="
-
-                        text-[5px]
-
-                        font-black
-
-                        uppercase
-
-                        tracking-[0.16em]
-
-                        text-[#8c6239]
-
+                        hero-data-level-content
+                        relative
+                        z-10
+                        flex
+                        flex-col
+                        items-center
+                        justify-center
                     "
-
                 >
-
-                    XP
-
-                </span>
-
-                @if ($experience !== null)
-
                     <span
-
                         class="
-
-                            font-serif
-
-                            text-[10px]
-
+                            hero-data-level-caption
+                            text-[5.5px]
                             font-black
-
+                            uppercase
                             leading-none
-
-                            text-[#53150f]
-
+                            tracking-[0.10em]
                         "
-
                     >
-
-                        {{ $experience }}
-
+                        Nv.
                     </span>
 
-                @endif
+                    <span
+                        class="
+                            hero-data-level-number
+                            mt-[0px]
+                            font-serif
+                            text-[15px]
+                            font-black
+                            leading-none
+                        "
+                    >
+                        {{ $mechanicalCharacter->level }}
+                    </span>
+                </span>
+            </button>
 
+        @else
+
+            <div
+                class="
+                    hero-data-level-badge
+
+                    absolute
+                    right-2
+                    top-2
+                    z-30
+
+                    flex
+                    h-[36px]
+                    w-[36px]
+                    items-center
+                    justify-center
+
+                    rounded-full
+                    border
+                    border-[#cdbb9f]/80
+
+                    bg-[#fffaf4]/95
+
+                    shadow-[0_2px_6px_rgba(83,21,15,.06)]
+                "
+            >
+                <div
+                    class="
+                        hero-data-level-content
+                        relative
+                        z-10
+                        flex
+                        flex-col
+                        items-center
+                        justify-center
+                    "
+                >
+                    <span
+                        class="
+                            hero-data-level-caption
+                            text-[5.5px]
+                            font-black
+                            uppercase
+                            leading-none
+                            tracking-[0.10em]
+                        "
+                    >
+                        Nv.
+                    </span>
+
+                    <span
+                        class="
+                            hero-data-level-number
+                            mt-[0px]
+                            font-serif
+                            text-[15px]
+                            font-black
+                            leading-none
+                        "
+                    >
+                        {{ $mechanicalCharacter->level }}
+                    </span>
+                </div>
             </div>
 
         @endif
@@ -2312,6 +2829,19 @@
             </div>
 
         </div>
+
+        @if ($experienceCanLevelUp)
+            <button
+                type="button"
+                @click.stop="xpProgressOpen = true"
+                class="hero-data-level-ready-cta mt-1.5 w-full rounded-full border px-2 py-1 text-center text-[8px] font-black uppercase tracking-[0.09em] transition"
+                title="Você pode subir de nível"
+            >
+                ✦ Subir de nível
+            </button>
+        @endif
+
+
 
     </div>
 
@@ -3037,6 +3567,92 @@
     </div>
 
 </div>
+
+@if ($xpEnabled)
+{{-- EXPERIÊNCIA — MODAL SIMPLIFICADO --}}
+<template x-teleport="body">
+    <div
+        x-show="xpProgressOpen"
+        x-cloak
+        @keydown.escape.window="xpProgressOpen = false"
+        data-theme="{{ $characterTheme }}"
+        class="character-sheet-theme character-theme-modal-layer hero-data-xp-modal-layer fixed inset-0 flex items-center justify-center p-4"
+        style="position:fixed !important;inset:0 !important;z-index:9999 !important;"
+        role="dialog" aria-modal="true" aria-label="Experiência do personagem"
+    >
+        <div class="character-theme-modal-backdrop absolute inset-0" @click="xpProgressOpen = false"></div>
+        <section
+            x-show="xpProgressOpen"
+            x-transition:enter="character-theme-modal-panel-enter"
+            x-transition:enter-start="character-theme-modal-panel-enter-start"
+            x-transition:enter-end="character-theme-modal-panel-enter-end"
+            x-transition:leave="character-theme-modal-panel-leave"
+            x-transition:leave-start="character-theme-modal-panel-leave-start"
+            x-transition:leave-end="character-theme-modal-panel-leave-end"
+            @click.stop
+            class="character-theme-modal hero-data-xp-modal relative z-10 overflow-hidden rounded-2xl border"
+        >
+            <header class="hero-data-xp-modal-header flex items-center justify-between gap-3 border-b px-5 py-4">
+                <div>
+                    <span class="hero-data-xp-modal-label block text-[9px] font-black uppercase tracking-[0.13em]">Experiência</span>
+                    <h3 class="hero-data-xp-modal-title mt-1 font-serif text-[21px] font-black">{{ $character->name }}</h3>
+                </div>
+                <button type="button" class="hero-data-xp-close h-9 w-9 rounded-lg text-xl" @click="xpProgressOpen = false" aria-label="Fechar">×</button>
+            </header>
+            <div class="p-5">
+                <div class="flex items-center gap-3">
+                    <div class="hero-data-xp-level-seal flex h-[54px] w-[54px] shrink-0 flex-col items-center justify-center rounded-full border">
+                        <span class="hero-data-xp-modal-label text-[8px] font-black uppercase tracking-[0.09em]">Nv.</span>
+                        <strong class="hero-data-xp-modal-value font-serif text-[24px] leading-none">{{ $experienceLevel }}</strong>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="hero-data-xp-modal-label text-[9px] font-black uppercase tracking-wider">XP atual</p>
+                        <p class="hero-data-xp-modal-value mt-1 font-serif text-[25px] font-black leading-tight">
+                            {{ number_format((int) $experience, 0, ',', '.') }} <span class="text-[11px]">XP</span>
+                        </p>
+                        @if (!($experienceProgress['max_level'] ?? false))
+                            <p class="hero-data-xp-modal-copy mt-1.5 text-[11px]">
+                                Próximo nível: <strong class="hero-data-xp-gold">{{ number_format((int) $experienceProgress['next_threshold'], 0, ',', '.') }} XP</strong>
+                            </p>
+                        @else
+                            <p class="hero-data-xp-gold mt-1.5 text-[11px] font-black">Nível máximo alcançado</p>
+                        @endif
+                    </div>
+                </div>
+                @if (!($experienceProgress['max_level'] ?? false))
+                    <div class="mt-5 flex items-center justify-between gap-3">
+                        <p class="hero-data-xp-modal-copy text-[10px] font-semibold">Progresso para o nível {{ $experienceLevel + 1 }}</p>
+                        <strong class="hero-data-xp-gold text-[12px]">{{ number_format((float) $experienceProgress['percent'], 1, ',', '.') }}%</strong>
+                    </div>
+                    <div class="hero-data-xp-progress mt-2 h-2 w-full rounded-full" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ (int) round((float) $experienceProgress['percent']) }}">
+                        <div class="hero-data-xp-progress-fill" style="width:{{ number_format((float) $experienceProgress['percent'], 2, '.', '') }}%"></div>
+                    </div>
+                    @if ($experienceCanLevelUp)
+                        <div class="hero-data-xp-highlight mt-4 rounded-xl border px-4 py-3">
+                            <p class="hero-data-xp-gold text-[11px] font-black">✦ Você pode subir para o nível {{ $experienceLevel + 1 }}!</p>
+                            <p class="hero-data-xp-modal-copy mt-1 text-[10px]">Escolha uma classe para receber seu novo nível.</p>
+                        </div>
+                        <button
+                            type="button"
+                            @click="xpProgressOpen = false; window.dispatchEvent(new CustomEvent('open-character-customization', {detail: {tab:'progression'}}))"
+                            class="hero-data-xp-level-action mt-3 w-full rounded-xl px-4 py-3 text-[11px] font-black uppercase tracking-wide transition"
+                        >
+                            ↑ Subir de nível
+                        </button>
+                    @else
+                        <p class="hero-data-xp-modal-copy mt-4 text-center text-[11px]">
+                            Faltam <strong class="hero-data-xp-gold">{{ number_format((int) $experienceProgress['remaining'], 0, ',', '.') }} XP</strong> para subir de nível.
+                        </p>
+                    @endif
+                @else
+                    <p class="hero-data-xp-modal-copy mt-5 text-center text-[11px]">A progressão de personagem termina no nível 20.</p>
+                @endif
+            </div>
+        </section>
+    </div>
+</template>
+@endif
+
 
 @if ($exhaustionRuleActive)
 

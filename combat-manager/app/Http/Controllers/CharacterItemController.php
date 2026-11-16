@@ -1,18 +1,16 @@
 <?php
 
-
-
 namespace App\Http\Controllers;
-
-
 
 use App\Models\Character;
 
 use App\Models\CharacterItem;
+use App\Models\CharacterPartyNote;
 
 use Illuminate\Http\JsonResponse;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -25,8 +23,6 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
-
-
 
 class CharacterItemController extends Controller
 
@@ -48,8 +44,6 @@ class CharacterItemController extends Controller
 
     ];
 
-
-
     private const NATURES = [
 
         'wonderful',
@@ -59,8 +53,6 @@ class CharacterItemController extends Controller
         'technological',
 
     ];
-
-
 
     private const FEATURE_RECOVERIES = [
 
@@ -78,8 +70,6 @@ class CharacterItemController extends Controller
 
     ];
 
-
-
     private const FEATURE_COUNTER_MODES = [
 
         'spend',
@@ -88,13 +78,121 @@ class CharacterItemController extends Controller
 
     ];
 
-
-
     /**
 
      * Cria um item no inventário do personagem.
 
      */
+
+    /**
+     * Sincroniza o inventário com outras sessões/navegadores.
+     * Somente o proprietário do personagem acessa seus itens.
+     *
+     * Versionamento calculado a partir do mesmo payload usado pelo editor:
+     * alterações em quantidade, sintonização, propriedades e transferências
+     * são detectadas sem criar uma tabela extra no banco.
+     */
+    public function sync(Request $request, Character $character): JsonResponse
+    {
+        $this->authorizeCharacter($character);
+
+        $items = $character->items()
+            ->orderBy('id')
+            ->get()
+            ->map(fn (CharacterItem $item): array => $this->itemPayload($item))
+            ->values()
+            ->all();
+
+        $revision = hash(
+            'sha256',
+            json_encode(
+                $items,
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+            )
+        );
+
+        $response = [
+            'success' => true,
+            'version' => $revision,
+            'notifications' => $this->pullItemTransferNotices($character),
+        ];
+
+        if (!hash_equals($revision, (string) $request->query('version', ''))) {
+            $response['items'] = $items;
+            $response['changed'] = true;
+        } else {
+            $response['changed'] = false;
+        }
+
+        return response()->json($response)->header(
+            'Cache-Control',
+            'private, no-cache, no-store, must-revalidate'
+        );
+    }
+
+    /**
+     * Entrega avisos de transferências pendentes à ficha do destinatário.
+     * Nunca consome cutucadas nem avisos de outras personagens.
+     */
+    private function pullItemTransferNotices(Character $character): array
+    {
+        return DB::transaction(function () use ($character): array {
+            $result = [];
+            $notes = CharacterPartyNote::query()
+                ->where('character_id', $character->id)
+                ->whereNotNull('pokes')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            foreach ($notes as $note) {
+                $events = is_array($note->pokes) ? $note->pokes : [];
+                $changed = false;
+
+                foreach ($events as &$event) {
+                    if (count($result) >= 10) {
+                        break;
+                    }
+                    if (
+                        !is_array($event)
+                        || ($event['type'] ?? null) !== 'item_transfer'
+                        || (bool) ($event['seen'] ?? false)
+                    ) {
+                        continue;
+                    }
+
+                    $quantity = max(1, (int) ($event['quantity'] ?? 1));
+                    $name = (string) ($event['item_name'] ?? 'Item');
+                    $sender = (string) ($event['from_character_name'] ?? 'Outro jogador');
+
+                    $result[] = [
+                        'id' => (string) ($event['id'] ?? ''),
+                        'type' => 'item_transfer',
+                        'title' => 'Item recebido!',
+                        'message' => "{$quantity}× {$name} de {$sender}.",
+                        'item_name' => $name,
+                        'sender_name' => $sender,
+                        'quantity' => $quantity,
+                    ];
+                    $event['seen'] = true;
+                    $event['seen_at'] = now()->toISOString();
+                    $changed = true;
+                }
+                unset($event);
+
+                if ($changed) {
+                    $note->pokes = array_values($events);
+                    $note->save();
+                }
+
+                if (count($result) >= 10) {
+                    break;
+                }
+            }
+
+            return $result;
+        });
+    }
 
     public function store(
 
@@ -108,19 +206,13 @@ class CharacterItemController extends Controller
 
         $this->forbidCurseMutation($request);
 
-
-
         $data = $request->validate(
 
             $this->validationRules(creating: true)
 
         );
 
-
-
         $image = $request->file('image');
-
-
 
         unset(
 
@@ -130,11 +222,7 @@ class CharacterItemController extends Controller
 
         );
 
-
-
         $data = $this->normalizePayload($data);
-
-
 
         if ($image) {
 
@@ -148,19 +236,13 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $item = $character
 
             ->items()
 
             ->create($data);
 
-
-
         $item->refresh();
-
-
 
         return response()->json([
 
@@ -175,8 +257,6 @@ class CharacterItemController extends Controller
         ], 201);
 
     }
-
-
 
     /**
 
@@ -198,21 +278,15 @@ class CharacterItemController extends Controller
 
         $this->forbidCurseMutation($request);
 
-
-
         $data = $request->validate(
 
             $this->validationRules(creating: false)
 
         );
 
-
-
         $image = $request->file('image');
 
         $removeImage = (bool) ($data['remove_image'] ?? false);
-
-
 
         unset(
 
@@ -222,8 +296,6 @@ class CharacterItemController extends Controller
 
         );
 
-
-
         $data = $this->normalizePayload(
 
             $data,
@@ -231,8 +303,6 @@ class CharacterItemController extends Controller
             $item
 
         );
-
-
 
         if ($removeImage && $item->image_path) {
 
@@ -242,13 +312,9 @@ class CharacterItemController extends Controller
 
             );
 
-
-
             $data['image_path'] = null;
 
         }
-
-
 
         if ($image) {
 
@@ -262,8 +328,6 @@ class CharacterItemController extends Controller
 
             }
 
-
-
             $data['image_path'] = $image->store(
 
                 'character-items/' . $character->id,
@@ -274,13 +338,9 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $item->update($data);
 
         $item->refresh();
-
-
 
         return response()->json([
 
@@ -295,8 +355,6 @@ class CharacterItemController extends Controller
         ]);
 
     }
-
-
 
     /**
 
@@ -324,8 +382,6 @@ class CharacterItemController extends Controller
 
         );
 
-
-
         abort_unless(
 
             is_string($item->image_path)
@@ -336,37 +392,29 @@ class CharacterItemController extends Controller
 
         );
 
-
-
         $relativePath = ltrim(
 
-            str_replace('\\\\', '/', trim($item->image_path)),
+            str_replace('\\\\\\\\', '/', trim($item->image_path)),
 
             '/'
 
         );
 
-
-
         abort_if(
 
             str_contains($relativePath, '../')
 
-            || str_contains($relativePath, '..\\\\'),
+            || str_contains($relativePath, '..\\\\\\\\'),
 
             404
 
         );
-
-
 
         $fullPath = storage_path(
 
             'app/public/' . $relativePath
 
         );
-
-
 
         abort_unless(
 
@@ -375,8 +423,6 @@ class CharacterItemController extends Controller
             404
 
         );
-
-
 
         return response()->file(
 
@@ -398,8 +444,6 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     /**
 
      * Remove o item e sua imagem pública, se existir.
@@ -416,11 +460,7 @@ class CharacterItemController extends Controller
 
         $this->authorizeItem($character, $item);
 
-
-
         $itemId = $item->id;
-
-
 
         if ($item->image_path) {
 
@@ -432,11 +472,7 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $item->delete();
-
-
 
         return response()->json([
 
@@ -451,8 +487,6 @@ class CharacterItemController extends Controller
         ]);
 
     }
-
-
 
     /**
 
@@ -472,8 +506,6 @@ class CharacterItemController extends Controller
 
         $this->authorizeItem($character, $item);
 
-
-
         $data = $request->validate([
 
             'equipped' => [
@@ -486,15 +518,11 @@ class CharacterItemController extends Controller
 
         ]);
 
-
-
         $properties = is_array($item->properties)
 
             ? $item->properties
 
             : [];
-
-
 
         $equippable =
 
@@ -522,8 +550,6 @@ class CharacterItemController extends Controller
 
             );
 
-
-
         if (!$equippable && (bool) $data['equipped']) {
 
             throw ValidationException::withMessages([
@@ -538,8 +564,6 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $item->update([
 
             'equipped' => $equippable
@@ -550,11 +574,7 @@ class CharacterItemController extends Controller
 
         ]);
 
-
-
         $item->refresh();
-
-
 
         return response()->json([
 
@@ -573,8 +593,6 @@ class CharacterItemController extends Controller
         ]);
 
     }
-
-
 
     /**
 
@@ -598,8 +616,6 @@ class CharacterItemController extends Controller
 
         $this->authorizeItem($character, $item);
 
-
-
         $data = $request->validate([
 
             'attuned' => [
@@ -611,8 +627,6 @@ class CharacterItemController extends Controller
             ],
 
         ]);
-
-
 
         if (
 
@@ -634,19 +648,13 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $item->update([
 
             'attuned' => (bool) $data['attuned'],
 
         ]);
 
-
-
         $item->refresh();
-
-
 
         return response()->json([
 
@@ -665,8 +673,6 @@ class CharacterItemController extends Controller
         ]);
 
     }
-
-
 
     /**
 
@@ -694,8 +700,6 @@ class CharacterItemController extends Controller
 
         $this->authorizeItem($character, $item);
 
-
-
         $data = $request->validate([
 
             'current' => [
@@ -710,19 +714,13 @@ class CharacterItemController extends Controller
 
         ]);
 
-
-
         if (!ctype_digit($feature)) {
 
             abort(404);
 
         }
 
-
-
         $featureIndex = (int) $feature;
-
-
 
         $properties = is_array($item->properties)
 
@@ -730,15 +728,11 @@ class CharacterItemController extends Controller
 
             : [];
 
-
-
         $features = is_array($properties['features'] ?? null)
 
             ? array_values($properties['features'])
 
             : [];
-
-
 
         if (!array_key_exists($featureIndex, $features)) {
 
@@ -746,23 +740,17 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $featureData = is_array($features[$featureIndex])
 
             ? $features[$featureIndex]
 
             : [];
 
-
-
         $usage = is_array($featureData['usage'] ?? null)
 
             ? $featureData['usage']
 
             : [];
-
-
 
         if (!(bool) ($usage['enabled'] ?? false)) {
 
@@ -778,8 +766,6 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $max = max(
 
             1,
@@ -787,8 +773,6 @@ class CharacterItemController extends Controller
             (int) ($usage['max'] ?? 1)
 
         );
-
-
 
         $current = min(
 
@@ -804,13 +788,9 @@ class CharacterItemController extends Controller
 
         );
 
-
-
         $usage['current'] = $current;
 
         $usage['max'] = $max;
-
-
 
         $featureData['usage'] = $usage;
 
@@ -818,19 +798,13 @@ class CharacterItemController extends Controller
 
         $properties['features'] = $features;
 
-
-
         $item->update([
 
             'properties' => $properties,
 
         ]);
 
-
-
         $item->refresh();
-
-
 
         return response()->json([
 
@@ -847,8 +821,6 @@ class CharacterItemController extends Controller
         ]);
 
     }
-
-
 
     /**
 
@@ -872,8 +844,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'type' => [
 
                 'sometimes',
@@ -886,8 +856,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'description' => [
 
                 'sometimes',
@@ -899,8 +867,6 @@ class CharacterItemController extends Controller
                 'max:30000',
 
             ],
-
-
 
             'image' => [
 
@@ -916,8 +882,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'remove_image' => [
 
                 'sometimes',
@@ -925,8 +889,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'equipped' => [
 
@@ -936,8 +898,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'is_magical' => [
 
                 'sometimes',
@@ -945,8 +905,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'rarity' => [
 
@@ -958,8 +916,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'requires_attunement' => [
 
                 'sometimes',
@@ -968,8 +924,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'attuned' => [
 
                 'sometimes',
@@ -977,8 +931,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'notes' => [
 
@@ -992,8 +944,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'ability_bonuses' => [
 
                 'sometimes',
@@ -1003,8 +953,6 @@ class CharacterItemController extends Controller
                 'array',
 
             ],
-
-
 
             'modifiers' => [
 
@@ -1016,8 +964,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties' => [
 
                 'sometimes',
@@ -1027,8 +973,6 @@ class CharacterItemController extends Controller
                 'array',
 
             ],
-
-
 
             'properties.nature' => [
 
@@ -1040,8 +984,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.inventory' => [
 
                 'sometimes',
@@ -1052,8 +994,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.inventory.equippable' => [
 
                 'sometimes',
@@ -1061,8 +1001,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'properties.weapon' => [
 
@@ -1073,8 +1011,6 @@ class CharacterItemController extends Controller
                 'array',
 
             ],
-
-
 
             'properties.weapon.category' => [
 
@@ -1094,8 +1030,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.category_custom' => [
 
                 'sometimes',
@@ -1107,8 +1041,6 @@ class CharacterItemController extends Controller
                 'max:120',
 
             ],
-
-
 
             'properties.weapon.weapon_type' => [
 
@@ -1122,8 +1054,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.magic_bonus' => [
 
                 'sometimes',
@@ -1135,8 +1065,6 @@ class CharacterItemController extends Controller
                 'between:-99,99',
 
             ],
-
-
 
             'properties.weapon.traits' => [
 
@@ -1150,8 +1078,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.traits.*.key' => [
 
                 'nullable',
@@ -1161,8 +1087,6 @@ class CharacterItemController extends Controller
                 'max:120',
 
             ],
-
-
 
             'properties.weapon.traits.*.name' => [
 
@@ -1174,8 +1098,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.traits.*.description' => [
 
                 'nullable',
@@ -1186,8 +1108,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.traits.*.custom' => [
 
                 'sometimes',
@@ -1195,8 +1115,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'properties.weapon.damage' => [
 
@@ -1207,8 +1125,6 @@ class CharacterItemController extends Controller
                 'array',
 
             ],
-
-
 
             'properties.weapon.damage.count' => [
 
@@ -1224,8 +1140,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.damage.die' => [
 
                 'sometimes',
@@ -1237,8 +1151,6 @@ class CharacterItemController extends Controller
                 'max:20',
 
             ],
-
-
 
             'properties.weapon.damage.ability' => [
 
@@ -1252,8 +1164,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.damage.ability_custom' => [
 
                 'sometimes',
@@ -1265,8 +1175,6 @@ class CharacterItemController extends Controller
                 'max:80',
 
             ],
-
-
 
             'properties.weapon.damage.type' => [
 
@@ -1280,8 +1188,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.extra_damage' => [
 
                 'sometimes',
@@ -1293,8 +1199,6 @@ class CharacterItemController extends Controller
                 'max:20',
 
             ],
-
-
 
             'properties.weapon.extra_damage.*.count' => [
 
@@ -1310,8 +1214,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.extra_damage.*.die' => [
 
                 'sometimes',
@@ -1323,8 +1225,6 @@ class CharacterItemController extends Controller
                 'max:20',
 
             ],
-
-
 
             'properties.weapon.extra_damage.*.type' => [
 
@@ -1338,8 +1238,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.masteries' => [
 
                 'sometimes',
@@ -1352,8 +1250,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.masteries.*.key' => [
 
                 'nullable',
@@ -1363,8 +1259,6 @@ class CharacterItemController extends Controller
                 'max:120',
 
             ],
-
-
 
             'properties.weapon.masteries.*.name' => [
 
@@ -1376,8 +1270,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.masteries.*.description' => [
 
                 'nullable',
@@ -1388,8 +1280,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.weapon.masteries.*.custom' => [
 
                 'sometimes',
@@ -1397,8 +1287,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'properties.armor' => [
 
@@ -1409,8 +1297,6 @@ class CharacterItemController extends Controller
                 'array',
 
             ],
-
-
 
             'properties.armor.category' => [
 
@@ -1432,8 +1318,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.armor.category_custom' => [
 
                 'sometimes',
@@ -1445,8 +1329,6 @@ class CharacterItemController extends Controller
                 'max:120',
 
             ],
-
-
 
             'properties.armor.armor_type' => [
 
@@ -1460,8 +1342,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.armor.base_ac' => [
 
                 'sometimes',
@@ -1474,8 +1354,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.armor.magic_bonus' => [
 
                 'sometimes',
@@ -1487,8 +1365,6 @@ class CharacterItemController extends Controller
                 'between:-99,99',
 
             ],
-
-
 
             'properties.armor.dexterity_mode' => [
 
@@ -1508,8 +1384,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.armor.dexterity_cap' => [
 
                 'sometimes',
@@ -1522,8 +1396,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.armor.ability_modifiers' => [
 
                 'sometimes',
@@ -1535,8 +1407,6 @@ class CharacterItemController extends Controller
                 'max:5',
 
             ],
-
-
 
             'properties.armor.ability_modifiers.*' => [
 
@@ -1558,8 +1428,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.shield' => [
 
                 'sometimes',
@@ -1569,8 +1437,6 @@ class CharacterItemController extends Controller
                 'array',
 
             ],
-
-
 
             'properties.shield.label' => [
 
@@ -1584,8 +1450,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.shield.ac_bonus' => [
 
                 'sometimes',
@@ -1597,8 +1461,6 @@ class CharacterItemController extends Controller
                 'between:0,99',
 
             ],
-
-
 
             'properties.shield.magic_bonus' => [
 
@@ -1612,8 +1474,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.custom_properties' => [
 
                 'sometimes',
@@ -1626,8 +1486,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.custom_properties.*.title' => [
 
                 'nullable',
@@ -1637,8 +1495,6 @@ class CharacterItemController extends Controller
                 'max:150',
 
             ],
-
-
 
             'properties.custom_properties.*.value' => [
 
@@ -1650,8 +1506,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.custom_properties.*.description' => [
 
                 'nullable',
@@ -1661,8 +1515,6 @@ class CharacterItemController extends Controller
                 'max:5000',
 
             ],
-
-
 
             'properties.features' => [
 
@@ -1676,8 +1528,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.features.*.title' => [
 
                 'nullable',
@@ -1687,8 +1537,6 @@ class CharacterItemController extends Controller
                 'max:150',
 
             ],
-
-
 
             'properties.features.*.description' => [
 
@@ -1700,8 +1548,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.features.*.usage' => [
 
                 'sometimes',
@@ -1712,8 +1558,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.features.*.usage.enabled' => [
 
                 'sometimes',
@@ -1721,8 +1565,6 @@ class CharacterItemController extends Controller
                 'boolean',
 
             ],
-
-
 
             'properties.features.*.usage.counter_mode' => [
 
@@ -1733,8 +1575,6 @@ class CharacterItemController extends Controller
                 Rule::in(self::FEATURE_COUNTER_MODES),
 
             ],
-
-
 
             'properties.features.*.usage.current' => [
 
@@ -1750,8 +1590,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.features.*.usage.max' => [
 
                 'sometimes',
@@ -1766,8 +1604,6 @@ class CharacterItemController extends Controller
 
             ],
 
-
-
             'properties.features.*.usage.recovery' => [
 
                 'sometimes',
@@ -1777,8 +1613,6 @@ class CharacterItemController extends Controller
                 Rule::in(self::FEATURE_RECOVERIES),
 
             ],
-
-
 
             'properties.features.*.usage.recovery_custom' => [
 
@@ -1791,8 +1625,6 @@ class CharacterItemController extends Controller
                 'max:120',
 
             ],
-
-
 
             'properties.optional_rules' => [
 
@@ -1807,8 +1639,6 @@ class CharacterItemController extends Controller
         ];
 
     }
-
-
 
     /**
 
@@ -1830,33 +1660,23 @@ class CharacterItemController extends Controller
 
             : [];
 
-
-
         $properties = array_key_exists('properties', $data)
 
             ? (is_array($data['properties']) ? $data['properties'] : [])
 
             : $existingProperties;
 
-
-
         $properties = $this->normalizeProperties($properties);
-
-
 
         $nature = $properties['nature'];
 
         $isMagical = $nature === 'wonderful';
-
-
 
         $rarity = array_key_exists('rarity', $data)
 
             ? $data['rarity']
 
             : $existing?->rarity;
-
-
 
         $requiresAttunement = $isMagical
 
@@ -1870,8 +1690,6 @@ class CharacterItemController extends Controller
 
             );
 
-
-
         $attuned = $requiresAttunement
 
             && (
@@ -1884,8 +1702,6 @@ class CharacterItemController extends Controller
 
             );
 
-
-
         $equippable = (bool) (
 
             $properties['inventory']['equippable']
@@ -1893,8 +1709,6 @@ class CharacterItemController extends Controller
             ?? false
 
         );
-
-
 
         $equipped = $equippable
 
@@ -1907,8 +1721,6 @@ class CharacterItemController extends Controller
                     : (bool) ($existing?->equipped ?? false)
 
             );
-
-
 
         $data['type'] = $nature;
 
@@ -1928,8 +1740,6 @@ class CharacterItemController extends Controller
 
         $data['attuned'] = $attuned;
 
-
-
         /*
 
         | Campos legados de combate continuam preenchidos quando possível.
@@ -1948,15 +1758,11 @@ class CharacterItemController extends Controller
 
         $data['damage_bonus'] = null;
 
-
-
         $weapon = is_array($properties['weapon'] ?? null)
 
             ? $properties['weapon']
 
             : null;
-
-
 
         if ($weapon) {
 
@@ -1968,13 +1774,9 @@ class CharacterItemController extends Controller
 
                 : [];
 
-
-
             $count = max(1, (int) ($damage['count'] ?? 1));
 
             $die = trim((string) ($damage['die'] ?? ''));
-
-
 
             $data['damage'] = $die !== ''
 
@@ -1982,15 +1784,11 @@ class CharacterItemController extends Controller
 
                 : null;
 
-
-
             $data['attack_bonus'] = $magicBonus !== 0
 
                 ? $magicBonus
 
                 : null;
-
-
 
             $data['damage_bonus'] = $magicBonus !== 0
 
@@ -2000,23 +1798,17 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $armor = is_array($properties['armor'] ?? null)
 
             ? $properties['armor']
 
             : null;
 
-
-
         if ($armor) {
 
             $baseAc = $armor['base_ac'] ?? null;
 
             $magicBonus = (int) ($armor['magic_bonus'] ?? 0);
-
-
 
             $data['armor_class'] = $baseAc !== null
 
@@ -2026,13 +1818,9 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         return $data;
 
     }
-
-
 
     private function normalizeProperties(array $properties): array
 
@@ -2040,19 +1828,13 @@ class CharacterItemController extends Controller
 
         $nature = $properties['nature'] ?? 'wonderful';
 
-
-
         if (!in_array($nature, self::NATURES, true)) {
 
             $nature = 'wonderful';
 
         }
 
-
-
         $properties['nature'] = $nature;
-
-
 
         $properties['inventory'] = is_array(
 
@@ -2064,8 +1846,6 @@ class CharacterItemController extends Controller
 
             : [];
 
-
-
         $properties['inventory']['equippable'] = (bool) (
 
             $properties['inventory']['equippable']
@@ -2073,8 +1853,6 @@ class CharacterItemController extends Controller
             ?? false
 
         );
-
-
 
         if (isset($properties['weapon']) && is_array($properties['weapon'])) {
 
@@ -2090,8 +1868,6 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         if (isset($properties['armor']) && is_array($properties['armor'])) {
 
             $properties['armor'] = $this->normalizeArmor(
@@ -2105,8 +1881,6 @@ class CharacterItemController extends Controller
             unset($properties['armor']);
 
         }
-
-
 
         if (isset($properties['shield']) && is_array($properties['shield'])) {
 
@@ -2122,8 +1896,6 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         if (
 
             isset($properties['armor'])
@@ -2135,8 +1907,6 @@ class CharacterItemController extends Controller
             $properties['inventory']['equippable'] = true;
 
         }
-
-
 
         $properties['custom_properties'] = collect(
 
@@ -2174,8 +1944,6 @@ class CharacterItemController extends Controller
 
             ->all();
 
-
-
         $properties['features'] = collect(
 
             $properties['features'] ?? []
@@ -2190,19 +1958,13 @@ class CharacterItemController extends Controller
 
                 $description = trim((string) ($feature['description'] ?? ''));
 
-
-
                 $usage = is_array($feature['usage'] ?? null)
 
                     ? $feature['usage']
 
                     : [];
 
-
-
                 $enabled = (bool) ($usage['enabled'] ?? false);
-
-
 
                 if (!$enabled) {
 
@@ -2222,15 +1984,11 @@ class CharacterItemController extends Controller
 
                     );
 
-
-
                     $counterMode =
 
                         $usage['counter_mode']
 
                         ?? 'spend';
-
-
 
                     if (
 
@@ -2250,8 +2008,6 @@ class CharacterItemController extends Controller
 
                     }
 
-
-
                     $defaultCurrent =
 
                         $counterMode === 'build'
@@ -2259,8 +2015,6 @@ class CharacterItemController extends Controller
                             ? 0
 
                             : $max;
-
-
 
                     $current = min(
 
@@ -2286,19 +2040,13 @@ class CharacterItemController extends Controller
 
                     );
 
-
-
                     $recovery = $usage['recovery'] ?? 'day';
-
-
 
                     if (!in_array($recovery, self::FEATURE_RECOVERIES, true)) {
 
                         $recovery = 'day';
 
                     }
-
-
 
                     $usage = [
 
@@ -2321,8 +2069,6 @@ class CharacterItemController extends Controller
                     ];
 
                 }
-
-
 
                 return [
 
@@ -2348,13 +2094,9 @@ class CharacterItemController extends Controller
 
             ->all();
 
-
-
         return $properties;
 
     }
-
-
 
     private function normalizeWeapon(array $weapon): array
 
@@ -2362,15 +2104,11 @@ class CharacterItemController extends Controller
 
         $category = $weapon['category'] ?? 'simple';
 
-
-
         if (!in_array($category, ['simple', 'martial', 'custom'], true)) {
 
             $category = 'custom';
 
         }
-
-
 
         $damage = is_array($weapon['damage'] ?? null)
 
@@ -2378,11 +2116,7 @@ class CharacterItemController extends Controller
 
             : [];
 
-
-
         $ability = trim((string) ($damage['ability'] ?? 'strength'));
-
-
 
         $traits = collect($weapon['traits'] ?? [])
 
@@ -2410,8 +2144,6 @@ class CharacterItemController extends Controller
 
             ->all();
 
-
-
         $masteries = collect($weapon['masteries'] ?? [])
 
             ->filter(fn ($entry) => is_array($entry))
@@ -2438,8 +2170,6 @@ class CharacterItemController extends Controller
 
             ->all();
 
-
-
         $extraDamage = collect($weapon['extra_damage'] ?? [])
 
             ->filter(fn ($entry) => is_array($entry))
@@ -2461,8 +2191,6 @@ class CharacterItemController extends Controller
             ->values()
 
             ->all();
-
-
 
         return [
 
@@ -2506,15 +2234,11 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     private function normalizeArmor(array $armor): array
 
     {
 
         $category = $armor['category'] ?? 'light';
-
-
 
         if (
 
@@ -2544,8 +2268,6 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $defaultDexterityMode = match ($category) {
 
             'light' => 'full',
@@ -2556,15 +2278,11 @@ class CharacterItemController extends Controller
 
         };
 
-
-
         $dexterityMode =
 
             $armor['dexterity_mode']
 
             ?? $defaultDexterityMode;
-
-
 
         if (
 
@@ -2594,8 +2312,6 @@ class CharacterItemController extends Controller
 
         }
 
-
-
         $dexterityCap =
 
             max(
@@ -2611,8 +2327,6 @@ class CharacterItemController extends Controller
                 )
 
             );
-
-
 
         $abilityModifiers =
 
@@ -2670,13 +2384,9 @@ class CharacterItemController extends Controller
 
                 ->all();
 
-
-
         return [
 
             'category' => $category,
-
-
 
             'category_custom' =>
 
@@ -2696,8 +2406,6 @@ class CharacterItemController extends Controller
 
                     : null,
 
-
-
             'armor_type' =>
 
                 trim(
@@ -2711,8 +2419,6 @@ class CharacterItemController extends Controller
                     )
 
                 ),
-
-
 
             'base_ac' =>
 
@@ -2732,8 +2438,6 @@ class CharacterItemController extends Controller
 
                     : null,
 
-
-
             'magic_bonus' =>
 
                 (int) (
@@ -2744,19 +2448,13 @@ class CharacterItemController extends Controller
 
                 ),
 
-
-
             'dexterity_mode' =>
 
                 $dexterityMode,
 
-
-
             'dexterity_cap' =>
 
                 $dexterityCap,
-
-
 
             'ability_modifiers' =>
 
@@ -2765,7 +2463,6 @@ class CharacterItemController extends Controller
         ];
 
     }
-
 
     private function normalizeShield(array $shield): array
 
@@ -2782,8 +2479,6 @@ class CharacterItemController extends Controller
         ];
 
     }
-
-
 
     /**
 
@@ -2823,8 +2518,6 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     private function authorizeCharacter(Character $character): void
 
     {
@@ -2839,8 +2532,6 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     private function authorizeItem(
 
         Character $character,
@@ -2851,8 +2542,6 @@ class CharacterItemController extends Controller
 
         $this->authorizeCharacter($character);
 
-
-
         abort_unless(
 
             (int) $item->character_id === (int) $character->id,
@@ -2862,7 +2551,6 @@ class CharacterItemController extends Controller
         );
 
     }
-
 
     /*
 
@@ -2886,8 +2574,6 @@ class CharacterItemController extends Controller
 
     */
 
-
-
     private function authorizeItemView(
 
         Character $character,
@@ -2904,8 +2590,6 @@ class CharacterItemController extends Controller
 
         );
 
-
-
         abort_unless(
 
             (int) $item->character_id === (int) $character->id,
@@ -2916,8 +2600,6 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     private function itemPayload(CharacterItem $item): array
 
     {
@@ -2925,8 +2607,6 @@ class CharacterItemController extends Controller
         $curseVisible = (bool) $item->is_cursed
 
             && (bool) $item->curse_revealed;
-
-
 
         return [
 
@@ -2940,13 +2620,9 @@ class CharacterItemController extends Controller
 
             'description' => $item->description,
 
-
-
             'image_path' => $item->image_path,
 
             'image_url' => $this->imageUrl($item),
-
-
 
             'quantity' => (int) $item->quantity,
 
@@ -2980,14 +2656,14 @@ class CharacterItemController extends Controller
 
             'notes' => $item->notes,
 
-
-
             'is_cursed' => $curseVisible,
 
             'curse_revealed' => $curseVisible,
 
             'curse_name' => $curseVisible
+
                 ? $item->curse_name
+
                 : null,
 
             'curse_description' => $curseVisible
@@ -2996,8 +2672,6 @@ class CharacterItemController extends Controller
 
                 : null,
 
-
-
             'created_at' => $item->created_at?->toISOString(),
 
             'updated_at' => $item->updated_at?->toISOString(),
@@ -3005,7 +2679,6 @@ class CharacterItemController extends Controller
         ];
 
     }
-
 
     private function imageUrl(CharacterItem $item): ?string
 
@@ -3022,8 +2695,6 @@ class CharacterItemController extends Controller
             return null;
 
         }
-
-
 
         return route(
 
@@ -3053,8 +2724,6 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     private function inventoryCounts(Character $character): array
 
     {
@@ -3070,8 +2739,6 @@ class CharacterItemController extends Controller
             'type',
 
         ]);
-
-
 
         return [
 
@@ -3091,8 +2758,6 @@ class CharacterItemController extends Controller
 
     }
 
-
-
     private function rarityLabel(?string $rarity): ?string
 
     {
@@ -3102,8 +2767,6 @@ class CharacterItemController extends Controller
             return null;
 
         }
-
-
 
         return match ($rarity) {
 

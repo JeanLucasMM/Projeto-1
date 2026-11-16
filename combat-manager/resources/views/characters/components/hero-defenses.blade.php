@@ -555,6 +555,298 @@
                     1.24 !important;
             }
 
+
+
+            /* ==============================================================
+               V25 — DEFESAS RESPONSIVAS CONFORME A LARGURA DO CARD
+
+               Removemos a largura interna fixa, a altura rígida e o clamp.
+               O usuário vê a descrição completa; o card cresce se preciso.
+               O container query considera a largura real da coluna direita,
+               e não apenas o tamanho da janela do navegador.
+            ============================================================== */
+
+            .character-sheet-theme[data-theme] .character-defenses-v22 {
+                container-type: inline-size;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22 .character-defenses-summary {
+                height: auto !important;
+                min-height: 108px !important;
+                overflow: visible !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22 .character-defenses-summary > div {
+                width: 100% !important;
+                max-width: none !important;
+                min-width: 0;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22 .character-defenses-summary-text {
+                display: block !important;
+                width: 100%;
+                min-width: 0;
+                overflow: visible !important;
+                text-overflow: clip !important;
+                white-space: normal !important;
+                overflow-wrap: anywhere;
+                word-break: normal;
+                -webkit-line-clamp: unset !important;
+                -webkit-box-orient: unset !important;
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-defenses-v22 .character-defenses-summary-value {
+                height: auto !important;
+                align-items: flex-start !important;
+                line-height: 1.35 !important;
+            }
+
+            /* Largura ampla: proporções definidas pela quantidade de texto. */
+            @@container (min-width: 700px) {
+                .character-defenses-summary-grid {
+                    grid-template-columns: var(--defenses-grid-tracks, repeat(3,minmax(0,1fr))) !important;
+                }
+            }
+
+            /* Largura intermediária: vulnerabilidades ocupa linha inteira. */
+            @@container (min-width: 440px) and (max-width: 699px) {
+                .character-defenses-summary-grid {
+                    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+                }
+
+                .character-defenses-summary-grid > :last-child {
+                    grid-column: 1 / -1;
+                }
+
+                .character-defenses-summary-grid > :nth-child(2) {
+                    border-right: 0 !important;
+                }
+
+                .character-defenses-summary-grid > :first-child,
+                .character-defenses-summary-grid > :nth-child(2) {
+                    border-bottom: 1px solid var(--theme-border-soft) !important;
+                }
+            }
+
+            /* Espaço estreito: leitura vertical sem conteúdo espremido. */
+            @@container (max-width: 439px) {
+                .character-defenses-summary-grid {
+                    grid-template-columns: minmax(0,1fr) !important;
+                }
+
+                .character-defenses-summary-grid > div {
+                    grid-column: 1 / -1;
+                    border-right: 0 !important;
+                }
+
+                .character-defenses-summary-grid > :not(:last-child) {
+                    border-bottom: 1px solid var(--theme-border-soft) !important;
+                }
+            }
+
+
+            /* V35 — editor de Defesas, visual compacto e temático. */
+            .character-sheet-theme[data-theme] .character-defenses-modal {
+                width: min(750px, calc(100vw - 24px)) !important;
+                max-height: min(88dvh, 770px) !important;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                border-radius: 16px !important;
+                border-color: var(--theme-modal-border, var(--theme-border)) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+                background-image: none !important;
+                box-shadow: 0 24px 70px rgba(0,0,0,.30) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal::before,
+            .character-sheet-theme[data-theme] .character-defenses-modal::after {
+                content: none !important;
+                display: none !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal-header {
+                padding: 16px 20px 14px !important;
+                border-bottom: 1px solid var(--theme-border) !important;
+                border-top: 0 !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+                background-image: none !important;
+                box-shadow: none !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal-header::before,
+            .character-sheet-theme[data-theme] .character-defenses-modal-header::after {
+                display: none !important;
+                box-shadow: none !important;
+                background: none !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-eyebrow {
+                color: var(--theme-label) !important;
+                font-size: 9px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: .12em;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-title {
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-subtitle {
+                color: var(--theme-text-secondary) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-tabs {
+                padding: 5px 14px 0 !important;
+                border-bottom: 1px solid var(--theme-border) !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-tab {
+                min-height: 37px;
+                padding: 8px 4px !important;
+                font-size: 10px !important;
+                letter-spacing: .045em !important;
+                font-weight: 800 !important;
+                border-bottom: 2px solid transparent;
+                color: var(--theme-text-secondary) !important;
+                background: transparent !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-tab.is-active {
+                border-bottom-color: var(--theme-accent) !important;
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-tab:hover:not(.is-active) {
+                color: var(--theme-text-strong) !important;
+                background: var(--theme-card-hover) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-tab-count {
+                min-width: 17px;
+                padding: 2px 5px;
+                border: 1px solid var(--theme-border-soft) !important;
+                border-radius: 999px;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-secondary) !important;
+                font-size: 9px;
+                line-height: 1;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-tab.is-active .character-defenses-tab-count {
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal-body {
+                min-height: 0;
+                overflow-y: auto;
+                padding: 17px 20px 20px !important;
+                background: var(--theme-modal-surface, var(--theme-paper-strong)) !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-section-label {
+                color: var(--theme-text-strong) !important;
+                font-size: 11px;
+                font-weight: 800;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-section-help {
+                color: var(--theme-text-secondary) !important;
+                font-size: 10px;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-option {
+                min-height: 36px;
+                border: 1px solid var(--theme-border-soft) !important;
+                border-radius: 8px;
+                padding: 8px 10px;
+                background: var(--theme-surface-card) !important;
+                color: var(--theme-text-primary) !important;
+                font-size: 11px;
+                font-weight: 650;
+                box-shadow: none !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-option:hover:not(.is-selected) {
+                background: var(--theme-card-hover) !important;
+                border-color: var(--theme-border-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-option.is-selected {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-check {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 15px;
+                height: 15px;
+                border: 1px solid var(--theme-border-strong);
+                border-radius: 4px;
+                color: transparent;
+                flex: 0 0 auto;
+            }
+            .character-sheet-theme[data-theme] .is-selected .defenses-v35-check {
+                border-color: var(--theme-accent) !important;
+                background: var(--theme-accent) !important;
+                color: var(--theme-button-text, #fff) !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-custom {
+                margin-top: 18px;
+                border-top: 1px solid var(--theme-border-soft);
+                padding-top: 16px;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-input {
+                min-width: 0;
+                height: 36px;
+                border: 1px solid var(--theme-input-border) !important;
+                border-radius: 8px;
+                padding: 0 12px;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+                outline: none;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-input:focus {
+                border-color: var(--theme-input-focus) !important;
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--theme-input-focus) 12%, transparent) !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-input::placeholder {
+                color: var(--theme-input-placeholder) !important;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-add {
+                height: 36px;
+                padding-inline: 15px;
+                border: 1px solid var(--theme-border) !important;
+                border-radius: 8px;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+                font-size: 10px;
+                font-weight: 800;
+            }
+            .character-sheet-theme[data-theme] .defenses-v35-add:hover {
+                background: var(--theme-card-hover) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-custom-chip {
+                background: var(--theme-surface-card) !important;
+                color: var(--theme-text-primary) !important;
+                border-color: var(--theme-border-soft) !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal-footer {
+                position: relative !important;
+                margin: 0 !important;
+                min-height: 62px;
+                padding: 11px 20px !important;
+                border-top: 1px solid var(--theme-border) !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+                box-shadow: none !important;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal-footer > * {
+                flex-shrink: 0;
+            }
+            .character-sheet-theme[data-theme] .character-defenses-modal :is(button,input):focus-visible {
+                outline: 2px solid var(--theme-accent);
+                outline-offset: 2px;
+            }
+            @media (max-width: 550px) {
+                .character-sheet-theme[data-theme] .character-defenses-modal-header,
+                .character-sheet-theme[data-theme] .character-defenses-modal-body,
+                .character-sheet-theme[data-theme] .character-defenses-modal-footer {
+                    padding-left: 14px !important;
+                    padding-right: 14px !important;
+                }
+                .character-sheet-theme[data-theme] .character-defenses-tab { font-size: 9px !important; }
+            }
+
         </style>
     @endpush
 @endonce
@@ -598,6 +890,36 @@
         customImmunity: '',
         customVulnerability: '',
 
+        defensesSizeObserver: null,
+
+        // Mantém Atributos alinhado ao topo de Defesas mesmo quando a
+        // descrição faz o card crescer além da altura original de 108px.
+        init() {
+            this.$nextTick(() => {
+                const page = this.$root.closest('.character-sheet-page');
+                const card = this.$root.querySelector('.character-defenses-summary');
+
+                if (!page || !card || typeof ResizeObserver === 'undefined') {
+                    return;
+                }
+
+                const syncHeight = () => {
+                    const height = Math.ceil(card.getBoundingClientRect().height);
+                    if (height > 0) {
+                        page.style.setProperty('--sheet-defenses-height', `${height}px`);
+                    }
+                };
+
+                this.defensesSizeObserver = new ResizeObserver(syncHeight);
+                this.defensesSizeObserver.observe(card);
+                syncHeight();
+            });
+        },
+
+        destroy() {
+            this.defensesSizeObserver?.disconnect();
+        },
+
 
         /*
         |--------------------------------------------------------------------------
@@ -623,6 +945,67 @@
                         this.labelFor(value)
                 )
                 .join(' · ');
+        },
+
+        /**
+         * Ajusta a largura das colunas ao volume de texto já salvo.
+         * Categorias vazias ficam compactas; descrições longas
+         * aproveitam a largura livre. Não modifica os dados.
+         */
+        defenseSummaryTracks() {
+            const lists = [
+                this.savedResistances,
+                this.savedImmunities,
+                this.savedVulnerabilities,
+            ];
+
+            const weights = lists.map((list) => {
+                if (!Array.isArray(list) || list.length === 0) {
+                    return 1;
+                }
+
+                const length = this.formattedList(list).length;
+                return Math.max(1.25, Math.min(4, length / 20));
+            });
+
+            // Cabeçalhos permanecem legíveis mesmo com coluna vazia.
+            const minima = [125, 125, 165];
+
+            return weights.map((weight, index) =>
+                `minmax(${minima[index]}px, ${weight.toFixed(2)}fr)`
+            ).join(' ');
+        },
+
+        activeValues() {
+            return this.activeTab === 'immunities'
+                ? this.immunities
+                : (this.activeTab === 'vulnerabilities'
+                    ? this.vulnerabilities
+                    : this.resistances);
+        },
+
+        activeCustomProperty() {
+            return this.activeTab === 'immunities'
+                ? 'customImmunity'
+                : (this.activeTab === 'vulnerabilities'
+                    ? 'customVulnerability'
+                    : 'customResistance');
+        },
+
+        activeCustomValue() {
+            return this[this.activeCustomProperty()] ?? '';
+        },
+
+        setActiveCustomValue(value) {
+            this[this.activeCustomProperty()] = value;
+        },
+
+        activeDescription() {
+            return this.activeTab === 'immunities'
+                ? 'O personagem não sofre dano destes tipos.'
+                : (this.activeTab === 'vulnerabilities'
+                    ? 'O personagem sofre dano dobrado destes tipos.'
+                    : 'O personagem recebe dano reduzido destes tipos.');
         },
 
         customValues(list) {
@@ -883,9 +1266,6 @@
     }"
 
     class="
-                                        character-defenses-add-custom
-                                        character-defenses-add-custom
-                                        character-defenses-add-custom
         character-defenses-v22
         relative
         min-w-0
@@ -912,7 +1292,7 @@
             min-w-0
             overflow-hidden
 
-            md:h-[108px]
+            min-h-[108px] h-auto
 
             rounded-xl
             border
@@ -931,7 +1311,7 @@
             class="
                 mx-auto
                 w-full
-                max-w-[820px]
+                max-w-none
             "
         >
             {{-- ============================================================
@@ -1022,6 +1402,7 @@
 
                     sm:grid-cols-3
                 "
+                :style="{ '--defenses-grid-tracks': defenseSummaryTracks() }"
             >
                 {{-- RESISTÊNCIAS --}}
 
@@ -1211,57 +1592,25 @@
     </section>
 
 
-    {{-- ================================================================
-         EDITOR
-    ================================================================= --}}
-
+    {{-- Editor: mesma fonte de dados e mesmo endpoint de salvamento. --}}
     <template x-teleport="body">
-
         <div
             x-show="open"
             x-cloak
-
             x-transition:enter="character-theme-modal-layer-enter"
             x-transition:enter-start="character-theme-modal-layer-enter-start"
             x-transition:enter-end="character-theme-modal-layer-enter-end"
             x-transition:leave="character-theme-modal-layer-leave"
             x-transition:leave-start="character-theme-modal-layer-leave-start"
             x-transition:leave-end="character-theme-modal-layer-leave-end"
-
-            @keydown.escape.window="cancelEditor()"
-
+            x-on:keydown.escape.window="cancelEditor()"
             data-theme="{{ $characterTheme }}"
-
-            class="
-                character-sheet-theme
-                character-theme-modal-layer
-                character-defenses-modal-layer
-                fixed
-                inset-0
-                z-[180]
-
-                flex
-                items-center
-                justify-center
-
-                p-3
-                sm:p-6
-            "
-
+            class="character-sheet-theme character-theme-modal-layer character-defenses-modal-layer fixed inset-0 z-[180] flex items-center justify-center p-3 sm:p-6"
             role="dialog"
             aria-modal="true"
-            aria-label="Defesas Especiais"
+            aria-labelledby="defenses-modal-title-{{ $character->id }}"
         >
-
-            {{-- BACKDROP --}}
-
-            <div
-                class="character-theme-modal-backdrop absolute inset-0"
-                @click="cancelEditor()"
-            ></div>
-
-
-            {{-- PAINEL CENTRAL --}}
+            <div class="character-theme-modal-backdrop absolute inset-0" x-on:click="cancelEditor()"></div>
 
             <div
                 x-show="open"
@@ -1271,1514 +1620,129 @@
                 x-transition:leave="character-theme-modal-panel-leave"
                 x-transition:leave-start="character-theme-modal-panel-leave-start"
                 x-transition:leave-end="character-theme-modal-panel-leave-end"
-                @click.stop
-
-                class="
-                    character-theme-modal
-                    character-defenses-modal
-                    relative
-                    z-10
-
-                    flex
-                    max-h-[92dvh]
-                    w-full
-                    max-w-[820px]
-                    flex-col
-
-                    overflow-hidden
-
-                    rounded-2xl
-                    border
-                    border-[#b98e63]/70
-
-                    bg-[#faf8f2]
-
-                    shadow-[0_26px_80px_rgba(42,23,18,.30)]
-                "
+                x-on:click.stop
+                class="character-theme-modal character-defenses-modal relative z-10 w-full"
             >
-
-                {{-- =====================================================
-                     CABEÇALHO
-                ====================================================== --}}
-
-                <div
-                    class="
-                        character-theme-modal-header
-                        character-defenses-modal-header
-                        flex
-                        shrink-0
-                        items-center
-                        justify-between
-                        gap-4
-
-                        border-b
-                        border-[#a0774d]/30
-
-                        bg-[#eadbc8]
-
-                        px-4
-                        py-3
-                        sm:px-5
-
-                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
-                    "
-                >
-
-                    <div class="flex min-w-0 items-center gap-3">
-
-                        <div class="min-w-0">
-
-                            <p
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.16em]
-                                    text-[#8c6239]
-                                "
-                            >
-                                Configuração de combate
-                            </p>
-
-                            <h3
-                                class="
-                                    mt-0.5
-                                    truncate
-                                    font-serif
-                                    text-[20px]
-                                    font-black
-                                    leading-none
-                                    text-[#53150f]
-                                "
-                            >
-                                Defesas Especiais
-                            </h3>
-
-                            <p
-                                class="
-                                    mt-1
-                                    text-[11px]
-                                    leading-snug
-                                    text-[#7a583f]
-                                "
-                            >
-                                Resistências, imunidades e vulnerabilidades a dano.
-                            </p>
-
-                        </div>
-
+                {{-- Cabeçalho sem reflexo branco --}}
+                <div class="character-theme-modal-header character-defenses-modal-header flex shrink-0 items-center justify-between gap-4">
+                    <div class="min-w-0">
+                        <p class="defenses-v35-eyebrow">Configuração de combate</p>
+                        <h3
+                            id="defenses-modal-title-{{ $character->id }}"
+                            class="defenses-v35-title mt-1 font-serif text-[21px] font-black leading-none"
+                        >Defesas Especiais</h3>
+                        <p class="defenses-v35-subtitle mt-1.5 text-[10px]">Resistências, imunidades e vulnerabilidades.</p>
                     </div>
-
-
                     <button
                         type="button"
-
-                        @click="cancelEditor()"
-
+                        x-on:click="cancelEditor()"
                         :disabled="saving"
-
-                        class="
-                            character-defenses-modal-close
-                            flex
-                            h-9
-                            w-9
-                            shrink-0
-                            items-center
-                            justify-center
-
-                            rounded-lg
-
-                            text-[#8c6239]
-
-                            transition
-
-                            hover:bg-[#fffdf8]/55
-                            hover:text-[#53150f]
-
-                            disabled:opacity-50
-                        "
-
-                        title="Fechar"
+                        class="character-defenses-modal-close flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition disabled:opacity-50"
                         aria-label="Fechar editor de defesas"
+                        title="Fechar"
                     >
-                        <svg
-                            class="h-4 w-4"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="1.8"
-                            stroke-linecap="round"
-                        >
-                            <path d="M6 6l12 12M18 6 6 18" />
-                        </svg>
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
                     </button>
-
                 </div>
 
-
-                {{-- =====================================================
-                     ABAS
-                ====================================================== --}}
-
-                <div
-                    class="
-                        character-defenses-tabs
-                        grid
-                        shrink-0
-                        grid-cols-3
-
-                        border-b
-                        border-[#d8c7ab]/60
-
-                        bg-[#f4f1e8]/60
-
-                        px-3
-                        sm:px-5
-                    "
-                >
-
-                    {{-- RESISTÊNCIAS --}}
-
-                    <button
-                        type="button"
-
-                        @click="activeTab = 'resistances'"
-
-                        class="
-                            character-defenses-tab
-                            relative
-
-                            flex
-                            min-w-0
-                            items-center
-                            justify-center
-                            gap-2
-
-                            border-b-2
-                            px-2
-                            py-2.5
-
-                            text-[12px]
-                            font-black
-                            uppercase
-                            tracking-[0.11em]
-
-                            transition
-                        "
-
-                        :class="
-                            activeTab === 'resistances'
-                                ? 'border-[#6b1d14] bg-[#fffdf9]/55 text-[#53150f]'
-                                : 'border-transparent text-[#8c6239] hover:bg-[#fffdf8]/50 hover:text-[#6b1d14]'
-                        "
-                    >
-                        <span class="truncate">
-                            Resistências
-                        </span>
-
-                        <span
-                            class="
-                                character-defenses-tab-count
-                                inline-flex
-                                min-w-[20px]
-                                items-center
-                                justify-center
-
-                                rounded-full
-
-                                bg-[#e7dccb]
-
-                                px-1.5
-                                py-0.5
-
-                                font-serif
-                                text-[11px]
-                                font-black
-                                leading-none
-                                text-[#6b1d14]
-                            "
-
-                            x-text="resistances.length"
-                        ></span>
+                {{-- Navegação compacta --}}
+                <div class="character-defenses-tabs grid shrink-0 grid-cols-3 gap-1" role="tablist" aria-label="Categoria de defesa">
+                    <button type="button" x-on:click="activeTab = 'resistances'"
+                        :class="activeTab === 'resistances' ? 'is-active' : ''"
+                        :aria-selected="activeTab === 'resistances' ? 'true' : 'false'"
+                        class="character-defenses-tab flex min-w-0 items-center justify-center gap-1.5 rounded-t-md transition" role="tab">
+                        <span class="truncate">Resistências</span>
+                        <span class="character-defenses-tab-count" x-text="resistances.length"></span>
                     </button>
-
-
-                    {{-- IMUNIDADES --}}
-
-                    <button
-                        type="button"
-
-                        @click="activeTab = 'immunities'"
-
-                        class="
-                            character-defenses-tab
-                            relative
-
-                            flex
-                            min-w-0
-                            items-center
-                            justify-center
-                            gap-2
-
-                            border-b-2
-                            px-2
-                            py-2.5
-
-                            text-[12px]
-                            font-black
-                            uppercase
-                            tracking-[0.11em]
-
-                            transition
-                        "
-
-                        :class="
-                            activeTab === 'immunities'
-                                ? 'border-[#6b1d14] bg-[#fffdf9]/55 text-[#53150f]'
-                                : 'border-transparent text-[#8c6239] hover:bg-[#fffdf8]/50 hover:text-[#6b1d14]'
-                        "
-                    >
-                        <span class="truncate">
-                            Imunidades
-                        </span>
-
-                        <span
-                            class="
-                                character-defenses-tab-count
-                                inline-flex
-                                min-w-[20px]
-                                items-center
-                                justify-center
-
-                                rounded-full
-
-                                bg-[#e7dccb]
-
-                                px-1.5
-                                py-0.5
-
-                                font-serif
-                                text-[11px]
-                                font-black
-                                leading-none
-                                text-[#6b1d14]
-                            "
-
-                            x-text="immunities.length"
-                        ></span>
+                    <button type="button" x-on:click="activeTab = 'immunities'"
+                        :class="activeTab === 'immunities' ? 'is-active' : ''"
+                        :aria-selected="activeTab === 'immunities' ? 'true' : 'false'"
+                        class="character-defenses-tab flex min-w-0 items-center justify-center gap-1.5 rounded-t-md transition" role="tab">
+                        <span class="truncate">Imunidades</span>
+                        <span class="character-defenses-tab-count" x-text="immunities.length"></span>
                     </button>
-
-
-                    {{-- VULNERABILIDADES --}}
-
-                    <button
-                        type="button"
-
-                        @click="activeTab = 'vulnerabilities'"
-
-                        class="
-                            character-defenses-tab
-                            relative
-
-                            flex
-                            min-w-0
-                            items-center
-                            justify-center
-                            gap-2
-
-                            border-b-2
-                            px-2
-                            py-2.5
-
-                            text-[12px]
-                            font-black
-                            uppercase
-                            tracking-[0.11em]
-
-                            transition
-                        "
-
-                        :class="
-                            activeTab === 'vulnerabilities'
-                                ? 'border-[#7b2a21] bg-[#fffdf9]/55 text-[#6b1d14]'
-                                : 'border-transparent text-[#8c6239] hover:bg-[#fffdf8]/50 hover:text-[#6b1d14]'
-                        "
-                    >
-                        <span class="truncate">
-                            Vulnerabilidades
-                        </span>
-
-                        <span
-                            class="
-                                character-defenses-tab-count
-                                inline-flex
-                                min-w-[20px]
-                                items-center
-                                justify-center
-
-                                rounded-full
-
-                                bg-[#ead8d2]
-
-                                px-1.5
-                                py-0.5
-
-                                font-serif
-                                text-[11px]
-                                font-black
-                                leading-none
-                                text-[#7b2a21]
-                            "
-
-                            x-text="vulnerabilities.length"
-                        ></span>
+                    <button type="button" x-on:click="activeTab = 'vulnerabilities'"
+                        :class="activeTab === 'vulnerabilities' ? 'is-active' : ''"
+                        :aria-selected="activeTab === 'vulnerabilities' ? 'true' : 'false'"
+                        class="character-defenses-tab flex min-w-0 items-center justify-center gap-1.5 rounded-t-md transition" role="tab">
+                        <span class="truncate">Vulnerabilidades</span>
+                        <span class="character-defenses-tab-count" x-text="vulnerabilities.length"></span>
                     </button>
-
                 </div>
 
-
-                {{-- =====================================================
-                     CONTEÚDO
-                ====================================================== --}}
-
-                <div
-                    class="
-                        character-defenses-modal-body
-                        min-h-0
-                        flex-1
-                        overflow-y-auto
-
-                        px-4
-                        py-4
-                        sm:px-5
-                    "
-                >
-
-                    {{-- =================================================
-                         RESISTÊNCIAS
-                    ================================================== --}}
-
-                    <section
-                        x-show="activeTab === 'resistances'"
-                        x-cloak
-                    >
-
-                        <div
-                            class="
-                                mb-3
-                                flex
-                                items-end
-                                justify-between
-                                gap-4
-                            "
-                        >
-                            <div>
-                                <p
-                                    class="
-                                        text-[12px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.15em]
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Tipos de dano
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-1
-                                        max-w-[520px]
-                                        text-[12px]
-                                        leading-relaxed
-                                        text-[#76553f]
-                                    "
-                                >
-                                    Selecione os tipos de dano aos quais o personagem recebe dano reduzido.
-                                </p>
-                            </div>
+                <div class="character-defenses-modal-body flex-1">
+                    <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                            <p class="defenses-v35-section-label">Tipos de dano</p>
+                            <p class="defenses-v35-section-help mt-0.5" x-text="activeDescription()"></p>
                         </div>
-
-
-                        <div
-                            class="
-                                grid
-                                grid-cols-2
-                                gap-1.5
-
-                                sm:grid-cols-3
-                                lg:grid-cols-4
-                            "
-                        >
-                            <template
-                                x-for="option in damageTypes"
-                                :key="'resistance-' + option.value"
-                            >
-                                <button
-                                    type="button"
-
-                                    @click="toggle(resistances, option.value)"
-
-                                    class="
-                                        character-defenses-option
-                                        flex
-                                        min-h-[36px]
-                                        min-w-0
-                                        items-center
-                                        justify-between
-                                        gap-2
-
-                                        rounded-lg
-                                        border
-
-                                        px-2.5
-                                        py-2
-
-                                        text-left
-                                        text-[11px]
-                                        font-bold
-
-                                        transition
-                                    "
-
-                                    :class="
-                                        resistances.includes(option.value)
-                                            ? 'border-[#6b1d14] bg-[#7a2418] text-[#fffaf2] shadow-[inset_0_0_0_1px_rgba(255,255,255,.12)]'
-                                            : 'border-[#d8c7ab]/80 bg-[#fffdf9] text-[#53150f] hover:border-[#c5ab88] hover:bg-[#f4f1e8]'
-                                    "
-                                >
-                                    <span
-                                        class="min-w-0 truncate"
-                                        x-text="option.label"
-                                    ></span>
-
-                                    <span
-                                        class="
-                                            flex
-                                            h-4
-                                            w-4
-                                            shrink-0
-                                            items-center
-                                            justify-center
-
-                                            rounded-full
-                                            border
-                                        "
-
-                                        :class="
-                                            resistances.includes(option.value)
-                                                ? 'border-[#fffaf2]/55 bg-[#fffaf2]/10'
-                                                : 'border-[#cdbb9f] bg-white'
-                                        "
-                                        aria-hidden="true"
-                                    >
-                                        <svg
-                                            x-show="resistances.includes(option.value)"
-                                            x-cloak
-                                            class="h-2.5 w-2.5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2.2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="m5 12 4 4L19 6" />
-                                        </svg>
-                                    </span>
-                                </button>
-                            </template>
-                        </div>
-
-
-                        {{-- PERSONALIZADA --}}
-
-                        <div
-                            class="
-                                character-defenses-custom-card
-                                mt-4
-
-                                rounded-xl
-                                border
-                                border-[#d8c7ab]/60
-
-                                bg-[#f4f1e8]/40
-
-                                p-3
-                            "
-                        >
-                            <p
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.14em]
-                                    text-[#8c6239]
-                                "
-                            >
-                                Resistência personalizada
-                            </p>
-
-                            <div
-                                class="
-                                    mt-2
-                                    flex
-                                    items-center
-                                    gap-2
-                                "
-                            >
-                                <input
-                                    type="text"
-
-                                    x-model="customResistance"
-
-                                    @keydown.enter.prevent="
-                                        addCustom(
-                                            resistances,
-                                            'customResistance'
-                                        )
-                                    "
-
-                                    maxlength="160"
-
-                                    placeholder="Ex.: dano de armas não mágicas"
-
-                                    class="
-                                        h-9
-                                        min-w-0
-                                        flex-1
-
-                                        rounded-lg
-                                        border
-                                        border-[#d8c7ab]/85
-
-                                        bg-[#fffdf9]
-
-                                        px-3
-
-                                        text-[12px]
-                                        text-[#53150f]
-
-                                        outline-none
-
-                                        placeholder:text-[#a88769]/70
-
-                                        focus:border-[#8c6239]
-                                        focus:ring-1
-                                        focus:ring-[#8c6239]/15
-                                    "
-                                >
-
-                                <button
-                                    type="button"
-
-                                    @click="
-                                        addCustom(
-                                            resistances,
-                                            'customResistance'
-                                        )
-                                    "
-
-                                    class="
-                                        h-9
-                                        shrink-0
-
-                                        rounded-lg
-                                        border
-                                        border-[#cdbb9f]
-
-                                        bg-[#eadbc8]
-
-                                        px-3
-
-                                        text-[12px]
-                                        font-black
-                                        uppercase
-                                        tracking-wide
-                                        text-[#6b1d14]
-
-                                        transition
-
-                                        hover:bg-[#ecdcc8]
-                                    "
-                                >
-                                    Adicionar
-                                </button>
-                            </div>
-
-
-                            <div
-                                x-show="customValues(resistances).length"
-                                x-cloak
-
-                                class="
-                                    mt-2.5
-                                    flex
-                                    flex-wrap
-                                    gap-1.5
-                                "
-                            >
-                                <template
-                                    x-for="value in customValues(resistances)"
-                                    :key="'custom-resistance-' + value"
-                                >
-                                    <button
-                                        type="button"
-
-                                        @click="removeValue(resistances, value)"
-
-                                        class="
-                                            character-defenses-custom-chip
-                                            inline-flex
-                                            max-w-full
-                                            items-center
-                                            gap-1.5
-
-                                            rounded-full
-                                            border
-                                            border-[#d8c7ab]/80
-
-                                            bg-[#fffdf9]
-
-                                            px-2.5
-                                            py-1
-
-                                            text-[8.5px]
-                                            font-bold
-                                            text-[#53150f]
-
-                                            transition
-
-                                            hover:border-red-300
-                                            hover:bg-red-50
-                                            hover:text-red-700
-                                        "
-
-                                        title="Remover"
-                                    >
-                                        <span
-                                            class="truncate"
-                                            x-text="value"
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                shrink-0
-                                                text-[11px]
-                                                leading-none
-                                            "
-                                            aria-hidden="true"
-                                        >
-                                            ×
-                                        </span>
-                                    </button>
-                                </template>
-                            </div>
-
-                        </div>
-
-                    </section>
-
-
-                    {{-- =================================================
-                         IMUNIDADES
-                    ================================================== --}}
-
-                    <section
-                        x-show="activeTab === 'immunities'"
-                        x-cloak
-                    >
-
-                        <div
-                            class="
-                                mb-3
-                                flex
-                                items-end
-                                justify-between
-                                gap-4
-                            "
-                        >
-                            <div>
-                                <p
-                                    class="
-                                        text-[12px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.15em]
-                                        text-[#8c6239]
-                                    "
-                                >
-                                    Tipos de dano
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-1
-                                        max-w-[520px]
-                                        text-[12px]
-                                        leading-relaxed
-                                        text-[#76553f]
-                                    "
-                                >
-                                    Selecione os tipos de dano que não causam dano ao personagem.
-                                </p>
-                            </div>
-                        </div>
-
-
-                        <div
-                            class="
-                                grid
-                                grid-cols-2
-                                gap-1.5
-
-                                sm:grid-cols-3
-                                lg:grid-cols-4
-                            "
-                        >
-                            <template
-                                x-for="option in damageTypes"
-                                :key="'immunity-' + option.value"
-                            >
-                                <button
-                                    type="button"
-
-                                    @click="toggle(immunities, option.value)"
-
-                                    class="
-                                        character-defenses-option
-                                        flex
-                                        min-h-[36px]
-                                        min-w-0
-                                        items-center
-                                        justify-between
-                                        gap-2
-
-                                        rounded-lg
-                                        border
-
-                                        px-2.5
-                                        py-2
-
-                                        text-left
-                                        text-[11px]
-                                        font-bold
-
-                                        transition
-                                    "
-
-                                    :class="
-                                        immunities.includes(option.value)
-                                            ? 'border-[#6b1d14] bg-[#6b1d14] text-[#fffaf2] shadow-[inset_0_0_0_1px_rgba(255,255,255,.12)]'
-                                            : 'border-[#d8c7ab]/80 bg-[#fffdf9] text-[#53150f] hover:border-[#c5ab88] hover:bg-[#f4f1e8]'
-                                    "
-                                >
-                                    <span
-                                        class="min-w-0 truncate"
-                                        x-text="option.label"
-                                    ></span>
-
-                                    <span
-                                        class="
-                                            flex
-                                            h-4
-                                            w-4
-                                            shrink-0
-                                            items-center
-                                            justify-center
-
-                                            rounded-full
-                                            border
-                                        "
-
-                                        :class="
-                                            immunities.includes(option.value)
-                                                ? 'border-[#fffaf2]/55 bg-[#fffaf2]/10'
-                                                : 'border-[#cdbb9f] bg-white'
-                                        "
-                                        aria-hidden="true"
-                                    >
-                                        <svg
-                                            x-show="immunities.includes(option.value)"
-                                            x-cloak
-                                            class="h-2.5 w-2.5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2.2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="m5 12 4 4L19 6" />
-                                        </svg>
-                                    </span>
-                                </button>
-                            </template>
-                        </div>
-
-
-                        {{-- PERSONALIZADA --}}
-
-                        <div
-                            class="
-                                character-defenses-custom-card
-                                mt-4
-
-                                rounded-xl
-                                border
-                                border-[#d8c7ab]/60
-
-                                bg-[#f4f1e8]/40
-
-                                p-3
-                            "
-                        >
-                            <p
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.14em]
-                                    text-[#8c6239]
-                                "
-                            >
-                                Imunidade personalizada
-                            </p>
-
-                            <div
-                                class="
-                                    mt-2
-                                    flex
-                                    items-center
-                                    gap-2
-                                "
-                            >
-                                <input
-                                    type="text"
-
-                                    x-model="customImmunity"
-
-                                    @keydown.enter.prevent="
-                                        addCustom(
-                                            immunities,
-                                            'customImmunity'
-                                        )
-                                    "
-
-                                    maxlength="160"
-
-                                    placeholder="Adicionar imunidade personalizada"
-
-                                    class="
-                                        h-9
-                                        min-w-0
-                                        flex-1
-
-                                        rounded-lg
-                                        border
-                                        border-[#d8c7ab]/85
-
-                                        bg-[#fffdf9]
-
-                                        px-3
-
-                                        text-[12px]
-                                        text-[#53150f]
-
-                                        outline-none
-
-                                        placeholder:text-[#a88769]/70
-
-                                        focus:border-[#8c6239]
-                                        focus:ring-1
-                                        focus:ring-[#8c6239]/15
-                                    "
-                                >
-
-                                <button
-                                    type="button"
-
-                                    @click="
-                                        addCustom(
-                                            immunities,
-                                            'customImmunity'
-                                        )
-                                    "
-
-                                    class="
-                                        h-9
-                                        shrink-0
-
-                                        rounded-lg
-                                        border
-                                        border-[#cdbb9f]
-
-                                        bg-[#eadbc8]
-
-                                        px-3
-
-                                        text-[12px]
-                                        font-black
-                                        uppercase
-                                        tracking-wide
-                                        text-[#6b1d14]
-
-                                        transition
-
-                                        hover:bg-[#ecdcc8]
-                                    "
-                                >
-                                    Adicionar
-                                </button>
-                            </div>
-
-
-                            <div
-                                x-show="customValues(immunities).length"
-                                x-cloak
-
-                                class="
-                                    mt-2.5
-                                    flex
-                                    flex-wrap
-                                    gap-1.5
-                                "
-                            >
-                                <template
-                                    x-for="value in customValues(immunities)"
-                                    :key="'custom-immunity-' + value"
-                                >
-                                    <button
-                                        type="button"
-
-                                        @click="removeValue(immunities, value)"
-
-                                        class="
-                                            character-defenses-custom-chip
-                                            inline-flex
-                                            max-w-full
-                                            items-center
-                                            gap-1.5
-
-                                            rounded-full
-                                            border
-                                            border-[#d8c7ab]/80
-
-                                            bg-[#fffdf9]
-
-                                            px-2.5
-                                            py-1
-
-                                            text-[8.5px]
-                                            font-bold
-                                            text-[#53150f]
-
-                                            transition
-
-                                            hover:border-red-300
-                                            hover:bg-red-50
-                                            hover:text-red-700
-                                        "
-
-                                        title="Remover"
-                                    >
-                                        <span
-                                            class="truncate"
-                                            x-text="value"
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                shrink-0
-                                                text-[11px]
-                                                leading-none
-                                            "
-                                            aria-hidden="true"
-                                        >
-                                            ×
-                                        </span>
-                                    </button>
-                                </template>
-                            </div>
-
-                        </div>
-
-                    </section>
-
-
-                    {{-- =================================================
-                         VULNERABILIDADES
-                    ================================================== --}}
-
-                    <section
-                        x-show="activeTab === 'vulnerabilities'"
-                        x-cloak
-                    >
-
-                        <div
-                            class="
-                                mb-3
-                                flex
-                                items-end
-                                justify-between
-                                gap-4
-                            "
-                        >
-                            <div>
-                                <p
-                                    class="
-                                        text-[12px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.15em]
-                                        text-[#7b2a21]
-                                    "
-                                >
-                                    Tipos de dano
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-1
-                                        max-w-[520px]
-                                        text-[12px]
-                                        leading-relaxed
-                                        text-[#76553f]
-                                    "
-                                >
-                                    Selecione os tipos de dano que causam dano aumentado ao personagem.
-                                </p>
-                            </div>
-                        </div>
-
-
-                        <div
-                            class="
-                                grid
-                                grid-cols-2
-                                gap-1.5
-
-                                sm:grid-cols-3
-                                lg:grid-cols-4
-                            "
-                        >
-                            <template
-                                x-for="option in damageTypes"
-                                :key="'vulnerability-' + option.value"
-                            >
-                                <button
-                                    type="button"
-
-                                    @click="toggle(vulnerabilities, option.value)"
-
-                                    class="
-                                        character-defenses-option
-                                        flex
-                                        min-h-[36px]
-                                        min-w-0
-                                        items-center
-                                        justify-between
-                                        gap-2
-
-                                        rounded-lg
-                                        border
-
-                                        px-2.5
-                                        py-2
-
-                                        text-left
-                                        text-[11px]
-                                        font-bold
-
-                                        transition
-                                    "
-
-                                    :class="
-                                        vulnerabilities.includes(option.value)
-                                            ? 'border-[#7b2a21] bg-[#7b2a21] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.10)]'
-                                            : 'border-[#d8c7ab]/80 bg-[#fffdf9] text-[#53150f] hover:border-[#c5ab88] hover:bg-[#f4f1e8]'
-                                    "
-                                >
-                                    <span
-                                        class="min-w-0 truncate"
-                                        x-text="option.label"
-                                    ></span>
-
-                                    <span
-                                        class="
-                                            flex
-                                            h-4
-                                            w-4
-                                            shrink-0
-                                            items-center
-                                            justify-center
-
-                                            rounded-full
-                                            border
-                                        "
-
-                                        :class="
-                                            vulnerabilities.includes(option.value)
-                                                ? 'border-white/55 bg-white/10'
-                                                : 'border-[#cdbb9f] bg-white'
-                                        "
-                                        aria-hidden="true"
-                                    >
-                                        <svg
-                                            x-show="vulnerabilities.includes(option.value)"
-                                            x-cloak
-                                            class="h-2.5 w-2.5"
-                                            viewBox="0 0 24 24"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="2.2"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        >
-                                            <path d="m5 12 4 4L19 6" />
-                                        </svg>
-                                    </span>
-                                </button>
-                            </template>
-                        </div>
-
-
-                        {{-- PERSONALIZADA --}}
-
-                        <div
-                            class="
-                                character-defenses-custom-card
-                                mt-4
-
-                                rounded-xl
-                                border
-                                border-[#d8c7ab]/60
-
-                                bg-[#f4f1e8]/40
-
-                                p-3
-                            "
-                        >
-                            <p
-                                class="
-                                    text-[11px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.14em]
-                                    text-[#7b2a21]
-                                "
-                            >
-                                Vulnerabilidade personalizada
-                            </p>
-
-                            <div
-                                class="
-                                    mt-2
-                                    flex
-                                    items-center
-                                    gap-2
-                                "
-                            >
-                                <input
-                                    type="text"
-
-                                    x-model="customVulnerability"
-
-                                    @keydown.enter.prevent="
-                                        addCustom(
-                                            vulnerabilities,
-                                            'customVulnerability'
-                                        )
-                                    "
-
-                                    maxlength="160"
-
-                                    placeholder="Ex.: Corte, impacto e perfurante de ataques não mágicos"
-
-                                    class="
-                                        h-9
-                                        min-w-0
-                                        flex-1
-
-                                        rounded-lg
-                                        border
-                                        border-[#d8c7ab]/85
-
-                                        bg-[#fffdf9]
-
-                                        px-3
-
-                                        text-[12px]
-                                        text-[#53150f]
-
-                                        outline-none
-
-                                        placeholder:text-[#a88769]/70
-
-                                        focus:border-[#8c6239]
-                                        focus:ring-1
-                                        focus:ring-[#8c6239]/15
-                                    "
-                                >
-
-                                <button
-                                    type="button"
-
-                                    @click="
-                                        addCustom(
-                                            vulnerabilities,
-                                            'customVulnerability'
-                                        )
-                                    "
-
-                                    class="
-                                        h-9
-                                        shrink-0
-
-                                        rounded-lg
-                                        border
-                                        border-[#cdbb9f]
-
-                                        bg-[#eadbc8]
-
-                                        px-3
-
-                                        text-[12px]
-                                        font-black
-                                        uppercase
-                                        tracking-wide
-                                        text-[#6b1d14]
-
-                                        transition
-
-                                        hover:bg-[#ecdcc8]
-                                    "
-                                >
-                                    Adicionar
-                                </button>
-                            </div>
-
-
-                            <div
-                                x-show="customValues(vulnerabilities).length"
-                                x-cloak
-
-                                class="
-                                    mt-2.5
-                                    flex
-                                    flex-wrap
-                                    gap-1.5
-                                "
-                            >
-                                <template
-                                    x-for="value in customValues(vulnerabilities)"
-                                    :key="'custom-vulnerability-' + value"
-                                >
-                                    <button
-                                        type="button"
-
-                                        @click="removeValue(vulnerabilities, value)"
-
-                                        class="
-                                            character-defenses-custom-chip
-                                            inline-flex
-                                            max-w-full
-                                            items-center
-                                            gap-1.5
-
-                                            rounded-full
-                                            border
-                                            border-[#d8c7ab]/80
-
-                                            bg-[#fffdf9]
-
-                                            px-2.5
-                                            py-1
-
-                                            text-[8.5px]
-                                            font-bold
-                                            text-[#6b1d14]
-
-                                            transition
-
-                                            hover:border-red-300
-                                            hover:bg-red-50
-                                            hover:text-red-700
-                                        "
-
-                                        title="Remover"
-                                    >
-                                        <span
-                                            class="truncate"
-                                            x-text="value"
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                shrink-0
-                                                text-[11px]
-                                                leading-none
-                                            "
-                                            aria-hidden="true"
-                                        >
-                                            ×
-                                        </span>
-                                    </button>
-                                </template>
-                            </div>
-
-                        </div>
-
-                    </section>
-
-
-                    {{-- ERRO --}}
-
-                    <div
-                        x-show="error"
-                        x-cloak
-
-                        class="
-                            character-defenses-error
-                            mt-4
-
-                            rounded-lg
-                            border
-                            border-red-200
-
-                            bg-red-50
-
-                            px-3
-                            py-2.5
-
-                            text-[11px]
-                            font-bold
-                            text-red-700
-                        "
-
-                        x-text="error"
-                    ></div>
-
-                </div>
-
-
-                {{-- =====================================================
-                     AÇÕES
-                ====================================================== --}}
-
-                <div
-                    class="
-                        character-theme-modal-footer
-                        character-defenses-modal-footer
-                        flex
-                        shrink-0
-                        items-center
-                        justify-between
-                        gap-3
-
-                        border-t
-                        border-[#d8c7ab]/60
-
-                        bg-[#f4f1e8]/70
-
-                        px-4
-                        py-3
-                        sm:px-5
-                    "
-                >
-
- 
-
-
-                    {{-- BOTÕES --}}
-
-                    <div
-                        class="
-                            ml-auto
-                            flex
-                            items-center
-                            justify-end
-                            gap-2
-                        "
-                    >
-
-
-
-
-                        <button
-                            type="button"
-                            @click="cancelEditor()"
-                            :disabled="saving"
-                            class="
-                                character-defenses-secondary
-                                rounded-lg
-                                px-4
-                                py-2.5
-                                text-[11px]
-                                font-black
-                                uppercase
-                                tracking-wider
-                                transition
-                                disabled:opacity-50
-                            "
-                        >
-                            Cancelar
-                        </button>
-
-                        <button
-                            type="button"
-
-                            @click="save()"
-
-                            :disabled="saving"
-
-                            class="
-                                character-defenses-primary
-                                min-w-[124px]
-
-                                rounded-lg
-
-                                bg-[#6b1d14]
-
-                                px-5
-                                py-2.5
-
-                                text-[12px]
-                                font-black
-                                uppercase
-                                tracking-wider
-                                text-[#fffaf2]
-
-                                shadow-[0_1px_2px_rgba(83,21,15,.14)]
-
-                                transition
-
-                                hover:bg-[#53150f]
-
-                                disabled:cursor-wait
-                                disabled:opacity-60
-                            "
-                        >
-                            <span x-show="!saving">
-                                Salvar alterações
-                            </span>
-
-                            <span
-                                x-show="saving"
-                                x-cloak
-                            >
-                                Salvando...
-                            </span>
-                        </button>
-
+                        <span class="defenses-v35-section-help pt-0.5" x-text="`${activeValues().length} selecionado${activeValues().length === 1 ? '' : 's'}`"></span>
                     </div>
 
+                    <div class="grid grid-cols-2 gap-1.5 sm:grid-cols-3 lg:grid-cols-4">
+                        <template x-for="option in damageTypes" :key="activeTab + '-' + option.value">
+                            <button
+                                type="button"
+                                x-on:click="toggle(activeValues(), option.value)"
+                                :class="activeValues().includes(option.value) ? 'is-selected' : ''"
+                                :aria-pressed="activeValues().includes(option.value) ? 'true' : 'false'"
+                                class="character-defenses-option flex min-w-0 items-center justify-between gap-2 text-left transition"
+                            >
+                                <span class="min-w-0 truncate" x-text="option.label"></span>
+                                <span class="defenses-v35-check">
+                                    <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>
+                                </span>
+                            </button>
+                        </template>
+                    </div>
+
+                    <div class="defenses-v35-custom">
+                        <label class="defenses-v35-section-label block" for="defenses-custom-{{ $character->id }}">Personalizar</label>
+                        <p class="defenses-v35-section-help mb-2 mt-0.5">Adicione uma condição específica que não esteja na lista.</p>
+                        <div class="flex min-w-0 gap-2">
+                            <input
+                                id="defenses-custom-{{ $character->id }}"
+                                type="text"
+                                maxlength="160"
+                                :value="activeCustomValue()"
+                                x-on:input="setActiveCustomValue($event.target.value)"
+                                x-on:keydown.enter.prevent="addCustom(activeValues(), activeCustomProperty())"
+                                placeholder="Ex.: dano de armas não mágicas"
+                                class="defenses-v35-input min-w-0 flex-1 text-[11px]"
+                            >
+                            <button
+                                type="button"
+                                x-on:click="addCustom(activeValues(), activeCustomProperty())"
+                                class="defenses-v35-add shrink-0 transition"
+                            >Adicionar</button>
+                        </div>
+                        <div x-show="customValues(activeValues()).length > 0" x-cloak class="mt-2.5 flex flex-wrap gap-1.5">
+                            <template x-for="value in customValues(activeValues())" :key="activeTab + '-custom-' + value">
+                                <button
+                                    type="button"
+                                    x-on:click="removeValue(activeValues(), value)"
+                                    class="character-defenses-custom-chip inline-flex max-w-full items-center gap-2 rounded-full border px-2.5 py-1.5 text-[10px] transition"
+                                    :title="'Remover ' + value"
+                                >
+                                    <span class="min-w-0 break-words text-left" x-text="value"></span>
+                                    <span aria-hidden="true" class="shrink-0 text-sm leading-none">×</span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                    <div x-show="error" x-cloak class="character-defenses-error mt-3 rounded-lg border px-3 py-2 text-[11px] font-bold" x-text="error"></div>
                 </div>
 
+                <div class="character-theme-modal-footer character-defenses-modal-footer flex shrink-0 items-center justify-end gap-2">
+                    <button type="button" x-on:click="cancelEditor()" :disabled="saving"
+                        class="character-defenses-secondary rounded-lg px-4 py-2.5 text-[10px] font-black uppercase transition disabled:opacity-50">Cancelar</button>
+                    <button type="button" x-on:click="save()" :disabled="saving"
+                        class="character-defenses-primary min-w-[140px] rounded-lg px-5 py-2.5 text-[10px] font-black uppercase transition disabled:opacity-60">
+                        <span x-show="!saving">Salvar alterações</span>
+                        <span x-show="saving" x-cloak>Salvando...</span>
+                    </button>
+                </div>
             </div>
-
         </div>
-
     </template>
-
 </div>

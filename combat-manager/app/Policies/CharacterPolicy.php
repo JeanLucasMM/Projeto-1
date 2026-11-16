@@ -14,7 +14,7 @@ class CharacterPolicy
     |
     | 1. O dono sempre pode visualizar.
     | 2. Um Mestre pode visualizar SOMENTE quando a ficha foi explicitamente
-    |    vinculada a uma campanha que pertence a ele.
+    |    vinculada e permanece ativa em uma campanha que pertence a ele.
     |
     */
 
@@ -31,6 +31,10 @@ class CharacterPolicy
 
         return $character
             ->campaigns()
+            ->wherePivot(
+                'is_active',
+                true
+            )
             ->where(
                 'campaigns.owner_user_id',
                 $user->id

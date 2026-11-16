@@ -1,22 +1,60 @@
 @php
+    $npcImageZoom = max(1, min(3, (float) ($npc->image_zoom ?? 1)));
+    $npcImageHorizontal = max(0, min(100, (int) ($npc->image_horizontal ?? 50)));
+    $npcImagePosition = in_array(($npc->image_position ?? 'auto'), ['auto','top','center','bottom'], true) ? $npc->image_position : 'auto';
     $isDeceased = !is_null($npc->deceased_at);
     $deceasedDate = $npc->deceased_at
         ? \Carbon\Carbon::parse($npc->deceased_at)->format('d/m/Y')
         : '';
+
+    // Tradução apenas visual: preserva os termos originais do JSON importado.
+    $npcSizeLabels = [
+        'tiny' => 'Minúsculo', 'small' => 'Pequeno', 'medium' => 'Médio',
+        'large' => 'Grande', 'huge' => 'Enorme', 'gargantuan' => 'Colossal',
+    ];
+    $npcTypeLabels = [
+        'aberration' => 'Aberração', 'beast' => 'Fera', 'celestial' => 'Celestial',
+        'construct' => 'Constructo', 'dragon' => 'Dragão', 'elemental' => 'Elemental',
+        'fey' => 'Feérico', 'fiend' => 'Ínfero', 'giant' => 'Gigante',
+        'humanoid' => 'Humanoide', 'monstrosity' => 'Monstruosidade',
+        'ooze' => 'Limo', 'plant' => 'Planta', 'undead' => 'Morto-vivo',
+        'demon' => 'Demônio', 'devil' => 'Diabo', 'human' => 'Humano',
+        'elf' => 'Elfo', 'dwarf' => 'Anão', 'orc' => 'Orc',
+        'goblinoid' => 'Goblinóide', 'shapechanger' => 'Metamorfo',
+        'titan' => 'Titã', 'any race' => 'Qualquer raça',
+    ];
+    $rawSize = trim((string) ($npc->size ?? ''));
+    $rawType = trim((string) ($npc->creature_type ?? ''));
+    $translatedSize = $npcSizeLabels[strtolower($rawSize)] ?? $rawSize;
+    $translatedType = preg_replace_callback(
+        '/[\p{L}][\p{L}\s-]*/u',
+        static function (array $match) use ($npcTypeLabels): string {
+            $original = $match[0];
+            $trimmed = trim($original);
+            $key = strtolower($trimmed);
+            return $key !== '' && isset($npcTypeLabels[$key])
+                ? str_replace($trimmed, $npcTypeLabels[$key], $original)
+                : $original;
+        },
+        $rawType
+    ) ?? $rawType;
 @endphp
 
 <div
     id="npc-card-{{ $npc->id }}"
-    class="npc-card group relative bg-gradient-to-br from-[#fcfaf5] to-[#f4f1e8] border border-[#cdbb9f]/60 hover:border-[#6b1d14]/50 rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col justify-between p-4 max-w-[240px] w-full"
+    class="npc-card npc-vault-card group relative flex w-full"
     draggable="true"
     data-npc="{{ $npc->id }}"
+    data-npc-name="{{ $npc->name }}"
+    data-current-folder="{{ $npc->folder_id ?? '' }}"
 >
+    <div class="npc-card-top-ornament" aria-hidden="true"></div>
     {{-- ============================================================
          OVERLAY "FALECIDO"
          ============================================================ --}}
     <div
         id="falecido-overlay-{{ $npc->id }}"
-        class="absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-t from-black/95 via-black/80 to-black/60 backdrop-grayscale-[0.3] backdrop-blur-[2px] transition-all duration-700 {{ $isDeceased ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }}"
+        class="npc-deceased-overlay absolute inset-0 z-10 flex flex-col items-center justify-center bg-gradient-to-t from-black/95 via-black/80 to-black/60 backdrop-grayscale-[0.3] backdrop-blur-[2px] transition-all duration-700 {{ $isDeceased ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none' }}"
     >
         <svg
             id="tomb-icon-{{ $npc->id }}"
@@ -67,12 +105,15 @@
     {{-- ============================================================
          MENU DE 3 PONTINHOS
          ============================================================ --}}
-    <div class="absolute top-3 right-3 z-20">
+    <div class="absolute top-3 right-3 z-20 npc-card-actions">
 
         <button
             type="button"
             class="npc-menu-btn w-7 h-7 flex items-center justify-center rounded-full hover:bg-[#cdbb9f]/40 text-[#6b1d14] transition-all bg-white/60 backdrop-blur-md shadow-sm hover:shadow"
             data-target="npc-menu-{{ $npc->id }}"
+            aria-label="Opções de {{ $npc->name }}"
+            aria-controls="npc-menu-{{ $npc->id }}"
+            aria-expanded="false"
         >
             <svg
                 class="w-4 h-4 pointer-events-none"
@@ -95,8 +136,32 @@
              ======================================================== --}}
         <div
             id="npc-menu-{{ $npc->id }}"
-            class="npc-dropdown-menu hidden absolute right-0 mt-2 w-40 rounded-xl bg-[#fdfbf7] border border-[#cdbb9f]/60 shadow-xl z-30 overflow-hidden"
+            class="npc-dropdown-menu hidden absolute right-0 mt-2 w-48 rounded-xl bg-[#fdfbf7] border border-[#cdbb9f]/60 shadow-xl z-30"
         >
+
+            <button
+                type="button"
+                class="npc-move-folder-btn w-full text-left px-3 py-2.5 text-xs font-serif font-bold text-[#6b1d14] hover:bg-[#efe9dc] transition-colors flex items-center gap-2 border-b border-[#cdbb9f]/30"
+                data-npc-id="{{ $npc->id }}"
+                data-npc-name="{{ $npc->name }}"
+                data-current-folder="{{ $npc->folder_id ?? '' }}"
+            >
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="1.7" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h5l2 2h11v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 14h6m-3-3 3 3-3 3"/></svg>
+                Enviar para pasta
+            </button>
+
+            <button type="button"
+                class="npc-edit-btn w-full text-left px-3 py-2.5 text-xs font-serif font-bold text-[#6b1d14] hover:bg-[#efe9dc] transition-colors flex items-center gap-2 border-b border-[#cdbb9f]/30"
+                data-npc-id="{{ $npc->id }}"
+                data-npc-name="{{ $npc->name }}"
+                data-npc-image="{{ $npc->image_path ? asset('storage/'.$npc->image_path) : '' }}"
+                data-image-zoom="{{ $npcImageZoom }}"
+                data-image-position="{{ $npcImagePosition }}"
+                data-image-horizontal="{{ $npcImageHorizontal }}"
+            >
+                <svg class="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M15 5l4 4M4 20l4.5-1 10.7-10.7a2 2 0 00-2.8-2.8L5.7 16.2 4 20Z"/></svg>
+                Editar NPC
+            </button>
 
             {{-- ----------------------------------------------------
                  TIRAR DA PASTA
@@ -225,144 +290,63 @@
     </div>
 
 
-    {{-- ============================================================
-         CONTEÚDO DO CARD
-         ============================================================ --}}
-    <div class="flex flex-col items-center text-center pt-1 relative z-0">
-
-        {{-- Avatar --}}
-        <div
-            class="w-20 h-20 rounded-full overflow-hidden border-[3px] border-[#efe9dc] outline outline-1 outline-[#6b1d14]/40 shadow-md flex items-center justify-center bg-gradient-to-br from-[#cdbb9f]/30 to-[#cdbb9f]/10 mb-4 group-hover:scale-105 transition-transform duration-500"
-        >
-
+    {{-- Carta ilustrada: arte à esquerda e informações à direita. --}}
+    <div class="npc-card-art">
+        <div class="npc-portrait-frame">
             @if($npc->image_path)
-
                 <img
                     src="{{ asset('storage/'.$npc->image_path) }}"
-                    alt="{{ $npc->name }}"
-                    class="w-full h-full object-cover"
+                    alt="Retrato de {{ $npc->name }}"
+                    class="npc-portrait-image"
+                    data-npc-portrait="true"
+                    data-image-position="{{ $npcImagePosition }}"
+                    data-image-horizontal="{{ $npcImageHorizontal }}"
+                    style="--npc-portrait-zoom: {{ $npcImageZoom }}; object-position: {{ $npcImageHorizontal }}% {{ $npcImagePosition === 'top' ? '0%' : ($npcImagePosition === 'bottom' ? '100%' : '50%') }}; transform-origin: {{ $npcImageHorizontal }}% {{ $npcImagePosition === 'top' ? '0%' : ($npcImagePosition === 'bottom' ? '100%' : '50%') }};"
+                    loading="lazy"
                 >
-
             @else
-
-                <span
-                    class="text-xl font-serif font-bold text-[#6b1d14] uppercase npc-initials"
-                >
+                <span class="npc-initials npc-card-art__initials" aria-label="Sem retrato">
                     {{ str($npc->name)->substr(0,2)->upper() }}
                 </span>
-
             @endif
-
         </div>
+        
+    </div>
 
-
-        {{-- Nome --}}
-        <h2
-            class="text-[16px] font-serif font-bold text-[#53150f] leading-tight line-clamp-2 w-full px-1 min-h-[40px] flex items-center justify-center drop-shadow-sm"
-            title="{{ $npc->name }}"
-        >
+    <div class="npc-card-detail">
+        <div class="npc-card-detail__eyebrow" aria-hidden="true">✦</div>
+        <h2 class="npc-card-detail__name" title="{{ $npc->name }}">
             {{ $npc->name }}
         </h2>
-
-
-        {{-- Tipo --}}
-        <p
-            class="italic text-[10px] text-[#8c6239] font-bold uppercase tracking-widest mt-1.5 truncate w-full px-1"
-        >
-            {{ $npc->size }} {{ $npc->creature_type }}
+        <p class="npc-card-creature" title="{{ $translatedSize }} {{ $translatedType }}">
+            {{ $translatedSize }} · {{ $translatedType }}
         </p>
 
+        <div class="npc-card-stats" aria-label="Atributos de {{ $npc->name }}">
+            <div class="npc-card-stat">
+                <span class="npc-card-stat__label">Vida</span>
+                <strong class="npc-card-stat__value">{{ $npc->calculated_hp }}</strong>
+            </div>
+            <div class="npc-card-stat">
+                <span class="npc-card-stat__label">CA</span>
+                <strong class="npc-card-stat__value npc-card-stat__value--ac">{{ $npc->calculated_ac }}</strong>
+            </div>
+            <div class="npc-card-stat">
+                <span class="npc-card-stat__label">ND</span>
+                <strong class="npc-card-stat__value">{{ rtrim(rtrim(number_format($npc->challenge_rating ?? 0, 2, '.', ''), '0'), '.') }}</strong>
+            </div>
+        </div>
+
+        <a class="npc-view-button" href="{{ route('npcs.show', $npc->id) }}">
+            <span>Ver ficha</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h14m-6-6 6 6-6 6" />
+            </svg>
+        </a>
     </div>
 
-
-    {{-- ============================================================
-         BLOCO DE STATUS
-         ============================================================ --}}
-    <div
-        class="my-4 flex items-center justify-between bg-gradient-to-b from-[#f4f1e8] to-[#e8e2d2] border border-[#cdbb9f]/50 px-3 py-2 rounded-xl text-center shadow-[inset_0_1px_3px_rgba(0,0,0,0.06)] relative z-0"
-    >
-
-        {{-- Vida --}}
-        <div class="flex flex-col flex-1">
-
-            <span
-                class="text-[9px] font-serif font-bold text-red-900/80 uppercase tracking-wider"
-            >
-                Vida
-            </span>
-
-            <span
-                class="text-xs font-mono font-bold text-red-700 leading-none mt-1"
-            >
-                {{ $npc->calculated_hp }}
-            </span>
-
-        </div>
-
-
-        <div class="w-[1px] h-5 bg-[#cdbb9f]/50 mx-1"></div>
-
-
-        {{-- CA --}}
-        <div class="flex flex-col flex-1">
-
-            <span
-                class="text-[9px] font-serif font-bold text-blue-900/80 uppercase tracking-wider"
-            >
-                CA
-            </span>
-
-            <span
-                class="text-xs font-mono font-bold text-blue-700 leading-none mt-1"
-            >
-                {{ $npc->calculated_ac }}
-            </span>
-
-        </div>
-
-
-        <div class="w-[1px] h-5 bg-[#cdbb9f]/50 mx-1"></div>
-
-
-        {{-- ND --}}
-        <div class="flex flex-col flex-1">
-
-            <span
-                class="text-[9px] font-serif font-bold text-amber-900/80 uppercase tracking-wider"
-            >
-                ND
-            </span>
-
-            <span
-                class="text-xs font-mono font-bold text-amber-800 leading-none mt-1"
-            >
-                {{ rtrim(rtrim(number_format($npc->challenge_rating ?? 0, 2, '.', ''), '0'), '.') }}
-            </span>
-
-        </div>
-
-    </div>
-
-
-    {{-- ============================================================
-         BOTÃO VER FICHA
-         ============================================================ --}}
-    <a
-        href="{{ route('npcs.show', $npc->id) }}"
-        class="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#6b1d14] to-[#8a2519] text-[#f4f1e8] text-center font-serif font-bold text-[11px] uppercase tracking-[0.15em] hover:from-[#53150f] hover:to-[#6b1d14] transition-all shadow-md hover:shadow-lg block mt-auto relative z-0"
-    >
-        Ver Ficha
-    </a>
-
-
-    {{-- ============================================================
-         AVATAR OCULTO PARA DRAG & DROP
-         ============================================================ --}}
-    <input
-        type="hidden"
-        class="npc-avatar"
-        value="{{ $npc->image_path ? asset('storage/'.$npc->image_path) : '' }}"
-    >
+    {{-- Mantido para compatibilidade com o fluxo de arrastar e soltar. --}}
+    <input type="hidden" class="npc-avatar" value="{{ $npc->image_path ? asset('storage/'.$npc->image_path) : '' }}">
 
 </div>
 

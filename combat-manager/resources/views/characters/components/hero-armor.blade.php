@@ -95,6 +95,12 @@
                 background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
             }
 
+            /* Remove o brilho branco na borda superior do modal. */
+            .character-sheet-theme[data-theme] .character-armor-modal-header {
+                box-shadow: none !important;
+                background-image: none !important;
+            }
+
             .character-sheet-theme[data-theme] .character-armor-modal-title {
                 color: var(--theme-text-strong) !important;
             }
@@ -123,6 +129,14 @@
 
             .character-sheet-theme[data-theme] .character-armor-modal section > button:first-child:hover {
                 background: var(--theme-card-hover) !important;
+            }
+
+            /* Token da equação Defesa Base: DES, SAB, etc. 
+               Não usar fundo bege fixo porque o tema escuro torna o texto ilegível. */
+            .character-sheet-theme[data-theme] .character-armor-modal-ability-token {
+                border-color: var(--theme-border-strong) !important;
+                background: var(--theme-accent-softer) !important;
+                color: var(--theme-text-strong) !important;
             }
 
             .character-sheet-theme[data-theme] .character-armor-modal input {
@@ -433,7 +447,7 @@
                         bg-[#eadbc8]
                         px-5
                         py-3.5
-                        shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
+                        shadow-none
                     "
                 >
                     <div class="min-w-0 flex-1">
@@ -836,14 +850,14 @@
                                                         border
                                                         border-[#b9966c]/55
 
-                                                        bg-[#f7ece0]
+                                                        character-armor-modal-ability-token
 
                                                         px-2.5
 
                                                         text-[10px]
                                                         font-black
 
-                                                        text-[#6b1d14]
+                                                        
                                                     "
                                                 >
                                                     {{ $short }}

@@ -8735,3 +8735,429 @@ body:has(.character-sheet-theme[data-theme="obsidian"]) {
 .character-sheet-theme:is([data-theme="midnight"],[data-theme="obsidian"]) .hero-header-content {
     background: transparent !important;
 }
+
+
+/* ==========================================================
+   24. THEME CORE — TOASTS / FEEDBACK TELEPORTADO
+========================================================== */
+
+/*
+ * Componentes movidos por x-teleport="body" não herdam o tema da ficha.
+ *
+ * Existem dois formatos válidos no projeto:
+ *
+ * 1) wrapper tematizado contendo o componente:
+ *      .character-sheet-theme[data-theme] .algum-componente
+ *
+ * 2) o próprio componente sendo o root tematizado:
+ *      .character-sheet-theme[data-theme].algum-componente
+ *
+ * O segundo formato é o usado pelo toast de Ataques.
+ * Por isso os dois seletores precisam existir.
+ */
+
+.character-sheet-theme {
+    --theme-toast-surface:
+        var(
+            --theme-surface-raised,
+            var(--theme-paper-strong)
+        );
+
+    --theme-toast-border:
+        var(--theme-border);
+
+    --theme-toast-accent:
+        var(--theme-accent-strong);
+
+    --theme-toast-title:
+        var(--theme-label);
+
+    --theme-toast-text:
+        var(--theme-text-primary);
+
+    --theme-toast-muted:
+        var(--theme-text-secondary);
+
+    --theme-toast-shadow:
+        0 18px 42px rgba(0,0,0,.26),
+        0 4px 14px rgba(0,0,0,.14);
+}
+
+
+/*
+ * Contrato genérico para um modal/painel quando o próprio elemento
+ * teleportado carrega .character-sheet-theme + data-theme.
+ */
+.character-sheet-theme[data-theme].character-theme-modal {
+    border-color:
+        var(--theme-modal-border, var(--theme-border)) !important;
+
+    background:
+        var(
+            --theme-modal-surface,
+            var(--theme-surface-raised)
+        ) !important;
+
+    color:
+        var(
+            --theme-modal-text,
+            var(--theme-text-primary)
+        ) !important;
+
+    box-shadow:
+        var(
+            --theme-modal-shadow,
+            var(--theme-shadow-strong)
+        ) !important;
+}
+
+
+/* ----------------------------------------------------------
+   ATAQUES — CONFIRMAÇÃO / AVISO
+---------------------------------------------------------- */
+
+.character-sheet-theme[data-theme].character-attack-action-toast,
+.character-sheet-theme[data-theme]
+.character-attack-action-toast {
+    opacity:
+        1 !important;
+
+    border:
+        1px solid
+        var(--theme-toast-border) !important;
+
+    background:
+        var(--theme-toast-surface) !important;
+
+    background-color:
+        var(--theme-toast-surface) !important;
+
+    background-image:
+        none !important;
+
+    color:
+        var(--theme-toast-text) !important;
+
+    -webkit-backdrop-filter:
+        none !important;
+
+    backdrop-filter:
+        none !important;
+
+    box-shadow:
+        var(--theme-toast-shadow) !important;
+}
+
+
+/*
+ * Nada de aro interno claro. O destaque é só uma barra curta do accent.
+ */
+.character-sheet-theme[data-theme].character-attack-action-toast::after,
+.character-sheet-theme[data-theme]
+.character-attack-action-toast::after {
+    display:
+        none !important;
+
+    content:
+        none !important;
+}
+
+
+.character-sheet-theme[data-theme].character-attack-action-toast::before,
+.character-sheet-theme[data-theme]
+.character-attack-action-toast::before {
+    content:
+        "";
+
+    position:
+        absolute;
+
+    inset:
+        8px auto 8px 0;
+
+    width:
+        3px;
+
+    border-radius:
+        0 999px 999px 0;
+
+    background:
+        var(--theme-toast-accent) !important;
+}
+
+
+/* Ícone */
+.character-sheet-theme[data-theme]
+.character-attack-action-toast-icon {
+    border-color:
+        var(--theme-border) !important;
+
+    background:
+        var(--theme-accent-soft) !important;
+
+    color:
+        var(--theme-text-strong) !important;
+
+    box-shadow:
+        none !important;
+}
+
+
+/* Texto */
+.character-sheet-theme[data-theme]
+.character-attack-action-toast-title {
+    color:
+        var(--theme-toast-title) !important;
+}
+
+.character-sheet-theme[data-theme]
+.character-attack-action-toast-message {
+    color:
+        var(--theme-toast-text) !important;
+}
+
+
+/* Fechar */
+.character-sheet-theme[data-theme]
+.character-attack-action-toast-close {
+    border:
+        1px solid
+        var(--theme-border) !important;
+
+    background:
+        var(--theme-surface-inset) !important;
+
+    color:
+        var(--theme-text-secondary) !important;
+
+    box-shadow:
+        none !important;
+}
+
+.character-sheet-theme[data-theme]
+.character-attack-action-toast-close:hover {
+    border-color:
+        var(--theme-border-strong) !important;
+
+    background:
+        var(--theme-card-hover) !important;
+
+    color:
+        var(--theme-text-strong) !important;
+}
+
+
+/* Erro: muda somente o estado funcional, não a superfície inteira. */
+.character-sheet-theme[data-theme].character-attack-action-toast.is-error,
+.character-sheet-theme[data-theme]
+.character-attack-action-toast.is-error {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--theme-state-damage) 34%,
+            var(--theme-border) 66%
+        ) !important;
+
+    background:
+        var(--theme-toast-surface) !important;
+}
+
+.character-sheet-theme[data-theme].character-attack-action-toast.is-error::before,
+.character-sheet-theme[data-theme]
+.character-attack-action-toast.is-error::before {
+    background:
+        var(--theme-state-damage) !important;
+}
+
+.character-sheet-theme[data-theme]
+.character-attack-action-toast.is-error
+.character-attack-action-toast-icon {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--theme-state-damage) 28%,
+            var(--theme-border) 72%
+        ) !important;
+
+    background:
+        color-mix(
+            in srgb,
+            var(--theme-state-damage) 18%,
+            var(--theme-toast-surface) 82%
+        ) !important;
+
+    color:
+        var(--theme-state-damage) !important;
+}
+
+
+/* ----------------------------------------------------------
+   DARK THEMES — superfícies sólidas e discretas
+---------------------------------------------------------- */
+
+.character-sheet-theme[data-theme="midnight"] {
+    --theme-toast-surface:
+        #293139;
+
+    --theme-toast-border:
+        rgba(151, 162, 173, .22);
+
+    --theme-toast-shadow:
+        0 20px 48px rgba(0,0,0,.46),
+        0 4px 14px rgba(0,0,0,.22);
+}
+
+.character-sheet-theme[data-theme="obsidian"] {
+    --theme-toast-surface:
+        var(--theme-surface-raised);
+
+    --theme-toast-border:
+        var(--theme-border);
+
+    --theme-toast-shadow:
+        0 20px 48px rgba(0,0,0,.48),
+        0 4px 14px rgba(0,0,0,.24);
+}
+
+
+/* ===========================================================================
+   GRIMORIO V16 — NOTAS RAPIDAS E ESPACOS DE PACTO
+   ---------------------------------------------------------------------------
+   Estrutura: overview.blade.php
+   Paleta: somente tokens semanticos definidos pelos temas da ficha.
+   O editor nao recebe um tema claro fixo; Obsidian/Midnight usam suas
+   superficies e tipografia escuras sem sobrescrever outros componentes.
+   =========================================================================== */
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-toggle {
+    border-color: transparent;
+    background: transparent;
+    color: var(--theme-text-secondary);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-toggle:hover,
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-toggle:focus-visible {
+    border-color: var(--theme-border);
+    background: var(--theme-accent-softer);
+    color: var(--theme-text-strong);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-toggle.is-active {
+    border-color: var(--theme-border-strong);
+    background: var(--theme-accent-soft);
+    color: var(--theme-text-strong);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-preview {
+    border-color: var(--theme-accent);
+    color: var(--theme-text-secondary);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-preview:hover {
+    color: var(--theme-text-primary);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-editor {
+    border-color: var(--theme-border-soft);
+    background: color-mix(
+        in srgb,
+        var(--theme-surface-card) 94%,
+        var(--theme-accent) 6%
+    );
+    box-shadow: var(--theme-module-shadow);
+    color: var(--theme-text-primary);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-textarea {
+    min-height: 48px;
+    border: 0 !important;
+    background: transparent !important;
+    color: var(--theme-input-text) !important;
+    caret-color: var(--theme-input-focus);
+    box-shadow: none !important;
+    outline: none !important;
+    font-family: var(--theme-font-body);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-textarea::placeholder {
+    color: var(--theme-input-placeholder) !important;
+    opacity: 1;
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-textarea:focus {
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-editor:focus-within {
+    border-color: var(--theme-input-focus);
+    box-shadow: 0 0 0 2px var(--theme-focus);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-status {
+    color: var(--theme-text-secondary);
+}
+
+/* Magia de Pacto: segunda linha independente, com a MESMA identidade do tema. */
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slots-row {
+    position: relative;
+    margin-top: 16px;
+    padding-top: 15px;
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slots-row::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: min(100%, 640px);
+    height: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--theme-border-strong),
+        transparent
+    );
+    pointer-events: none;
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot {
+    border-color: var(--theme-border);
+    background: var(--theme-surface-card);
+    color: var(--theme-text-primary);
+    box-shadow: var(--theme-module-shadow);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot__label {
+    background: var(--theme-accent-soft);
+    color: var(--theme-text-strong);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot__pip {
+    border-color: var(--theme-border-strong);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot__pip.is-filled {
+    background: var(--theme-accent);
+    box-shadow: 0 1px 4px color-mix(in srgb, var(--theme-accent) 24%, transparent);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot__pip.is-empty {
+    background: var(--theme-panel);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot__pip:hover {
+    border-color: var(--theme-accent-strong);
+}
+
+.character-sheet-theme[data-theme] .character-spellbook-v4 .sb-pact-slot__count {
+    color: var(--theme-text-secondary);
+}
+
+@media (max-width: 640px) {
+    .character-sheet-theme[data-theme] .character-spellbook-v4 .sb-quick-note-editor {
+        max-width: 100%;
+    }
+}

@@ -2124,7 +2124,7 @@
             |
             */
 
-            .hero-life-modal-source
+            .hero-life-modal-source[data-hp-reduction-active="true"]
             .hero-life-bar::after {
                 content: "";
 
@@ -2164,7 +2164,7 @@
                     width .7s ease;
             }
 
-            .hero-life-modal-source
+            .hero-life-modal-source[data-hp-reduction-active="true"]
             .hero-life-bar::before {
                 content: "";
 
@@ -3470,6 +3470,17 @@
         exhaustionDraft: {{ $exhaustionLevel }},
         savingExhaustion: false,
         exhaustionError: null,
+
+        /*
+        |--------------------------------------------------------------------------
+        | EXPERIÊNCIA
+        |--------------------------------------------------------------------------
+        |
+        | O nível e o modal de XP precisam compartilhar o mesmo escopo Alpine.
+        |
+        */
+
+        xpProgressOpen: false,
 
         morquenReviving: false,
         morquenReviveError: null,

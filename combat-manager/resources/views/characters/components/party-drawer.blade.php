@@ -1785,14 +1785,35 @@
                     auto !important;
             }
 
+        /* Indicador discreto sobre o retrato; não altera o layout dos cards. */
+        .party-v4 .party-concentration-badge {
+            position: absolute; z-index: 13; top: 9px; right: 9px;
+            display: flex; align-items: center; justify-content: center;
+            width: 27px; height: 27px; border-radius: 9999px;
+            color: #faf6ff; background: rgba(86, 50, 117, .94);
+            border: 1px solid rgba(255,255,255,.45);
+            box-shadow: 0 3px 12px rgba(56, 33, 80, .22);
+        }
+        .party-v4 .party-concentration-line {
+            margin-top: 7px; padding: 8px 10px;
+            border-top: 1px solid var(--theme-border, #d8c6ad);
+            font-size: 10px; color: var(--theme-text-primary, #50392d);
+        }
         </style>
     @endpush
 @endonce
 
 <div
+    @character-inventory-synced.window="
+        if (loaded && Array.isArray($event.detail?.items)) {
+            items = $event.detail.items;
+        }
+    "
     x-data="{
         bootstrapUrl: @js(route('characters.party.index', $character)),
         statesUrl: @js(route('characters.party.states', $character)),
+        concentrationsUrl: @js(route('characters.party.concentrations', $character)),
+        concentrationPollCount: 0,
         partyBaseUrl: @js(url('/characters/' . $character->id . '/party')),
         csrf: @js(csrf_token()),
 
@@ -1819,6 +1840,9 @@
         diaryPageIndex: 0,
         diaryState: 'idle',
         diaryTimer: null,
+        diaryRevision: 0,
+        diarySavedRevision: 0,
+        diarySavePromise: null,
 
         items: [],
         itemSearch: '',
@@ -1977,10 +2001,15 @@
                 this.members = Array.isArray(data?.members)
                     ? data.members
                     : [];
+                // Consulta independente: não exige substituir o PartyController antigo.
+                void this.refreshConcentrations();
 
                 this.pages = this.normalizeDiaryPages(
                     data?.pages
                 );
+                this.diaryRevision = 0;
+                this.diarySavedRevision = 0;
+                this.diaryState = 'idle';
 
                 this.diaryPageIndex = Math.min(
                     this.diaryPageIndex,
@@ -2006,8 +2035,23 @@
         },
 
         async changeCampaign() {
-            this.stopPolling();
+            const nextCampaignId = this.campaignId;
+            const previousCampaignId = this.campaign?.id ?? null;
 
+            // A seleção muda antes do evento change. Salve a campanha
+            // anterior antes de substituir suas páginas na interface.
+            if (this.diaryTimer) {
+                clearTimeout(this.diaryTimer);
+                this.diaryTimer = null;
+            }
+
+            if (!(await this.saveDiary())) {
+                this.campaignId = previousCampaignId;
+                this.actionError = 'Não foi possível salvar o Diário. Tente novamente antes de trocar de campanha.';
+                return;
+            }
+
+            this.stopPolling();
             this.memberMenuId = null;
             this.giveItemOpen = false;
             this.selectedMemberId = null;
@@ -2015,10 +2059,7 @@
             this.transferQuantity = 1;
             this.diaryPageIndex = 0;
 
-            await this.loadParty(
-                this.campaignId
-            );
-
+            await this.loadParty(nextCampaignId);
             this.startPolling();
         },
 
@@ -2049,6 +2090,30 @@
             this.pollTimer = null;
         },
 
+        async refreshConcentrations() {
+            if (!this.campaignId || document.hidden) return;
+            const requestedCampaignId = this.campaignId;
+            try {
+                const url = new URL(this.concentrationsUrl, window.location.origin);
+                url.searchParams.set('campaign_id', this.campaignId);
+                const response = await fetch(url.toString(), {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    cache: 'no-store', credentials: 'same-origin',
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (Number(this.campaignId) !== Number(requestedCampaignId)) return;
+                const states = data?.members || {};
+                this.members = this.members.map(member => ({
+                    ...member,
+                    concentration: states[String(member.id)] || { active: false, spell_name: null },
+                }));
+            } catch (error) {
+                // Falha no indicador não compromete as demais informações da Party.
+                console.warn('Concentração da Party indisponível:', error);
+            }
+        },
+
         async refreshStates() {
             if (
                 this.polling
@@ -2059,6 +2124,10 @@
             }
 
             this.polling = true;
+            this.concentrationPollCount++;
+            if (this.concentrationPollCount % 3 === 0) {
+                void this.refreshConcentrations();
+            }
 
             try {
                 const url = new URL(
@@ -2280,13 +2349,39 @@
                     ? data.items
                     : [];
 
-                this.actionMessage = data?.message
-                    ?? 'Item entregue.';
+                window.dispatchEvent(
+                    new CustomEvent('party-item-transfer-completed', {
+                        detail: {
+                            senderCharacterId: @js($character->id),
+                            recipientCharacterId: member.id,
+                            itemId: item.id,
+                        },
+                    })
+                );
+
+                this.actionMessage = null;
+
+                window.dispatchEvent(new CustomEvent('spellbound-notify', {
+                    detail: {
+                        title: 'Item enviado!',
+                        message: `${data?.quantity ?? this.transferQuantity}× ${data?.item_name ?? item.name} para ${data?.recipient_name ?? member.name}.`,
+                        variant: 'success',
+                        duration: 5000,
+                    },
+                }));
 
                 this.closeGiveItem();
             } catch (error) {
                 this.actionError = error?.message
                     ?? 'Não foi possível entregar o item.';
+
+                window.dispatchEvent(new CustomEvent('spellbound-notify', {
+                    detail: {
+                        title: 'Falha no envio',
+                        message: this.actionError,
+                        variant: 'error',
+                    },
+                }));
             } finally {
                 this.transferring = false;
             }
@@ -2349,87 +2444,115 @@
         },
 
         queueDiarySave() {
+            // Toda alteração recebe uma versão própria. Uma resposta antiga
+            // jamais deve substituir o texto que o jogador ainda está editando.
+            this.diaryRevision += 1;
             this.diaryState = 'typing';
 
             if (this.diaryTimer) {
-                clearTimeout(
-                    this.diaryTimer
-                );
+                clearTimeout(this.diaryTimer);
             }
 
-            this.diaryTimer = setTimeout(
-                () => {
-                    this.saveDiary();
-                },
-                700
-            );
+            this.diaryTimer = setTimeout(() => {
+                this.diaryTimer = null;
+                void this.saveDiary();
+            }, 700);
         },
 
         async saveDiary() {
-            if (!this.campaignId) {
-                return;
+            // Use a campanha das páginas carregadas, não a seleção do
+            // <select>, que já mudou quando changeCampaign() é executado.
+            const campaignId = this.campaign?.id;
+            if (!campaignId) {
+                return true;
             }
 
-            this.diaryState = 'saving';
+            // Requisições sequenciais: impede que um PATCH mais antigo
+            // termine depois e sobrescreva uma edição mais recente.
+            if (this.diarySavePromise) {
+                return this.diarySavePromise;
+            }
 
-            try {
-                const response = await fetch(
-                    `${this.partyBaseUrl}/${this.campaignId}/notes`,
-                    {
-                        method: 'PATCH',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-CSRF-TOKEN': this.csrf,
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        body: JSON.stringify({
-                            pages: this.pages,
-                        }),
+            if (this.diarySavedRevision >= this.diaryRevision) {
+                return true;
+            }
+
+            if (this.diaryTimer) {
+                clearTimeout(this.diaryTimer);
+                this.diaryTimer = null;
+            }
+
+            const savePendingChanges = async () => {
+                while (this.diarySavedRevision < this.diaryRevision) {
+                    const revision = this.diaryRevision;
+                    // Snapshot imutável desta revisão, antes da requisição.
+                    const payload = JSON.stringify({
+                        pages: this.pages.map(page => ({
+                            id: page.id,
+                            title: page.title,
+                            content: page.content,
+                        })),
+                    });
+
+                    this.diaryState = 'saving';
+
+                    try {
+                        const response = await fetch(
+                            `${this.partyBaseUrl}/${campaignId}/notes`,
+                            {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': this.csrf,
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                body: payload,
+                            }
+                        );
+
+                        if (!response.ok) {
+                            const data = await response.json().catch(() => null);
+                            throw new Error(
+                                data?.message
+                                ?? 'Não foi possível salvar o Diário.'
+                            );
+                        }
+
+                        // NÃO aplicar data.pages ao modelo: durante o fetch
+                        // o jogador pode continuar digitando ou pressionar Enter.
+                        // O servidor persiste o snapshot, mas a tela conserva
+                        // texto, seleção, foco e posição atual do cursor.
+                        this.diarySavedRevision = revision;
+                    } catch (error) {
+                        console.error('Erro ao salvar Diário da Party:', error);
+                        this.diaryState = 'error';
+                        return false;
                     }
-                );
-
-                const data = await response.json().catch(() => null);
-
-                if (!response.ok) {
-                    throw new Error(
-                        data?.message
-                        ?? 'Não foi possível salvar o Diário.'
-                    );
-                }
-
-                if (
-                    Array.isArray(data?.pages)
-                    && data.pages.length > 0
-                ) {
-                    const localPages =
-                        this.pages;
-
-                    this.pages = this.normalizeDiaryPages(
-                        data.pages.map(
-                            (serverPage, index) => ({
-                                ...serverPage,
-                                title:
-                                    serverPage?.title
-                                    ?? localPages?.[index]?.title
-                                    ?? `Página ${index + 1}`,
-                            })
-                        )
-                    );
                 }
 
                 this.diaryState = 'saved';
+                window.setTimeout(() => {
+                    if (
+                        this.diaryState === 'saved'
+                        && this.diarySavedRevision === this.diaryRevision
+                    ) {
+                        this.diaryState = 'idle';
+                    }
+                }, 1600);
 
-                window.setTimeout(
-                    () => {
-                        if (this.diaryState === 'saved') {
-                            this.diaryState = 'idle';
-                        }
-                    },
-                    1600
-                );
-            } catch (error) {
-                this.diaryState = 'error';
+                return true;
+            };
+
+            const pending = savePendingChanges();
+            this.diarySavePromise = pending;
+
+            try {
+                return await pending;
+            } finally {
+                if (this.diarySavePromise === pending) {
+                    this.diarySavePromise = null;
+                }
             }
         },
 
@@ -2602,6 +2725,11 @@
                                                 x-text="`EX ${member.exhaustion}`"
                                             ></span>
 
+                                            <span x-show="member.concentration?.active" x-cloak
+                                                class="party-concentration-badge"
+                                                :title="`Concentrando: ${member.concentration?.spell_name || 'Feitiço'}`"
+                                                aria-label="Concentração ativa">✦</span>
+
                                             <div class="party-social-ally__identity">
                                                 <span
                                                     class="party-social-ally__name"
@@ -2640,6 +2768,11 @@
                                                     class="party-social-menu__name"
                                                     x-text="member.name"
                                                 ></p>
+                                            </div>
+
+                                            <div x-show="member.concentration?.active" x-cloak class="party-concentration-line">
+                                                <span class="font-bold">✦ Concentrando:</span>
+                                                <span x-text="member.concentration?.spell_name || 'Feitiço'"></span>
                                             </div>
 
                                             <button
@@ -2686,6 +2819,12 @@
                                 </article>
                             </template>
                         </div>
+
+                        {{-- NPCs aliados do encontro ativo, no MESMO módulo dos aliados da campanha.
+                             Componente independente da Party, sem substituir os estados sociais. --}}
+                        @include('characters.components.party-combat-allies', [
+                            'character' => $character,
+                        ])
                     </div>
                 </section>
 
@@ -2797,6 +2936,33 @@
                                 placeholder="Escreva..."
                                 class="party-diary-writing party-v4-diary-writing mt-2 min-h-[360px] w-full resize-y border-0 bg-transparent py-2 pl-7 pr-2 font-serif text-[15px] leading-[35px] placeholder:opacity-40 focus:ring-0"
                             ></textarea>
+
+                            <div
+                                x-show="diaryState !== 'idle'"
+                                x-cloak
+                                aria-live="polite"
+                                class="mt-2 flex items-center justify-end gap-2 text-[10px]"
+                                style="color: var(--theme-text-secondary)"
+                            >
+                                <span
+                                    x-text="({
+                                        typing: 'Alterações pendentes...',
+                                        saving: 'Salvando...',
+                                        saved: 'Salvo',
+                                        error: 'Não foi possível salvar.'
+                                    })[diaryState] ?? ''"
+                                ></span>
+                                <button
+                                    x-show="diaryState === 'error'"
+                                    x-cloak
+                                    type="button"
+                                    x-on:click="saveDiary()"
+                                    class="font-bold underline underline-offset-2"
+                                    style="color: var(--theme-accent-strong)"
+                                >
+                                    Tentar novamente
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </section>

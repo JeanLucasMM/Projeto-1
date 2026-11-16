@@ -1,147 +1,122 @@
-<aside class="h-full w-16 flex flex-col flex-shrink-0 bg-[#f4f1e8] border-r border-[#6b1d14]/15 select-none z-40 relative">
+<style>
+    .sb-nav83 { width: 56px; min-width: 56px; background: #f7f3eb; border-right: 1px solid rgba(105,55,35,.12); z-index:40; }
+    .sb-nav83 * { box-sizing: border-box; }
+    .sb-nav83__top { flex:0 0 auto; padding: 11px 8px; display:flex; justify-content:center; border-bottom:1px solid rgba(105,55,35,.10); }
+    .sb-nav83__logo { width:32px; height:32px; border-radius:10px; display:grid;place-items:center; background:#6b2119; color:#fff8ef; font:700 18px/1 Georgia,serif; text-decoration:none; }
+    .sb-nav83__logo:hover { background:#85362b; }
+    .sb-nav83__logo--active { box-shadow:inset 0 0 0 2px #d9bfa4,0 2px 8px rgba(107,33,25,.12); }
+    .sb-nav83__menu { flex:1 1 auto; min-height:0; overflow:visible; padding:14px 7px; display:flex; flex-direction:column; align-items:center; gap:6px; scrollbar-width:none; }
+    .sb-nav83__menu::-webkit-scrollbar { display:none; }
+    .sb-nav83__link { width:40px; height:40px; min-height:40px; flex:0 0 40px; margin:0; padding:0; position:relative; border:0; border-radius:12px; background:transparent; display:flex; justify-content:center; align-items:center; color:#987959; cursor:pointer; text-decoration:none; transition:color .18s ease,background .18s ease,transform .18s ease; }
+    .sb-nav83__link svg { width:21px; height:21px; flex:0 0 21px; stroke-width:2.05; transition:transform .18s ease; }
+    .sb-nav83__link:hover svg { transform:scale(1.055); }
+    /* Ícones PNG padronizados em dimensões, traço e proporção visual. A máscara acompanha currentColor. */
+    .sb-nav83__image-icon {
+        --sb-icon-shift-y: 0px;
+        --sb-icon-scale: 1;
+        display: block;
+        width: 22px;
+        height: 22px;
+        flex: 0 0 22px;
+        background-color: currentColor;
+        -webkit-mask-image: var(--sb-nav-img);
+        mask-image: var(--sb-nav-img);
+        -webkit-mask-repeat: no-repeat;
+        mask-repeat: no-repeat;
+        -webkit-mask-position: center;
+        mask-position: center;
+        -webkit-mask-size: contain;
+        mask-size: contain;
+        transform: translateY(var(--sb-icon-shift-y)) scale(var(--sb-icon-scale));
+        transition: transform .18s ease;
+    }
+    .sb-nav83__link:hover .sb-nav83__image-icon {
+        transform: translateY(var(--sb-icon-shift-y)) scale(calc(var(--sb-icon-scale) * 1.065));
+    }
+    .sb-nav83__image-icon--construtor {
+        --sb-nav-img: url('{{ asset('images/navigation/construtor.png') }}?v=91');
+    }
+    .sb-nav83__image-icon--npcs { --sb-nav-img: url('{{ asset('images/navigation/npcs.png') }}?v=88'); }
+    .sb-nav83__image-icon--vault { --sb-nav-img: url('{{ asset('images/navigation/vault.png') }}?v=88'); }
+    .sb-nav83__image-icon--combates { --sb-nav-img: url('{{ asset('images/navigation/combates.png') }}?v=88'); }
+    .sb-nav83__image-icon--campanhas { --sb-nav-img: url('{{ asset('images/navigation/campanhas.png') }}?v=88'); }
 
-    {{-- 1. Topo da Sidebar (Logo Compacta) --}}
-    <div class="py-3.5 border-b border-[#6b1d14]/15 bg-[#efe9dc] flex-shrink-0 flex flex-col items-center justify-center">
-        <div class="w-8 h-8 rounded-lg bg-[#6b1d14] text-[#f4f1e8] flex items-center justify-center font-serif font-black text-lg shadow-sm cursor-default">
-            S
-        </div>
+    .sb-nav83__link:hover,.sb-nav83__link:focus-visible { color:#6b2119; background:rgba(107,33,25,.07); }
+    .sb-nav83__link--active { color:#6b2119 !important; background:rgba(107,33,25,.11) !important; }
+    .sb-nav83__link--active::before { content:''; position:absolute; left:-7px; top:11px; bottom:11px; width:3px; border-radius:0 4px 4px 0; background:#8c4b3a; }
+    .sb-nav83__link:focus-visible { outline:2px solid #b08a61; outline-offset:1px; }
+    .sb-nav83__tooltip { opacity:0; pointer-events:none; position:absolute; z-index:100; left:52px; top:50%; transform:translateY(-50%) translateX(-3px); background:#fffaf2; border:1px solid #e1d1bd; border-radius:9px; padding:8px 11px; white-space:nowrap; box-shadow:0 7px 20px rgba(48,27,18,.11); color:#6b2119; font:700 11px/1.2 Georgia,serif; transition:opacity .16s ease,transform .16s ease; }
+    .sb-nav83__link:hover .sb-nav83__tooltip,.sb-nav83__link:focus-visible .sb-nav83__tooltip { opacity:1;transform:translateY(-50%) translateX(0); }
+    .sb-nav83__footer { border-top:1px solid rgba(105,55,35,.10); flex:0 0 auto; padding:9px 7px; display:flex; flex-direction:column; gap:5px; align-items:center; }
+    .sb-nav83__footer form { display:flex; justify-content:center; }
+    @media (max-height:480px) { .sb-nav83 { overflow-y:auto; scrollbar-width:thin; } .sb-nav83__menu { flex:0 0 auto; } }
+    @media (prefers-reduced-motion:reduce) { .sb-nav83__link,.sb-nav83__tooltip { transition:none; } }
+</style>
+<aside class="sb-nav83 master-sidebar h-full flex flex-col flex-shrink-0 select-none relative"
+    aria-label="Navegação do mestre"
+    data-sb-user="{{ (string) auth()->id() }}"
+    data-sb-mode="master"
+    data-sb-route="{{ request()->route()?->getName() ?? '' }}">
+    {{-- Navegação lateral leve: os recursos têm a mesma rota e permissões anteriores. --}}
+    <div class="sb-nav83__top ">
+        <a href="{{ route('dashboard') }}" class="sb-nav83__logo {{ request()->routeIs('dashboard') ? 'sb-nav83__logo--active' : '' }} " title="Dashboard" aria-label="Ir para o Dashboard" @if(request()->routeIs('dashboard')) aria-current="page" @endif>S</a>
     </div>
-
-    {{-- 2. Links de Navegação --}}
-    <div class="flex-1 py-4 flex flex-col items-center w-full">
-        <nav class="space-y-3 w-full px-2">
-
-            {{-- Item: Dashboard --}}
-            @php $active = request()->routeIs('dashboard'); @endphp
-            <a href="{{ route('dashboard') }}"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-4zM14 16a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2v-4z" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Dashboard
-                </span>
-            </a>
-
-            {{-- Item: Construtor de NPC --}}
-            @php $active = request()->routeIs('npc-builder.*'); @endphp
+    <nav class="sb-nav83__menu" aria-label="Seções">
+            @php $sbActive = request()->routeIs('npc-builder.*'); @endphp
             <a href="{{ route('npc-builder.index') }}"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Construtor
-                </span>
+               aria-label="Construtor" title="Construtor"
+               class="sb-nav83__link {{ $sbActive ? 'sb-nav83__link--active' : '' }}">
+                <span class="sb-nav83__image-icon sb-nav83__image-icon--construtor" aria-hidden="true"></span>
+                <span class="sb-nav83__tooltip">Construtor</span>
             </a>
-
-            {{-- Item: NPCs --}}
-            @php $active = request()->routeIs('npcs.*'); @endphp
+            @php $sbActive = request()->routeIs('npcs.*'); @endphp
             <a href="{{ route('npcs.index') }}"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    NPCs
-                </span>
+               aria-label="NPCs" title="NPCs"
+               class="sb-nav83__link {{ $sbActive ? 'sb-nav83__link--active' : '' }}">
+                <span class="sb-nav83__image-icon sb-nav83__image-icon--npcs" aria-hidden="true"></span>
+                <span class="sb-nav83__tooltip">NPCs</span>
             </a>
-
-            {{-- Item: Vault de Itens --}}
-            @php $active = request()->routeIs('master.vault.*'); @endphp
+            @php $sbActive = request()->routeIs('master.vault.*'); @endphp
             <a href="{{ route('master.vault.items.index') }}"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <rect x="4" y="5" width="16" height="14" rx="2" />
-                    <path stroke-linecap="round" d="M8 9h8M8 13h5" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.5v4m-2-2h4" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Vault de Itens
-                </span>
+               aria-label="Cofre de itens" title="Cofre de itens"
+               class="sb-nav83__link {{ $sbActive ? 'sb-nav83__link--active' : '' }}">
+                <span class="sb-nav83__image-icon sb-nav83__image-icon--vault" aria-hidden="true"></span>
+                <span class="sb-nav83__tooltip">Cofre de itens</span>
             </a>
-
-            {{-- Item: Combates --}}
-            @php $active = request()->routeIs('combats.*'); @endphp
+            @php $sbActive = request()->routeIs('combats.*'); @endphp
             <a href="{{ route('combats.index') }}"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Combates
-                </span>
+               aria-label="Combates" title="Combates"
+               class="sb-nav83__link {{ $sbActive ? 'sb-nav83__link--active' : '' }}">
+                <span class="sb-nav83__image-icon sb-nav83__image-icon--combates" aria-hidden="true"></span>
+                <span class="sb-nav83__tooltip">Combates</span>
             </a>
-
-            {{-- Item: Campanhas --}}
-            @php $active = request()->routeIs('campaigns.*') || request()->routeIs('campaign-invitations.*'); @endphp
+            @php $sbActive = request()->routeIs('campaigns.*'); @endphp
             <a href="{{ route('campaigns.index') }}"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 5.5A2.5 2.5 0 016.5 3H20v17H6.5A2.5 2.5 0 014 17.5v-12z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h8M8 11h8M8 15h5" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Campanhas
-                </span>
+               aria-label="Campanhas" title="Campanhas"
+               class="sb-nav83__link {{ $sbActive ? 'sb-nav83__link--active' : '' }}">
+                <span class="sb-nav83__image-icon sb-nav83__image-icon--campanhas" aria-hidden="true"></span>
+                <span class="sb-nav83__tooltip">Campanhas</span>
             </a>
-
-            {{-- Item: Configurações --}}
-            @php $active = request()->routeIs('settings.*'); @endphp
-            <a href="#"
-               class="group relative flex items-center justify-center w-full h-10 rounded-xl transition-all duration-200 {{ $active ? 'bg-[#6b1d14] text-[#f4f1e8] shadow-sm' : 'text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5' }}">
-                <svg class="w-5 h-5 transition-transform duration-200 group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Configurações
-                </span>
-            </a>
-
-        </nav>
-    </div>
-
-    {{-- 3. Rodapé --}}
-    <div class="py-4 border-t border-[#6b1d14]/15 bg-[#efe9dc] flex-shrink-0 flex flex-col items-center justify-center gap-3">
-
-        {{-- Trocar para Player --}}
-        <form method="POST" action="{{ route('dashboard.mode') }}" class="m-0 w-full px-2">
+    </nav>
+    <div class="sb-nav83__footer ">
+        {{-- Atalho de configurações preservado do menu anterior. --}}
+        <a href="#" aria-label="Configurações" title="Configurações" class="sb-nav83__link">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M10.3 4.3c.4-1.7 3-1.7 3.4 0a1.8 1.8 0 0 0 2.5 1c1.6-.9 3.4.9 2.4 2.4a1.8 1.8 0 0 0 1.1 2.6c1.7.4 1.7 3 0 3.4a1.8 1.8 0 0 0-1.1 2.5c1 1.6-.8 3.3-2.4 2.4a1.8 1.8 0 0 0-2.5 1c-.4 1.8-3 1.8-3.4 0a1.8 1.8 0 0 0-2.5-1c-1.6.9-3.4-.8-2.4-2.4a1.8 1.8 0 0 0-1.1-2.5c-1.7-.4-1.7-3 0-3.4a1.8 1.8 0 0 0 1.1-2.6c-1-1.5.8-3.3 2.4-2.4a1.8 1.8 0 0 0 2.5-1Z"/><circle cx="12" cy="12" r="3"/></svg>
+            <span class="sb-nav83__tooltip">Configurações</span>
+        </a>
+        {{-- Trocar de modo é uma escolha explícita no hub, não um POST invisível. --}}
+        <a href="{{ route('dashboard') }}" aria-label="Escolher modo Mestre ou Player" title="Escolher modo"
+           class="sb-nav83__link ">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M20 7H4m0 0 4-4M4 7l4 4M4 17h16m0 0-4-4m4 4-4 4"/></svg>
+            <span class="sb-nav83__tooltip">Escolher modo</span>
+        </a>
+        <form action="{{ route('logout') }}" method="POST" class="m-0 w-full">
             @csrf
-
-            <input type="hidden" name="mode" value="player">
-
-            <button
-                type="submit"
-                class="group relative flex items-center justify-center w-full h-10 text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5 rounded-xl transition-colors focus:outline-none"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Modo Player
-                </span>
+            <button class="sb-nav83__link " type="submit" title="Sair" aria-label="Sair da conta">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><path d="M15 17l5-5-5-5M20 12H9"/><path d="M13 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h7"/></svg>
+                <span class="sb-nav83__tooltip">Sair</span>
             </button>
         </form>
-
-        {{-- Logout --}}
-        <form method="POST" action="{{ route('logout') }}" class="m-0 w-full px-2">
-            @csrf
-
-            <button
-                type="submit"
-                class="group relative flex items-center justify-center w-full h-10 text-[#8c6239]/80 hover:text-[#6b1d14] hover:bg-[#6b1d14]/5 rounded-xl transition-colors focus:outline-none"
-            >
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-
-                <span class="absolute left-14 opacity-0 group-hover:opacity-100 transition-all duration-200 bg-[#efe9dc] border border-[#6b1d14]/15 text-[#6b1d14] font-serif text-[11px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-md shadow-md whitespace-nowrap pointer-events-none z-50">
-                    Sair
-                </span>
-            </button>
-        </form>
-
     </div>
 </aside>
+<script src="{{ asset('js/spellbound-navigation-history.js') }}" defer></script>

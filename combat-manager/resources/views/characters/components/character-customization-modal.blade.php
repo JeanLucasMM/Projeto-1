@@ -104,9 +104,6 @@
                 'display' => [
                     'show_defenses' =>
                         $initialShowDefenses,
-
-                    'show_experience' =>
-                        false,
                 ],
 
                 'progression' => [
@@ -129,17 +126,15 @@
         );
 
     unset(
-        $initialSettings['display']['show_empty_defenses']
+        $initialSettings['display']['show_empty_defenses'],
+        $initialSettings['display']['show_experience']
     );
 
-    $initialImageUrl =
-        $character->image_path
-            ? \Illuminate\Support\Facades\Storage::disk(
-                'public'
-            )->url(
-                $character->image_path
-            )
-            : null;
+    // Imagem do disco public na origem atual, sem depender de APP_URL antigo.
+    // O arquivo físico continua em storage/app/public/characters/...
+    $initialImageUrl = $character->image_path
+        ? '/storage/' . ltrim((string) $character->image_path, '/')
+        : null;
 
     /*
     |--------------------------------------------------------------------------
@@ -224,6 +219,16 @@
 
         'level' =>
             $characterLevel,
+
+        'experience' => [
+            'enabled' => (bool) (
+                $character->campaign_experience_enabled ?? false
+            ),
+            'points' => (int) (
+                $character->campaign_experience_points ?? 0
+            ),
+            'campaign_id' => $character->campaign_experience_id ?? null,
+        ],
 
         'proficiency' => [
             'current' =>
@@ -417,7 +422,8 @@
                 color: var(--theme-button-text) !important;
             }
 
-            .character-sheet-theme[data-theme] .me-border) !important;
+            .character-sheet-theme[data-theme] .character-customization-v18-theme-card {
+                border-color: var(--theme-border) !important;
                 background: var(--theme-surface-card) !important;
                 box-shadow: 0 2px 8px rgba(0,0,0,.045) !important;
             }
@@ -465,6 +471,305 @@
                 border-color: var(--theme-border) !important;
                 background: var(--theme-surface-card) !important;
             }
+
+            /* ============================================================
+               PROGRESSÃO COM XP — implementação isolada por tema
+               A aba normal e a confirmação de progressão são preservadas.
+               ============================================================ */
+            .character-sheet-theme[data-theme] .sb-xp-overview {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card-alt) !important;
+                color: var(--theme-text-primary) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-heading {
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-label {
+                color: var(--theme-label) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-muted {
+                color: var(--theme-text-secondary) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-class,
+            .character-sheet-theme[data-theme] .sb-xp-level-box {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-ready {
+                border-color: color-mix(in srgb, #c69b4c 57%, var(--theme-border) 43%) !important;
+                background: color-mix(in srgb, #c69b4c 12%, var(--theme-surface-card) 88%) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-ready-title {
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-up {
+                border-color: var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-up:hover:not(:disabled) {
+                background: var(--theme-button-hover-background) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-down {
+                border-color: var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-secondary) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-xp-down:hover:not(:disabled) {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+
+
+            /* Edição das classes e escolha de multiclasse sem interferir no tema. */
+            .character-sheet-theme[data-theme] .sb-class-editor {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-card-alt) !important;
+                color: var(--theme-text-primary) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-class-edit-trigger {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-secondary) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-class-edit-trigger:hover {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+            }
+            /* A edição fica vinculada ao nome, sem criar coluna central vazia. */
+            .character-sheet-theme[data-theme] .sb-class-edit-inline {
+                border: 1px solid transparent;
+                background: transparent;
+                color: var(--theme-label);
+                opacity: .75;
+            }
+            .character-sheet-theme[data-theme] .sb-class-edit-inline:hover,
+            .character-sheet-theme[data-theme] .sb-class-edit-inline:focus-visible {
+                border-color: var(--theme-border);
+                background: var(--theme-card-hover);
+                color: var(--theme-accent-strong);
+                opacity: 1;
+            }
+            .character-sheet-theme[data-theme] .sb-class-edit-inline svg { pointer-events: none; }
+            .character-sheet-theme[data-theme] .sb-class-input {
+                width: 100%;
+                min-width: 0;
+                border: 1px solid var(--theme-input-border) !important;
+                background: var(--theme-input-bg) !important;
+                color: var(--theme-input-text) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-class-action {
+                border: 1px solid var(--theme-accent-strong) !important;
+                background: var(--theme-button-background) !important;
+                color: var(--theme-button-text) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-class-action:disabled { opacity: .45; cursor: not-allowed; }
+            .character-sheet-theme[data-theme] .sb-class-cancel {
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-raised) !important;
+                color: var(--theme-text-strong) !important;
+            }
+            .character-sheet-theme[data-theme] .sb-photo-preview {
+                background: var(--theme-surface-inset) !important;
+            }
+
+
+            /* ==============================================================
+               V25 — CONFIGURAÇÕES ESSENCIAIS (IDENTIDADE / PROGRESSÃO)
+               Os demais painéis continuam com as dimensões antigas.
+               Em telas baixas ou com editor aberto, rolagem interna permanece
+               para não cortar controles nem impedir acesso por teclado.
+               ============================================================== */
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"]) {
+                max-width: 750px;
+                max-height: min(92dvh, 640px);
+            }
+
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-header {
+                padding: 12px 18px 9px !important;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-header > div > div > p {
+                display: none;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-header h2 {
+                margin-top: 0 !important;
+                font-size: 21px !important;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-tabs {
+                margin-top: 11px !important;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-tabs > button {
+                padding-block: 9px !important;
+                font-size: 10px !important;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-body {
+                padding: 13px 18px !important;
+                overflow-y: auto;
+                scrollbar-width: thin;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-footer {
+                padding: 9px 18px !important;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-footer > p {
+                display: none !important;
+            }
+            .character-sheet-theme[data-theme]
+            .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"])
+            .character-customization-v18-footer button {
+                padding-block: 8px !important;
+                font-size: 10px !important;
+            }
+
+            /* Identidade: não esticar linhas até a altura da fotografia. */
+            .character-sheet-theme[data-theme] .sb-compact-identity > div:first-child {
+                margin-bottom: 11px !important;
+                padding-bottom: 9px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-identity > div:first-child h3 {
+                font-size: 17px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-identity > div:first-child p {
+                display: none;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-layout {
+                align-items: start;
+                gap: 13px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-photo {
+                max-width: 120px;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-photo > span {
+                margin-bottom: 4px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-photo .sb-photo-preview {
+                width: 120px;
+                max-width: 100%;
+                aspect-ratio: 5 / 6;
+                border-style: solid;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-photo > p:not([x-show]) {
+                display: none;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-fields {
+                align-content: start;
+                grid-auto-rows: min-content;
+                align-items: start;
+                column-gap: 12px !important;
+                row-gap: 11px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-fields label > span {
+                margin-bottom: 5px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-identity-fields input {
+                height: 39px !important;
+            }
+
+            /* Progressão: classe, nível e ações em uma linha mais enxuta. */
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:first-child {
+                padding-bottom: 9px !important;
+                margin-bottom: 2px;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:first-child h3 {
+                font-size: 17px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:first-child p {
+                display: none;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:first-child > div:last-child {
+                padding: 6px 9px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:first-child strong {
+                font-size: 19px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-progress-standard article,
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-xp-class {
+                padding: 7px 11px !important;
+                min-height: 46px;
+                border-radius: 10px;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-progress-standard article button.h-9 {
+                height: 30px !important;
+                width: 30px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-progress-standard article .min-w-\[54px\] {
+                min-width: 48px;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-xp-overview {
+                padding: 8px 11px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-xp-level-box {
+                width: 28px;
+                height: 28px;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-xp-class .sb-xp-down,
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-xp-class .sb-xp-up {
+                height: 29px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression .sb-class-edit-trigger {
+                padding-block: 6px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:has(> button.sb-class-edit-trigger) {
+                margin-top: 9px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:has(> button.sb-class-edit-trigger) button {
+                padding-block: 9px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression > div:has(> button > span > span.font-serif) {
+                margin-top: 9px !important;
+            }
+            .character-sheet-theme[data-theme] .sb-compact-progression button:focus-visible,
+            .character-sheet-theme[data-theme] .sb-compact-identity button:focus-visible {
+                outline: 2px solid var(--theme-accent-strong);
+                outline-offset: 2px;
+            }
+            @media (max-width: 639px) {
+                .character-sheet-theme[data-theme] .sb-identity-layout {
+                    grid-template-columns: 1fr !important;
+                }
+                .character-sheet-theme[data-theme] .sb-identity-photo {
+                    width: 100%;
+                    max-width: none;
+                    display: grid;
+                    grid-template-columns: 105px minmax(0, 1fr);
+                    gap: 6px 12px;
+                    align-items: center;
+                }
+                .character-sheet-theme[data-theme] .sb-identity-photo > span {grid-column: 1 / -1;}
+                .character-sheet-theme[data-theme] .sb-identity-photo .sb-photo-preview {
+                    width: 105px;
+                    grid-row: span 4;
+                }
+                .character-sheet-theme[data-theme] .sb-identity-photo > button {
+                    width: auto;
+                    margin-top: 0 !important;
+                }
+                .character-sheet-theme[data-theme] .sb-identity-photo > p:not([x-show]) {display:none;}
+                .character-sheet-theme[data-theme] .sb-identity-fields {row-gap: 9px !important;}
+            }
+            @media (max-height: 590px) {
+                .character-sheet-theme[data-theme]
+                .character-customization-v18-modal:is([data-active-tab="identity"], [data-active-tab="progression"]) {
+                    max-height: calc(100dvh - 16px);
+                }
+            }
+
         </style>
     @endpush
 @endonce
@@ -499,6 +804,20 @@
                     identityImageRemove: false,
                     identityImageError: null,
 
+                    photoSaving: false,
+                    classUpdateUrlTemplate: '',
+                    multiclassUrl: '',
+                    editingClassId: null,
+                    classEdit: { name: '', subclass: '' },
+                    classSaving: false,
+                    classError: null,
+                    multiclassOpen: false,
+                    multiclassForm: { name: '', subclass: '' },
+                    multiclassSaving: false,
+                    multiclassError: null,
+
+                    xpThresholds: @js(\App\Support\CharacterExperience::table()),
+
                     levelingClassId: null,
                     levelingDirection: null,
 
@@ -531,6 +850,12 @@
                         image_url: null,
                         level: 1,
 
+                        experience: {
+                            enabled: false,
+                            points: 0,
+                            campaign_id: null,
+                        },
+
                         proficiency: {
                             current: 2,
                             calculated: 2,
@@ -540,7 +865,6 @@
                         settings: {
                             display: {
                                 show_defenses: true,
-                                show_experience: false,
                             },
 
                             progression: {
@@ -571,6 +895,12 @@
                         image_url: null,
                         level: 1,
 
+                        experience: {
+                            enabled: false,
+                            points: 0,
+                            campaign_id: null,
+                        },
+
                         proficiency: {
                             current: 2,
                             calculated: 2,
@@ -580,7 +910,6 @@
                         settings: {
                             display: {
                                 show_defenses: true,
-                                show_experience: false,
                             },
 
                             progression: {
@@ -631,6 +960,11 @@
                             this.$el.dataset.proficiencyUrl
                             ?? '';
 
+                        this.classUpdateUrlTemplate =
+                            this.$el.dataset.classUpdateUrlTemplate ?? '';
+                        this.multiclassUrl =
+                            this.$el.dataset.multiclassUrl ?? '';
+
                         try {
                             const parsed =
                                 JSON.parse(
@@ -669,6 +1003,49 @@
                     | HELPERS
                     |--------------------------------------------------------------------------
                     */
+
+                    canLevelUpWithExperience() {
+                        const xp = this.draft?.experience ?? {};
+                        if (!xp.enabled) return true;
+
+                        const level = Math.max(1, Number(this.draft.level) || 1);
+                        if (level >= 20) return false;
+
+                        const next = Number(this.xpThresholds?.[level + 1]);
+                        return Number.isFinite(next)
+                            && Number(xp.points ?? 0) >= next;
+                    },
+
+                    xpUntilLevelUp() {
+                        const level = Math.max(1, Number(this.draft.level) || 1);
+                        const next = Number(this.xpThresholds?.[level + 1] ?? 0);
+                        return Math.max(0, next - Number(this.draft?.experience?.points ?? 0));
+                    },
+
+                    formatXp(value) {
+                        return Math.max(0, Number(value) || 0).toLocaleString('pt-BR');
+                    },
+
+                    xpNextThreshold() {
+                        const level = Math.max(1, Number(this.draft.level) || 1);
+                        if (level >= 20) return null;
+                        const value = Number(this.xpThresholds?.[level + 1]);
+                        return Number.isFinite(value) ? value : null;
+                    },
+
+                    xpLevelProgress() {
+                        const level = Math.max(1, Number(this.draft.level) || 1);
+                        if (level >= 20) return 100;
+
+                        const current = Number(this.xpThresholds?.[level] ?? 0);
+                        const next = this.xpNextThreshold();
+                        if (next === null || next <= current) return 0;
+
+                        const points = Math.max(0, Number(this.draft?.experience?.points) || 0);
+                        return Math.round(
+                            Math.max(0, Math.min(100, (points - current) * 100 / (next - current))) * 10
+                        ) / 10;
+                    },
 
                     clone(value) {
                         return JSON.parse(
@@ -756,6 +1133,12 @@
                                     || 1
                                 ),
 
+                            experience: {
+                                enabled: !!source.experience?.enabled,
+                                points: Math.max(0, Number(source.experience?.points ?? 0)),
+                                campaign_id: source.experience?.campaign_id ?? null,
+                            },
+
                             proficiency: {
                                 current:
                                     parseInt(
@@ -782,9 +1165,6 @@
                                         )
                                             ? !!display.show_defenses
                                             : true,
-
-                                    show_experience:
-                                        !!display.show_experience,
                                 },
 
                                 progression: {
@@ -1105,15 +1485,24 @@
                     },
 
 
+                    async savePhotoNow() {
+                        if (this.photoSaving || (!this.identityImageFile && !this.identityImageRemove)) return;
+                        this.photoSaving = true;
+                        this.identityImageError = null;
+                        try {
+                            await this.saveIdentityImage();
+                            window.location.reload();
+                        } catch (error) {
+                            this.identityImageError = error?.message || 'Não foi possível salvar a foto.';
+                        } finally {
+                            this.photoSaving = false;
+                        }
+                    },
+
                     async saveIdentityImage() {
-                        if (
-                            !this.imageSaveUrl
-                            || (
-                                !this.identityImageFile
-                                && !this.identityImageRemove
-                            )
-                        ) {
-                            return;
+                        if (!this.identityImageFile && !this.identityImageRemove) return;
+                        if (!this.imageSaveUrl) {
+                            throw new Error('A rota de upload da foto não está disponível.');
                         }
 
                         const formData =
@@ -1339,6 +1728,11 @@
                         this.levelConfirmClass =
                             null;
 
+                        this.editingClassId = null;
+                        this.classError = null;
+                        this.multiclassOpen = false;
+                        this.multiclassError = null;
+
                         this.open =
                             true;
                     },
@@ -1409,6 +1803,137 @@
                     |--------------------------------------------------------------------------
                     */
 
+                    beginClassEdit(item) {
+                        if (!item?.id || this.classSaving) return;
+                        this.multiclassOpen = false;
+                        this.classError = null;
+                        this.editingClassId = Number(item.id);
+                        this.classEdit = {
+                            name: String(item.name ?? ''),
+                            subclass: String(item.subclass ?? ''),
+                        };
+                    },
+
+                    cancelClassEdit() {
+                        if (this.classSaving) return;
+                        this.editingClassId = null;
+                        this.classError = null;
+                    },
+
+                    async saveClassEdit() {
+                        if (this.classSaving || !this.editingClassId) return;
+                        const name = String(this.classEdit.name ?? '').trim();
+                        const subclass = String(this.classEdit.subclass ?? '').trim();
+                        if (!name) {
+                            this.classError = 'Informe o nome da classe.';
+                            return;
+                        }
+                        if (!this.classUpdateUrlTemplate) {
+                            this.classError = 'A rota para editar classes não está configurada.';
+                            return;
+                        }
+                        this.classSaving = true;
+                        this.classError = null;
+                        try {
+                            const url = this.classUpdateUrlTemplate.replace(
+                                '__CLASS_ID__', encodeURIComponent(String(this.editingClassId))
+                            );
+                            const response = await fetch(url, {
+                                method: 'PATCH',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': this.csrfToken(),
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                body: JSON.stringify({ name, subclass: subclass || null }),
+                            });
+                            const data = await this.jsonResponse(response);
+                            this.draft.classes = this.draft.classes.map(item =>
+                                Number(item.id) === Number(this.editingClassId)
+                                    ? { ...item, name: data.class.name, subclass: data.class.subclass }
+                                    : item
+                            );
+                            this.initial = this.clone(this.draft);
+                            this.requiresPageRefresh = true;
+                            this.progressionMessage = 'Classe e subclasse atualizadas.';
+                            this.editingClassId = null;
+                        } catch (error) {
+                            this.classError = error?.message ?? 'Não foi possível atualizar a classe.';
+                        } finally {
+                            this.classSaving = false;
+                        }
+                    },
+
+                    beginMulticlass() {
+                        if (Number(this.draft.level) >= 20 || !this.canLevelUpWithExperience()) return;
+                        this.editingClassId = null;
+                        this.multiclassError = null;
+                        this.multiclassForm = { name: '', subclass: '' };
+                        this.multiclassOpen = true;
+                    },
+
+                    async createMulticlass() {
+                        if (this.multiclassSaving || !this.multiclassOpen) return;
+                        const name = String(this.multiclassForm.name ?? '').trim();
+                        const subclass = String(this.multiclassForm.subclass ?? '').trim();
+                        if (!name) {
+                            this.multiclassError = 'Informe o nome da nova classe.';
+                            return;
+                        }
+                        if (!this.multiclassUrl) {
+                            this.multiclassError = 'A rota de multiclasse não está configurada.';
+                            return;
+                        }
+                        if (!this.canLevelUpWithExperience()) {
+                            this.multiclassError = 'Você ainda não tem XP suficiente para subir de nível.';
+                            return;
+                        }
+                        this.multiclassSaving = true;
+                        this.multiclassError = null;
+                        try {
+                            const response = await fetch(this.multiclassUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': this.csrfToken(),
+                                    'X-Requested-With': 'XMLHttpRequest',
+                                },
+                                body: JSON.stringify({
+                                    name,
+                                    subclass: subclass || null,
+                                    campaign_id: this.draft?.experience?.campaign_id ?? null,
+                                }),
+                            });
+                            const data = await this.jsonResponse(response);
+                            this.draft.level = Number(data?.character?.level) || this.draft.level;
+                            this.draft.classes = Array.isArray(data?.classes)
+                                ? data.classes.map(item => ({
+                                    id: item.id,
+                                    name: item.class ?? item.name ?? 'Classe',
+                                    subclass: item.subclass ?? null,
+                                    level: Number(item.level) || 1,
+                                    is_primary: !!item.is_primary,
+                                }))
+                                : this.draft.classes;
+                            if (data?.character?.proficiency_bonus !== undefined) {
+                                this.draft.proficiency.current = Number(data.character.proficiency_bonus);
+                            }
+                            if (data?.progression?.calculated_proficiency !== undefined) {
+                                this.draft.proficiency.calculated = Number(data.progression.calculated_proficiency);
+                            }
+                            this.initial = this.clone(this.draft);
+                            this.requiresPageRefresh = true;
+                            this.progressionMessage = data?.message || 'Nova classe adicionada com sucesso.';
+                            this.multiclassOpen = false;
+                        } catch (error) {
+                            this.multiclassError = error?.message ?? 'Não foi possível adicionar a multiclasse.';
+                        } finally {
+                            this.multiclassSaving = false;
+                        }
+                    },
+
                     requestLevelChange(
                         item,
                         mode
@@ -1437,6 +1962,13 @@
                                 || currentLevel >= 20
                             )
                         ) {
+                            return;
+                        }
+
+                        if (mode === 'up' && !this.canLevelUpWithExperience()) {
+                            this.progressionError = 'Faltam '
+                                + this.formatXp(this.xpUntilLevelUp())
+                                + ' XP para subir de nível.';
                             return;
                         }
 
@@ -1500,6 +2032,12 @@
 
                         const mode =
                             this.levelConfirmMode;
+
+                        if (mode === 'up' && !this.canLevelUpWithExperience()) {
+                            this.progressionError = 'Você ainda não tem XP suficiente.';
+                            this.cancelLevelConfirmation();
+                            return;
+                        }
 
                         this.levelConfirmOpen =
                             false;
@@ -1576,6 +2114,9 @@
                                             JSON.stringify({
                                                 class_id:
                                                     item.id,
+
+                                                campaign_id:
+                                                    this.draft?.experience?.campaign_id ?? null,
                                             }),
                                     }
                                 );
@@ -1899,6 +2440,7 @@
                     async save() {
                         if (
                             this.saving
+                            || this.photoSaving
                             || !this.saveUrl
                         ) {
                             return;
@@ -2083,6 +2625,16 @@
         $character
     ) }}"
 
+    data-class-update-url-template="{{ route(
+        'characters.progression.class.update',
+        ['character' => $character, 'classId' => '__CLASS_ID__']
+    ) }}"
+
+    data-multiclass-url="{{ route(
+        'characters.progression.multiclass.store',
+        $character
+    ) }}"
+
     data-proficiency-url="{{ route(
         'characters.progression.proficiency',
         $character
@@ -2154,6 +2706,7 @@
 
             <div
                 @click.stop
+                :data-active-tab="activeTab"
 
                 x-transition:enter="character-theme-modal-panel-enter"
                 x-transition:enter-start="character-theme-modal-panel-enter-start"
@@ -2484,6 +3037,7 @@
                     ================================================== --}}
 
                     <section
+                        class="sb-compact-identity"
                         x-show="
                             activeTab === 'identity'
                         "
@@ -2532,13 +3086,14 @@
                                 grid-cols-1
                                 gap-4
 
-                                sm:grid-cols-[150px_minmax(0,1fr)]
+                                sm:grid-cols-[120px_minmax(0,1fr)]
+                                sb-identity-layout
                             "
                         >
 
                             {{-- FOTO --}}
 
-                            <div>
+                            <div class="sb-identity-photo">
 
                                 <span
                                     class="
@@ -2577,6 +3132,7 @@
                                         border-dashed
                                         border-[#cdbb9f]
 
+                                        sb-photo-preview
                                         bg-[#efe9dc]/45
 
                                         shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
@@ -2598,13 +3154,15 @@
                                                 identityImagePreview
                                             "
 
+                                            x-on:error="identityImageError = 'Não foi possível carregar esta foto. Verifique o arquivo ou o link em /storage.'; identityImagePreview = null"
+
                                             alt="Prévia da foto do personagem"
 
                                             class="
                                                 h-full
                                                 w-full
-                                                object-cover
-                                                object-top
+                                                object-contain
+                                                object-center
                                             "
                                         >
                                     </template>
@@ -2717,10 +3275,7 @@
 
                                         accept="image/jpeg,image/png,image/webp"
 
-                                        @click="
-                                            $event.target.value =
-                                                null
-                                        "
+                                        @click="$event.target.value = ''"
 
                                         @change="
                                             handleIdentityImage(
@@ -2733,6 +3288,20 @@
 
                                 </label>
 
+
+                                <button
+                                    type="button"
+                                    x-show="identityImageFile || identityImageRemove"
+                                    x-cloak
+                                    @click="savePhotoNow()"
+                                    :disabled="photoSaving || saving"
+                                    class="sb-class-action mt-2 w-full rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-[0.08em] disabled:opacity-40"
+                                >
+                                    <span x-text="photoSaving ? 'Salvando foto...' : (identityImageRemove ? 'Confirmar remoção' : 'Aplicar nova foto')"></span>
+                                </button>
+                                <p class="character-customization-v18-copy mt-1 text-[9px] leading-relaxed">
+                                    A foto também é salva pelo botão Salvar alterações.
+                                </p>
 
                                 <button
                                     x-show="
@@ -2805,6 +3374,7 @@
                                     gap-3
 
                                     sm:grid-cols-2
+                                    sb-identity-fields
                                 "
                             >
 
@@ -2998,744 +3568,404 @@
                     </section>
 
 
-                    {{-- =================================================
+                                        {{-- =================================================
                          PROGRESSÃO
                     ================================================== --}}
 
                     <section
-                        x-show="
-                            activeTab === 'progression'
-                        "
+                        class="sb-compact-progression"
+                        x-show="activeTab === 'progression'"
+                        x-cloak
                     >
-
-                        {{-- CABEÇALHO --}}
-
                         <div
                             class="
-                                flex
-                                items-end
-                                justify-between
-                                gap-4
-
-                                border-b
-                                border-[#b08c62]/28
-
-                                pb-3
+                                flex items-center justify-between gap-4
+                                border-b border-[#b08c62]/28 pb-3
                             "
                         >
-
                             <div>
-                                <h3
-                                    class="
-                                        font-serif
-                                        text-[19px]
-                                        font-black
-
-                                        text-[#53150f]
-                                    "
-                                >
+                                <h3 class="font-serif text-[19px] font-black text-[#53150f]">
                                     Progressão
                                 </h3>
-
                                 <p
-                                    class="
-                                        mt-1
-
-                                        text-[11px]
-                                        leading-relaxed
-
-                                        text-[#7d604d]
-                                    "
+                                    x-show="!draft.experience?.enabled"
+                                    class="mt-1 text-[11px] text-[#7d604d]"
                                 >
-                                    Escolha qual classe recebe o próximo nível.
+                                    Níveis de classe e bônus de proficiência.
                                 </p>
                             </div>
-
 
                             <div
                                 class="
-                                    shrink-0
-
-                                    rounded-lg
-                                    border
-                                    border-[#cdbb9f]
-
-                                    bg-[#fffdf8]
-
-                                    px-3
-                                    py-2.5
-
-                                    text-center
+                                    flex items-baseline gap-2 rounded-lg
+                                    border border-[#cdbb9f] bg-[#fffdf8]
+                                    px-3 py-2
                                 "
                             >
-                                <p
+                                <span
                                     class="
-                                        text-[9px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.13em]
-
-                                        text-[#8c6239]
+                                        text-[8px] font-black uppercase
+                                        tracking-[0.12em] text-[#8c6239]
                                     "
                                 >
-                                    Nível total
-                                </p>
-
-                                <p
-                                    class="
-                                        mt-0.5
-
-                                        font-serif
-                                        text-[22px]
-                                        font-black
-                                        leading-none
-
-                                        text-[#6b1d14]
-                                    "
-
-                                    x-text="
-                                        draft.level
-                                    "
-                                ></p>
+                                    Nível
+                                </span>
+                                <strong
+                                    class="font-serif text-[21px] leading-none text-[#6b1d14]"
+                                    x-text="draft.level"
+                                ></strong>
                             </div>
-
                         </div>
 
-
                         {{-- =================================================
-                             ESCOLHER CLASSE
+                             PROGRESSÃO COM XP — MODO ESSENCIAL
+                             A ficha já possui um modal com XP detalhado.
+                             Aqui mostramos apenas o estado da evolução
+                             e as ações realmente disponíveis.
                         ================================================== --}}
 
-                        <div class="mt-4">
-
+                        <div
+                            x-show="draft.experience?.enabled"
+                            x-cloak
+                            class="sb-progress-experience mt-2 space-y-1.5"
+                        >
+                            {{-- Uma única mensagem de estado; sem repetir
+                                 total, marcos, porcentagens ou barras. --}}
                             <div
-                                class="
-                                    flex
-                                    items-center
-                                    justify-between
-                                    gap-3
-                                "
+                                class="sb-xp-overview flex items-center gap-3 rounded-xl border px-3.5 py-3"
+                                :class="Number(draft.level) < 20 && canLevelUpWithExperience() ? 'sb-xp-ready' : ''"
                             >
-                                <div>
-                                    <p
-                                        class="
-                                            text-[10px]
-                                            font-black
-                                            uppercase
-                                            tracking-[0.14em]
-
-                                            text-[#8c6239]
-                                        "
-                                    >
-                                        Próximo nível
-                                    </p>
-
-                                    <p
-                                        class="
-                                            mt-0.5
-
-                                            text-[11px]
-                                            text-[#7d604d]
-                                        "
-                                    >
-                                        O aumento é aplicado imediatamente à classe escolhida.
-                                    </p>
-                                </div>
-
                                 <span
-                                    x-show="
-                                        draft.level >= 20
-                                    "
-
-                                    class="
-                                        shrink-0
-
-                                        rounded-full
-
-                                        bg-[#eadbc8]
-
-                                        px-2.5
-                                        py-1
-
-                                        text-[10px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.10em]
-
-                                        text-[#6b1d14]
-                                    "
+                                    class="sb-xp-level-box flex h-9 w-9 shrink-0 items-center justify-center rounded-full border"
+                                    aria-hidden="true"
                                 >
-                                    Nível máximo
+                                    <svg
+                                        class="h-[17px] w-[17px]"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1.7"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                    >
+                                        <path d="M12 3v18M5 10l7-7 7 7" />
+                                    </svg>
                                 </span>
+
+                                <div class="min-w-0 flex-1">
+                                    <p
+                                        class="sb-xp-heading text-[11px] font-black"
+                                        x-text="Number(draft.level) >= 20 ? 'Nível máximo alcançado' : (canLevelUpWithExperience() ? 'Evolução liberada' : 'Progressão por experiência')"
+                                    ></p>
+                                    <p
+                                        x-show="Number(draft.level) < 20"
+                                        class="sb-xp-muted mt-0.5 text-[10px] leading-snug"
+                                        x-text="canLevelUpWithExperience() ? 'Escolha a classe que receberá o novo nível.' : 'Faltam ' + formatXp(xpUntilLevelUp()) + ' XP para o nível ' + (Number(draft.level) + 1) + '.'"
+                                    ></p>
+                                </div>
                             </div>
 
-
-                            <div
-                                class="
-                                    mt-2.5
-
-                                    grid
-                                    grid-cols-1
-                                    gap-2
-
-                                    sm:grid-cols-2
-                                "
-                            >
-
-                                <template
-                                    x-for="
-                                        item in draft.classes
-                                    "
-                                    :key="
-                                        item.id
-                                        || item.name
-                                    "
-                                >
+                            {{-- Cada classe tem apenas a correção de nível.
+                                 Subir só existe no DOM quando o XP permite. --}}
+                            <div class="space-y-2">
+                                <template x-for="item in draft.classes" :key="item.id || item.name">
                                     <article
-                                        class="
-                                            relative
-
-                                            flex
-                                            min-w-0
-                                            items-center
-                                            justify-between
-                                            gap-3
-
-                                            overflow-hidden
-
-                                            rounded-xl
-                                            border
-                                            border-[#d8c7ab]/75
-
-                                            bg-[#fffdf8]
-
-                                            px-3
-                                            py-3
-
-                                            shadow-[inset_0_1px_0_rgba(255,255,255,.72)]
-                                        "
+                                        class="sb-xp-class flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5"
                                     >
-
-                                        <div class="min-w-0">
-
-                                            <div
-                                                class="
-                                                    flex
-                                                    min-w-0
-                                                    items-center
-                                                    gap-2
-                                                "
-                                            >
-                                                <p
-                                                    class="
-                                                        truncate
-
-                                                        font-serif
-                                                        text-[14px]
-                                                        font-black
-
-                                                        text-[#53150f]
-                                                    "
-
-                                                    x-text="
-                                                        item.name
-                                                    "
-                                                ></p>
-
-                                                <span
-                                                    x-show="
-                                                        item.is_primary
-                                                    "
-
-                                                    class="
-                                                        shrink-0
-
-                                                        rounded-full
-
-                                                        bg-[#eadbc8]
-
-                                                        px-2
-                                                        py-0.5
-
-                                                        text-[9px]
-                                                        font-black
-                                                        uppercase
-                                                        tracking-[0.10em]
-
-                                                        text-[#6f472f]
-                                                    "
-                                                >
-                                                    Principal
-                                                </span>
-                                            </div>
-
-
-                                            <p
-                                                x-show="
-                                                    item.subclass
-                                                "
-
-                                                class="
-                                                    mt-0.5
-
-                                                    truncate
-
-                                                    text-[11px]
-                                                    font-semibold
-
-                                                    text-[#8c6239]
-                                                "
-
-                                                x-text="
-                                                    item.subclass
-                                                "
-                                            ></p>
-
-
-                                            <p
-                                                class="
-                                                    mt-1.5
-
-                                                    text-[11px]
-                                                    font-semibold
-
-                                                    text-[#7d604d]
-                                                "
-                                            >
-                                                Nível da classe:
-
+                                        <div class="min-w-0 flex-1">
+                                            <div class="flex min-w-0 items-center gap-1.5">
                                                 <strong
-                                                    class="
-                                                        ml-1
-
-                                                        font-serif
-                                                        text-[13px]
-
-                                                        text-[#53150f]
-                                                    "
-
-                                                    x-text="
-                                                        item.level
-                                                    "
+                                                    class="sb-xp-heading min-w-0 truncate font-serif text-[14px] font-black"
+                                                    x-text="item.name || 'Classe'"
                                                 ></strong>
-                                            </p>
-
+                                                <button
+                                                    type="button"
+                                                    @click="beginClassEdit(item)"
+                                                    class="sb-class-edit-inline inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition"
+                                                    :aria-label="'Editar classe e subclasse de ' + (item.name || 'Classe')"
+                                                    title="Editar classe e subclasse"
+                                                >
+                                                    <svg aria-hidden="true" viewBox="0 0 24 24" class="h-[13px] w-[13px]" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M12 20h9" />
+                                                        <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L10 16l-4 1 1-4Z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <p
+                                                x-show="item.subclass"
+                                                x-cloak
+                                                class="sb-xp-muted mt-0.5 truncate text-[9px]"
+                                                x-text="item.subclass"
+                                            ></p>
                                         </div>
 
-
-                                        <div
-                                            class="
-                                                flex
-                                                shrink-0
-                                                items-center
-                                                gap-1.5
-                                            "
-                                        >
-
-                                            {{-- VOLTAR -1 --}}
+                                        <div class="flex shrink-0 items-center gap-2">
+                                            {{-- Com uma classe, o nível já é exibido
+                                                 no cabeçalho. No multiclasse,
+                                                 mostramos o nível de cada classe. --}}
+                                            <span
+                                                x-show="draft.classes.length > 1"
+                                                x-cloak
+                                                class="sb-xp-label text-[10px] font-bold"
+                                                x-text="'Nv. ' + (Number(item.level) || 1)"
+                                            ></span>
 
                                             <button
                                                 type="button"
+                                                @click="requestLevelChange(item, 'down')"
+                                                :disabled="Number(item.level) <= 1 || levelingClassId !== null"
+                                                class="sb-xp-down flex h-8 w-8 items-center justify-center rounded-lg border text-[15px] font-bold transition disabled:cursor-not-allowed disabled:opacity-30"
+                                                :aria-label="'Corrigir nível da classe ' + (item.name || 'Classe') + ': diminuir um nível'"
+                                                title="Corrigir nível (diminuir um)"
+                                            >−</button>
 
-                                                @click="
-                                                    requestLevelChange(
-                                                        item,
-                                                        'down'
-                                                    )
-                                                "
-
-                                                :disabled="
-                                                    item.level <= 1
-                                                    || levelingClassId !== null
-                                                "
-
-                                                class="
-                                                    min-w-[70px]
-
-                                                    rounded-lg
-                                                    border
-                                                    border-[#cdbb9f]
-
-                                                    bg-[#f4f1e8]
-
-                                                    px-2.5
-                                                    py-2.5
-
-                                                    text-[10px]
-                                                    font-black
-                                                    uppercase
-                                                    tracking-[0.08em]
-
-                                                    text-[#6b1d14]
-
-                                                    transition
-
-                                                    hover:border-[#a0774d]/55
-                                                    hover:bg-[#eadbc8]
-
-                                                    disabled:cursor-not-allowed
-                                                    disabled:opacity-40
-                                                "
-                                            >
-                                                <span
-                                                    x-show="
-                                                        !(
-                                                            levelingClassId
-                                                            === item.id
-                                                            && levelingDirection
-                                                            === 'down'
-                                                        )
-                                                    "
+                                            <template x-if="Number(draft.level) < 20 && Number(item.level) < 20 && canLevelUpWithExperience()">
+                                                <button
+                                                    type="button"
+                                                    @click="requestLevelChange(item, 'up')"
+                                                    :disabled="levelingClassId !== null"
+                                                    class="sb-xp-up flex h-8 items-center justify-center gap-1.5 rounded-lg border px-3 text-[10px] font-black transition disabled:opacity-40"
                                                 >
-                                                    Voltar -1
-                                                </span>
-
-                                                <span
-                                                    x-show="
-                                                        levelingClassId
-                                                        === item.id
-                                                        && levelingDirection
-                                                        === 'down'
-                                                    "
-                                                    x-cloak
-                                                >
-                                                    Salvando...
-                                                </span>
-                                            </button>
-
-
-                                            {{-- SUBIR +1 --}}
-
-                                            <button
-                                                type="button"
-
-                                                @click="
-                                                    requestLevelChange(
-                                                        item,
-                                                        'up'
-                                                    )
-                                                "
-
-                                                :disabled="
-                                                    draft.level >= 20
-                                                    || item.level >= 20
-                                                    || levelingClassId !== null
-                                                "
-
-                                                class="
-                                                    min-w-[68px]
-
-                                                    rounded-lg
-                                                    border
-                                                    border-[#6b1d14]/30
-
-                                                    bg-[#6b1d14]
-
-                                                    px-2.5
-                                                    py-2.5
-
-                                                    text-[10px]
-                                                    font-black
-                                                    uppercase
-                                                    tracking-[0.08em]
-
-                                                    text-[#fffaf2]
-
-                                                    transition
-
-                                                    hover:bg-[#53150f]
-
-                                                    disabled:cursor-not-allowed
-                                                    disabled:border-[#cdbb9f]/60
-                                                    disabled:bg-[#eadbc8]/70
-                                                    disabled:text-[#8c6239]/55
-                                                "
-                                            >
-                                                <span
-                                                    x-show="
-                                                        !(
-                                                            levelingClassId
-                                                            === item.id
-                                                            && levelingDirection
-                                                            === 'up'
-                                                        )
-                                                    "
-                                                >
-                                                    Subir +1
-                                                </span>
-
-                                                <span
-                                                    x-show="
-                                                        levelingClassId
-                                                        === item.id
-                                                        && levelingDirection
-                                                        === 'up'
-                                                    "
-                                                    x-cloak
-                                                >
-                                                    Salvando...
-                                                </span>
-                                            </button>
-
+                                                    <span aria-hidden="true">↑</span>
+                                                    Subir nível
+                                                </button>
+                                            </template>
                                         </div>
-
                                     </article>
                                 </template>
 
-
-                                <div
-                                    x-show="
-                                        !draft.classes.length
-                                    "
-
-                                    class="
-                                        rounded-xl
-                                        border
-                                        border-dashed
-                                        border-[#cdbb9f]/75
-
-                                        px-4
-                                        py-5
-
-                                        text-center
-                                        text-[11px]
-
-                                        text-[#8c6239]
-
-                                        sm:col-span-2
-                                    "
+                                <p
+                                    x-show="!draft.classes.length"
+                                    class="sb-xp-muted rounded-xl border border-dashed px-3 py-4 text-center text-[11px]"
                                 >
                                     Nenhuma classe encontrada.
-                                </div>
-
+                                </p>
                             </div>
-
-
-                            {{-- FEEDBACK LEVEL-UP --}}
-
-                            <div
-                                x-show="
-                                    progressionError
-                                "
-
-                                class="
-                                    mt-2.5
-
-                                    rounded-lg
-                                    border
-                                    border-red-200
-
-                                    bg-red-50
-
-                                    px-3
-                                    py-2.5
-
-                                    text-[11px]
-                                    font-bold
-
-                                    text-red-700
-                                "
-
-                                x-text="
-                                    progressionError
-                                "
-                            ></div>
-
-
-                            <div
-                                x-show="
-                                    progressionMessage
-                                "
-
-                                class="
-                                    mt-2.5
-
-                                    rounded-lg
-                                    border
-                                    border-emerald-200
-
-                                    bg-emerald-50
-
-                                    px-3
-                                    py-2.5
-
-                                    text-[11px]
-                                    font-bold
-
-                                    text-emerald-800
-                                "
-
-                                x-text="
-                                    progressionMessage
-                                "
-                            ></div>
-
                         </div>
 
+                        {{-- MODO SEM XP: mantém integralmente a lista original. --}}
+                        <div x-show="!draft.experience?.enabled" x-cloak class="sb-progress-standard">
+                        <div class="mt-2 space-y-1.5">
+                            <template x-for="item in draft.classes" :key="item.id || item.name">
+                                <article
+                                    class="
+                                        flex min-w-0 items-center justify-between gap-3
+                                        rounded-xl border border-[#cdbb9f]/70
+                                        bg-[#fffdf8] px-3 py-2.5
+                                    "
+                                >
+                                    <div class="min-w-0">
+                                        <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+                                            <strong
+                                                class="min-w-0 truncate font-serif text-[14px] text-[#53150f]"
+                                                x-text="item.name || 'Classe'"
+                                            ></strong>
+                                            <button
+                                                type="button"
+                                                @click="beginClassEdit(item)"
+                                                class="sb-class-edit-inline inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md transition"
+                                                :aria-label="'Editar classe e subclasse de ' + (item.name || 'Classe')"
+                                                title="Editar classe e subclasse"
+                                            >
+                                                <svg aria-hidden="true" viewBox="0 0 24 24" class="h-[13px] w-[13px]" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                                    <path d="M12 20h9" />
+                                                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L10 16l-4 1 1-4Z" />
+                                                </svg>
+                                            </button>
+                                            <span
+                                                x-show="item.is_primary"
+                                                x-cloak
+                                                class="
+                                                    rounded-full bg-[#eadbc8] px-2 py-0.5
+                                                    text-[7px] font-black uppercase
+                                                    tracking-[0.08em] text-[#6b1d14]
+                                                "
+                                            >
+                                                Principal
+                                            </span>
+                                        </div>
+                                        <p
+                                            x-show="item.subclass"
+                                            x-cloak
+                                            class="mt-0.5 truncate text-[9px] text-[#7d604d]"
+                                            x-text="item.subclass"
+                                        ></p>
+                                    </div>
 
-                        {{-- =================================================
-                             PROFICIÊNCIA CUSTOM — GAVETA
-                        ================================================== --}}
+                                    <div
+                                        class="
+                                            flex shrink-0 items-center overflow-hidden
+                                            rounded-lg border border-[#cdbb9f] bg-[#f7f0e6]
+                                        "
+                                    >
+                                        <button
+                                            type="button"
+                                            @click="requestLevelChange(item, 'down')"
+                                            :disabled="Number(item.level) <= 1 || levelingClassId !== null"
+                                            class="
+                                                flex h-9 w-9 items-center justify-center
+                                                border-r border-[#cdbb9f]
+                                                text-base font-black text-[#6b1d14]
+                                                transition hover:bg-[#eadbc8]
+                                                disabled:cursor-not-allowed disabled:opacity-30
+                                            "
+                                            title="Reduzir um nível"
+                                        >−</button>
+
+                                        <div class="min-w-[54px] px-2 text-center">
+                                            <span
+                                                class="
+                                                    block text-[7px] font-black uppercase
+                                                    tracking-[0.08em] text-[#8c6239]
+                                                "
+                                            >Nível</span>
+                                            <strong
+                                                class="mt-0.5 block font-serif text-[16px] leading-none text-[#53150f]"
+                                                x-text="item.level"
+                                            ></strong>
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            @click="requestLevelChange(item, 'up')"
+                                            :disabled="draft.level >= 20 || Number(item.level) >= 20 || levelingClassId !== null || !canLevelUpWithExperience()"
+                                            class="
+                                                flex h-9 w-9 items-center justify-center
+                                                border-l border-[#cdbb9f] bg-[#6b1d14]
+                                                text-base font-black text-[#fffaf2]
+                                                transition hover:bg-[#53150f]
+                                                disabled:cursor-not-allowed
+                                                disabled:bg-[#eadbc8] disabled:text-[#8c6239]/55
+                                            "
+                                            :title="draft.experience?.enabled && !canLevelUpWithExperience()
+                                                ? 'Faltam ' + formatXp(xpUntilLevelUp()) + ' XP para subir de nível'
+                                                : 'Adicionar um nível'"
+                                        >+</button>
+                                    </div>
+                                </article>
+                            </template>
+
+                            <div
+                                x-show="!draft.classes.length"
+                                class="
+                                    rounded-xl border border-dashed border-[#cdbb9f]/75
+                                    px-4 py-5 text-center text-[11px] text-[#8c6239]
+                                "
+                            >
+                                Nenhuma classe encontrada.
+                            </div>
+                        </div>
+                        </div>
+
+                        {{-- Editor único de classe e subclasse; funciona com ou sem XP. --}}
+                        <section x-show="editingClassId !== null" x-cloak
+                            class="sb-class-editor mt-3 rounded-xl p-3.5">
+                            <p class="text-[11px] font-black">Editar classe e subclasse</p>
+                            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <label class="block min-w-0">
+                                    <span class="block text-[9px] font-bold">Classe</span>
+                                    <input type="text" x-model="classEdit.name" maxlength="80" class="sb-class-input mt-1 rounded-lg px-3 py-2 text-[11px]" autocomplete="off">
+                                </label>
+                                <label class="block min-w-0">
+                                    <span class="block text-[9px] font-bold">Subclasse (opcional)</span>
+                                    <input type="text" x-model="classEdit.subclass" maxlength="80" class="sb-class-input mt-1 rounded-lg px-3 py-2 text-[11px]" autocomplete="off">
+                                </label>
+                            </div>
+                            <p x-show="classError" x-text="classError" class="mt-2 text-[10px] font-bold text-red-600"></p>
+                            <div class="mt-3 flex justify-end gap-2">
+                                <button type="button" @click="cancelClassEdit()" :disabled="classSaving" class="sb-class-cancel rounded-lg px-3 py-2 text-[10px] font-bold">Cancelar</button>
+                                <button type="button" @click="saveClassEdit()" :disabled="classSaving" class="sb-class-action rounded-lg px-3 py-2 text-[10px] font-black" x-text="classSaving ? 'Salvando...' : 'Salvar classe'"></button>
+                            </div>
+                        </section>
+
+                        {{-- Uma nova classe consome um nível: não é apenas um cadastro. --}}
+                        <div x-show="Number(draft.level) < 20 && (!draft.experience?.enabled || canLevelUpWithExperience())" x-cloak class="mt-3">
+                            <button type="button" @click="beginMulticlass()" x-show="!multiclassOpen" x-cloak
+                                class="sb-class-edit-trigger w-full rounded-xl px-4 py-3 text-[10px] font-black uppercase tracking-[0.07em]">
+                                + Adicionar nova classe ao subir de nível
+                            </button>
+                        </div>
+                        <section x-show="multiclassOpen" x-cloak class="sb-class-editor mt-3 rounded-xl p-3.5">
+                            <p class="text-[11px] font-black">Nova classe — nível 1</p>
+                            <p class="character-customization-v18-copy mt-1 text-[10px]">Ao confirmar, o nível total do personagem aumenta em 1.</p>
+                            <div class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                <label class="block min-w-0">
+                                    <span class="block text-[9px] font-bold">Nova classe</span>
+                                    <input type="text" x-model="multiclassForm.name" maxlength="80" class="sb-class-input mt-1 rounded-lg px-3 py-2 text-[11px]" placeholder="Ex.: Guerreiro">
+                                </label>
+                                <label class="block min-w-0">
+                                    <span class="block text-[9px] font-bold">Subclasse (opcional)</span>
+                                    <input type="text" x-model="multiclassForm.subclass" maxlength="80" class="sb-class-input mt-1 rounded-lg px-3 py-2 text-[11px]" placeholder="Ex.: Mestre de Batalha">
+                                </label>
+                            </div>
+                            <p x-show="multiclassError" x-text="multiclassError" class="mt-2 text-[10px] font-bold text-red-600"></p>
+                            <div class="mt-3 flex justify-end gap-2">
+                                <button type="button" @click="multiclassOpen = false" :disabled="multiclassSaving" class="sb-class-cancel rounded-lg px-3 py-2 text-[10px] font-bold">Cancelar</button>
+                                <button type="button" @click="createMulticlass()" :disabled="multiclassSaving" class="sb-class-action rounded-lg px-3 py-2 text-[10px] font-black" x-text="multiclassSaving ? 'Adicionando...' : 'Confirmar nova classe'"></button>
+                            </div>
+                        </section>
+
+                        <div
+                            x-show="progressionError"
+                            x-cloak
+                            class="
+                                mt-2.5 rounded-lg border border-red-200 bg-red-50
+                                px-3 py-2.5 text-[11px] font-bold text-red-700
+                            "
+                            x-text="progressionError"
+                        ></div>
+
+                        <div
+                            x-show="progressionMessage"
+                            x-cloak
+                            class="
+                                mt-2.5 rounded-lg border border-emerald-200 bg-emerald-50
+                                px-3 py-2.5 text-[11px] font-bold text-emerald-800
+                            "
+                            x-text="progressionMessage"
+                        ></div>
 
                         <div
                             class="
-                                mt-4
-
-                                overflow-hidden
-
-                                rounded-xl
-                                border
-                                border-[#cdbb9f]/70
-
-                                bg-[#f7eee2]/45
+                                mt-3 overflow-hidden rounded-xl
+                                border border-[#cdbb9f]/70 bg-[#f7eee2]/45
                             "
                         >
-
-                            {{-- CABEÇALHO DA GAVETA --}}
-
                             <button
                                 type="button"
-
-                                @click="
-                                    proficiencyDrawerOpen =
-                                        !proficiencyDrawerOpen
-                                "
-
+                                @click="proficiencyDrawerOpen = !proficiencyDrawerOpen"
                                 class="
-                                    flex
-                                    w-full
-                                    items-center
-                                    justify-between
-                                    gap-3
-
-                                    px-3.5
-                                    py-3
-
-                                    text-left
-
-                                    transition
-
-                                    hover:bg-[#eadbc8]/38
+                                    flex w-full items-center justify-between gap-3
+                                    px-3.5 py-3 text-left transition hover:bg-[#eadbc8]/38
                                 "
                             >
-
                                 <span class="min-w-0">
-
-                                    <span
-                                        class="
-                                            flex
-                                            items-center
-                                            gap-2
-                                        "
-                                    >
-                                        <span
-                                            class="
-                                                font-serif
-                                                text-[13px]
-                                                font-black
-
-                                                text-[#53150f]
-                                            "
-                                        >
-                                            Proficiência Custom
+                                    <span class="flex items-center gap-2">
+                                        <span class="font-serif text-[13px] font-black text-[#53150f]">
+                                            Proficiência
                                         </span>
-
                                         <span
-                                            class="
-                                                rounded-full
-
-                                                px-2
-                                                py-0.5
-
-                                                text-[9px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.10em]
-                                            "
-
+                                            class="rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em]"
                                             :class="
                                                 draft.proficiency.custom_enabled
                                                     ? 'bg-[#6b1d14] text-[#fffaf2]'
                                                     : 'bg-[#eadbc8] text-[#8c6239]'
                                             "
-
-                                            x-text="
-                                                draft.proficiency.custom_enabled
-                                                    ? 'Custom'
-                                                    : 'Automática'
-                                            "
+                                            x-text="draft.proficiency.custom_enabled ? 'Custom' : 'Automática'"
                                         ></span>
                                     </span>
-
-                                    <span
-                                        class="
-                                            mt-1
-                                            block
-
-                                            text-[11px]
-
-                                            text-[#7d604d]
-                                        "
-                                    >
-                                        Valor atual:
+                                    <span class="mt-0.5 block text-[10px] text-[#7d604d]">
+                                        Atual
                                         <strong
-                                            class="
-                                                font-serif
-                                                text-[12px]
-
-                                                text-[#53150f]
-                                            "
-
-                                            x-text="
-                                                signed(
-                                                    draft.proficiency.current
-                                                )
-                                            "
+                                            class="font-serif text-[11px] text-[#53150f]"
+                                            x-text="signed(draft.proficiency.current)"
                                         ></strong>
-
-                                        <span
-                                            x-show="
-                                                draft.proficiency.custom_enabled
-                                            "
-                                        >
-                                            · automático seria
-                                            <strong
-                                                class="
-                                                    font-serif
-                                                    text-[12px]
-
-                                                    text-[#8c6239]
-                                                "
-
-                                                x-text="
-                                                    signed(
-                                                        draft.proficiency.calculated
-                                                    )
-                                                "
-                                            ></strong>
-                                        </span>
                                     </span>
-
                                 </span>
 
-
                                 <svg
-                                    class="
-                                        h-4
-                                        w-4
-                                        shrink-0
-
-                                        text-[#8c6239]
-
-                                        transition-transform
-                                    "
-
-                                    :class="
-                                        proficiencyDrawerOpen
-                                            ? 'rotate-180'
-                                            : ''
-                                    "
-
+                                    class="h-4 w-4 shrink-0 text-[#8c6239] transition-transform"
+                                    :class="proficiencyDrawerOpen ? 'rotate-180' : ''"
                                     viewBox="0 0 24 24"
                                     fill="none"
                                     stroke="currentColor"
@@ -3746,417 +3976,89 @@
                                 >
                                     <path d="m6 9 6 6 6-6" />
                                 </svg>
-
                             </button>
 
-
-                            {{-- CONTEÚDO DA GAVETA --}}
-
                             <div
-                                x-show="
-                                    proficiencyDrawerOpen
-                                "
+                                x-show="proficiencyDrawerOpen"
+                                x-cloak
                                 x-transition
-
-                                class="
-                                    border-t
-                                    border-[#cdbb9f]/55
-
-                                    bg-[#fffdf8]/70
-                                "
+                                class="border-t border-[#cdbb9f]/55 bg-[#fffdf8]/70 p-3.5"
                             >
-
-                                <div class="p-3.5">
-
-                                    {{-- AVISO --}}
-
-                                    <div
-                                        class="
-                                            rounded-lg
-                                            border
-                                            border-amber-300/75
-
-                                            bg-amber-50
-
-                                            px-3
-                                            py-3
-                                        "
-                                    >
-                                        <p
+                                <div class="flex flex-col gap-2 sm:flex-row sm:items-end">
+                                    <label class="min-w-0 flex-1">
+                                        <span
                                             class="
-                                                text-[10px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.12em]
-
-                                                text-amber-900
+                                                text-[8px] font-black uppercase
+                                                tracking-[0.10em] text-[#8c6239]
+                                            "
+                                        >Valor custom</span>
+                                        <input
+                                            type="number"
+                                            min="-20"
+                                            max="20"
+                                            step="1"
+                                            x-model.number="customProficiencyValue"
+                                            class="
+                                                mt-1.5 h-10 w-full rounded-lg
+                                                border-[#cdbb9f] bg-[#fffdf8]
+                                                text-sm font-bold text-[#53150f]
+                                                focus:border-[#8c6239] focus:ring-[#8c6239]/10
                                             "
                                         >
-                                            Atenção
-                                        </p>
+                                    </label>
 
-                                        <p
-                                            class="
-                                                mt-1
-
-                                                text-[11px]
-                                                leading-relaxed
-
-                                                text-amber-900/85
-                                            "
-                                        >
-                                            Este valor substitui a proficiência calculada pelo nível. Perícias, salvaguardas, ataques, CDs e qualquer cálculo que use proficiência passarão a usar o valor escolhido.
-                                        </p>
-                                    </div>
-
-
-                                    {{-- CONTROLES --}}
-
-                                    <div
+                                    <button
+                                        type="button"
+                                        @click="saveCustomProficiency()"
+                                        :disabled="proficiencySaving"
                                         class="
-                                            mt-3
-
-                                            grid
-                                            grid-cols-1
-                                            gap-3
-
-                                            sm:grid-cols-[minmax(0,1fr)_auto]
-                                            sm:items-end
+                                            h-10 rounded-lg bg-[#6b1d14] px-4
+                                            text-[9px] font-black uppercase tracking-[0.09em]
+                                            text-[#fffaf2] transition hover:bg-[#53150f]
+                                            disabled:opacity-50
                                         "
-                                    >
+                                    >Aplicar</button>
 
-                                        <label class="block min-w-0">
-
-                                            <span
-                                                class="
-                                                    mb-1.5
-                                                    block
-
-                                                    text-[10px]
-                                                    font-black
-                                                    uppercase
-                                                    tracking-[0.13em]
-
-                                                    text-[#8c6239]
-                                                "
-                                            >
-                                                Valor da proficiência
-                                            </span>
-
-                                            <div
-                                                class="
-                                                    flex
-                                                    h-11
-                                                    items-center
-
-                                                    overflow-hidden
-
-                                                    rounded-lg
-                                                    border
-                                                    border-[#cdbb9f]
-
-                                                    bg-[#fffdf8]
-                                                "
-                                            >
-                                                <span
-                                                    class="
-                                                        flex
-                                                        h-full
-                                                        items-center
-
-                                                        border-r
-                                                        border-[#d8c7ab]/65
-
-                                                        bg-[#f4f1e8]
-
-                                                        px-3
-
-                                                        font-serif
-                                                        text-[15px]
-                                                        font-black
-
-                                                        text-[#8c6239]
-                                                    "
-                                                >
-                                                    ±
-                                                </span>
-
-                                                <input
-                                                    type="number"
-
-                                                    step="1"
-
-                                                    x-model.number="
-                                                        customProficiencyValue
-                                                    "
-
-                                                    class="
-                                                        h-full
-                                                        min-w-0
-                                                        flex-1
-
-                                                        border-0
-                                                        bg-transparent
-
-                                                        px-3
-
-                                                        font-serif
-                                                        text-[16px]
-                                                        font-black
-
-                                                        text-[#53150f]
-
-                                                        outline-none
-                                                        ring-0
-                                                    "
-                                                >
-                                            </div>
-
-                                        </label>
-
-
-                                        <button
-                                            type="button"
-
-                                            @click="
-                                                saveCustomProficiency()
-                                            "
-
-                                            :disabled="
-                                                proficiencySaving
-                                            "
-
-                                            class="
-                                                h-11
-
-                                                rounded-lg
-
-                                                bg-[#6b1d14]
-
-                                                px-4
-
-                                                text-[10px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.11em]
-
-                                                text-[#fffaf2]
-
-                                                transition
-
-                                                hover:bg-[#53150f]
-
-                                                disabled:cursor-wait
-                                                disabled:opacity-55
-                                            "
-                                        >
-                                            <span
-                                                x-show="
-                                                    !proficiencySaving
-                                                "
-                                            >
-                                                Usar valor custom
-                                            </span>
-
-                                            <span
-                                                x-show="
-                                                    proficiencySaving
-                                                "
-                                                x-cloak
-                                            >
-                                                Salvando...
-                                            </span>
-                                        </button>
-
-                                    </div>
-
-
-                                    {{-- VOLTAR AO AUTOMÁTICO --}}
-
-                                    <div
+                                    <button
+                                        type="button"
+                                        @click="restoreAutomaticProficiency()"
+                                        :disabled="proficiencySaving || !draft.proficiency.custom_enabled"
                                         class="
-                                            mt-3
-
-                                            flex
-                                            flex-wrap
-                                            items-center
-                                            justify-between
-                                            gap-2
-
-                                            border-t
-                                            border-[#d8c7ab]/50
-
-                                            pt-3
+                                            h-10 rounded-lg border border-[#cdbb9f]
+                                            bg-[#f7f0e6] px-3 text-[9px] font-black
+                                            uppercase tracking-[0.08em] text-[#6b1d14]
+                                            transition hover:bg-[#eadbc8] disabled:opacity-35
                                         "
-                                    >
-
-                                        <p
-                                            class="
-                                                text-[11px]
-
-                                                text-[#7d604d]
-                                            "
-                                        >
-                                            Pelo nível
-                                            <strong
-                                                class="
-                                                    font-serif
-                                                    text-[12px]
-
-                                                    text-[#53150f]
-                                                "
-
-                                                x-text="
-                                                    draft.level
-                                                "
-                                            ></strong>,
-                                            o valor automático é
-
-                                            <strong
-                                                class="
-                                                    font-serif
-                                                    text-[12px]
-
-                                                    text-[#6b1d14]
-                                                "
-
-                                                x-text="
-                                                    signed(
-                                                        draft.proficiency.calculated
-                                                    )
-                                                "
-                                            ></strong>.
-                                        </p>
-
-
-                                        <button
-                                            type="button"
-
-                                            @click="
-                                                restoreAutomaticProficiency()
-                                            "
-
-                                            :disabled="
-                                                proficiencySaving
-                                                || !draft.proficiency.custom_enabled
-                                            "
-
-                                            class="
-                                                rounded-lg
-                                                border
-                                                border-[#cdbb9f]
-
-                                                bg-[#f4f1e8]
-
-                                                px-3
-                                                py-2.5
-
-                                                text-[10px]
-                                                font-black
-                                                uppercase
-                                                tracking-[0.10em]
-
-                                                text-[#6b1d14]
-
-                                                transition
-
-                                                hover:bg-[#eadbc8]
-
-                                                disabled:cursor-not-allowed
-                                                disabled:opacity-40
-                                            "
-                                        >
-                                            Voltar ao automático
-                                        </button>
-
-                                    </div>
-
-
-                                    {{-- FEEDBACK --}}
-
-                                    <div
-                                        x-show="
-                                            proficiencyError
-                                        "
-
-                                        class="
-                                            mt-3
-
-                                            rounded-lg
-                                            border
-                                            border-red-200
-
-                                            bg-red-50
-
-                                            px-3
-                                            py-2.5
-
-                                            text-[11px]
-                                            font-bold
-
-                                            text-red-700
-                                        "
-
-                                        x-text="
-                                            proficiencyError
-                                        "
-                                    ></div>
-
-
-                                    <div
-                                        x-show="
-                                            proficiencyMessage
-                                        "
-
-                                        class="
-                                            mt-3
-
-                                            rounded-lg
-                                            border
-                                            border-emerald-200
-
-                                            bg-emerald-50
-
-                                            px-3
-                                            py-2.5
-
-                                            text-[11px]
-                                            font-bold
-
-                                            text-emerald-800
-                                        "
-
-                                        x-text="
-                                            proficiencyMessage
-                                        "
-                                    ></div>
-
+                                    >Automática</button>
                                 </div>
 
+                                <p class="mt-2 text-[9px] text-[#7d604d]">
+                                    Valor automático atual:
+                                    <strong
+                                        class="font-serif text-[#53150f]"
+                                        x-text="signed(draft.proficiency.calculated)"
+                                    ></strong>
+                                </p>
+
+                                <p
+                                    x-show="proficiencyError"
+                                    x-cloak
+                                    class="mt-2 text-[10px] font-bold text-red-700"
+                                    x-text="proficiencyError"
+                                ></p>
+
+                                <p
+                                    x-show="proficiencyMessage"
+                                    x-cloak
+                                    class="mt-2 text-[10px] font-bold text-emerald-800"
+                                    x-text="proficiencyMessage"
+                                ></p>
                             </div>
-
                         </div>
-
-
-                        {{-- NOTA DE ESCOPO --}}
-
-                        <p
-                            class="
-                                mt-3
-
-                                text-[10px]
-                                leading-relaxed
-
-                                text-[#8c6239]/75
-                            "
-                        >
-                            Subir ou voltar um nível altera imediatamente a classe escolhida, o nível total e, quando estiver automática, a proficiência. HP, características, recursos e escolhas específicas da classe não são adicionados nem removidos automaticamente.
-                        </p>
-
                     </section>
 
 
-                    {{-- =================================================
+{{-- =================================================
                          TEMAS
                     ================================================== --}}
 
@@ -4604,105 +4506,6 @@
 
                                         :class="
                                             draft.settings.display.show_defenses
-                                                ? 'translate-x-[18px]'
-                                                : 'translate-x-0.5'
-                                        "
-                                    ></span>
-                                </span>
-                            </label>
-
-
-                            {{-- EXPERIÊNCIA --}}
-                            <label
-                                class="
-                                    flex
-                                    cursor-pointer
-                                    items-center
-                                    justify-between
-                                    gap-4
-
-                                    rounded-xl
-                                    border
-                                    border-[#d8c7ab]/75
-
-                                    bg-[#fffdf8]
-
-                                    px-3.5
-                                    py-3
-
-                                    transition
-                                    hover:bg-[#f7eee2]/55
-                                "
-                            >
-                                <span class="min-w-0">
-                                    <span
-                                        class="
-                                            block
-                                            font-serif
-                                            text-[13px]
-                                            font-black
-                                            text-[#53150f]
-                                        "
-                                    >
-                                        Exibir experiência
-                                    </span>
-
-                                    <span
-                                        class="
-                                            mt-1
-                                            block
-                                            text-[10px]
-                                            leading-relaxed
-                                            text-[#7d604d]
-                                        "
-                                    >
-                                        Mostra a experiência junto ao nível quando esse dado estiver disponível.
-                                    </span>
-                                </span>
-
-                                <span
-                                    class="
-                                        relative
-                                        h-5
-                                        w-9
-                                        shrink-0
-                                        rounded-full
-                                        transition
-                                    "
-
-                                    :class="
-                                        draft.settings.display.show_experience
-                                            ? 'bg-[#6b1d14]'
-                                            : 'bg-[#d8c7ab]'
-                                    "
-                                >
-                                    <input
-                                        type="checkbox"
-
-                                        x-model="
-                                            draft.settings.display.show_experience
-                                        "
-
-                                        class="sr-only"
-                                    >
-
-                                    <span
-                                        class="
-                                            absolute
-                                            top-0.5
-
-                                            h-4
-                                            w-4
-
-                                            rounded-full
-                                            bg-[#fffdf8]
-                                            shadow-sm
-
-                                            transition
-                                        "
-
-                                        :class="
-                                            draft.settings.display.show_experience
                                                 ? 'translate-x-[18px]'
                                                 : 'translate-x-0.5'
                                         "

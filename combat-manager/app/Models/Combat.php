@@ -53,6 +53,12 @@ class Combat extends Model
         );
     }
 
+    /** Execuções históricas deste combate; útil para espólios e XP por encontro. */
+    public function runs(): HasMany
+    {
+        return $this->hasMany(CombatRun::class);
+    }
+
     public function logs(): HasMany
     {
         return $this->hasMany(

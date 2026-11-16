@@ -21,32 +21,52 @@ class FiveEToolsTextFormatter
 
     public function cleanInlineTags(string $text): string
     {
+        $text = str_replace(
+            [
+                '{@h}',
+                '{@hitYourSpellAttack}',
+                '{@dcYourSpellSave}',
+            ],
+            [
+                '',
+                'seu modificador de ataque mágico',
+                'sua CD de magia',
+            ],
+            $text
+        );
+
         $previous = null;
 
-        for ($i = 0; $i < 8 && $previous !== $text; $i++) {
+        for ($i = 0; $i < 12 && $previous !== $text; $i++) {
             $previous = $text;
 
             $text = preg_replace_callback(
                 '/\{@([a-zA-Z][a-zA-Z0-9]*)\s+([^{}]+)\}/u',
                 function (array $matches): string {
-                    $payload = $matches[2];
-                    $parts = explode('|', $payload);
+                    $tag = strtolower($matches[1]);
+                    $parts = explode('|', $matches[2]);
+                    $first = trim($parts[0] ?? '');
 
-                    return trim($parts[0] ?? '');
+                    if (in_array($tag, ['link', 'book', '5etools'], true)) {
+                        return trim($parts[1] ?? $first);
+                    }
+
+                    return $first;
                 },
                 $text
             ) ?? $text;
         }
 
-        $text = str_replace(
-            ['{@h}', '{@hitYourSpellAttack}', '{@dcYourSpellSave}'],
-            ['', 'seu modificador de ataque mágico', 'sua CD de magia'],
+        $text = preg_replace(
+            '/\s*\[(?:Area of Effect|Área de Efeito)\]/iu',
+            '',
             $text
-        );
+        ) ?? $text;
 
-        return trim(
-            preg_replace('/[ \t]+/u', ' ', $text) ?? $text
-        );
+        $text = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
+        $text = preg_replace("/[ \t]*\n[ \t]*/u", "\n", $text) ?? $text;
+
+        return trim($text);
     }
 
     private function extract(mixed $value): array
