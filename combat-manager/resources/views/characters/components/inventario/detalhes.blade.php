@@ -93,7 +93,13 @@
                         x-show="detailItem?.properties?.inventory?.equippable"
                         x-cloak
                         type="button"
-                        @click="toggleEquipped(detailItem)"
+                        @click="
+                            !detailItem.equipped && ['simple','martial','custom'].includes(detailItem?.properties?.weapon?.category)
+                            ? window.dispatchEvent(new CustomEvent('spellbound-weapon-equip-request', {
+                                detail: {item:detailItem}
+                              }))
+                            : toggleEquipped(detailItem)
+                        "
                         :disabled="busyItemId !== null"
                         class="inventory-v15-detail-equip"
                         :class="{
@@ -534,8 +540,30 @@
                                                     x-text="feature.title || 'Habilidade'"
                                                 ></h3>
 
+                                                <template x-if="window.spellboundIsScrollRules(detailItem, feature)">
+                                                    <button type="button"
+                                                        class="inventory-v103-detail-cast"
+                                                        :disabled="busyFeatureKey !== null || !!detailItem?.properties?.spell_scroll?.consumed || (feature?.usage?.enabled && Number(feature.usage.current) < 1)"
+                                                        @click.stop="window.dispatchEvent(new CustomEvent('spellbound-scroll-request', {detail:{item:detailItem,index:featureIndex}}))">
+                                                        <span x-text="!!detailItem?.properties?.spell_scroll?.consumed || (feature?.usage?.enabled && Number(feature.usage.current) < 1) ? 'Conjurado' : 'Conjurar'"></span>
+                                                        <span x-show="feature?.usage?.enabled" x-text="'· ' + (feature.usage.current ?? 0) + '/' + (feature.usage.max ?? 1)"></span>
+                                                    </button>
+                                                </template>
+
+                                                {{-- V66.2.104: o feitiço vinculado tem leitura própria;
+                                                     nenhuma descrição automática é repetida nesta gaveta. --}}
+                                                <template x-if="window.spellboundIsScrollCast(detailItem, feature)">
+                                                    <button type="button"
+                                                        class="inventory-v103-read-button inventory-v104-feature-read"
+                                                        :aria-label="'Ler feitiço ' + (detailItem?.properties?.spell_scroll?.spell_name || '')"
+                                                        @click.stop="window.dispatchEvent(new CustomEvent('spellbound-scroll-read', {detail:{item:detailItem}}))">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M4 5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4V5Zm16 0h-4a3 3 0 0 0-3 3"/></svg>
+                                                        Ler feitiço
+                                                    </button>
+                                                </template>
+
                                                 <div
-                                                    x-show="feature.usage?.enabled"
+                                                    x-show="feature.usage?.enabled && !window.spellboundIsScrollRules(detailItem, feature) && !window.spellboundIsScrollCast(detailItem, feature)"
                                                     x-cloak
                                                     class="flex shrink-0 flex-wrap items-center justify-end gap-2"
                                                 >
@@ -638,7 +666,10 @@
                                                 </div>
                                             </div>
 
-                                            <div class="inventory-v11-ability-body">
+                                            {{-- Pergaminhos possuem ações próprias; a descrição extensa
+                                                 é consultada no botão Ler feitiço, sem ocupar a gaveta. --}}
+                                            <div class="inventory-v11-ability-body"
+                                                 x-show="!window.spellboundIsScrollRules(detailItem, feature) && !window.spellboundIsScrollCast(detailItem, feature)" x-cloak>
                                                 <div
                                                     x-show="feature.description"
                                                     class="inventory-v238-rich-text text-[13px] leading-[1.72] text-[#4f3427]"
@@ -843,3 +874,44 @@
         </div>
     </template>
 
+
+{{-- V66.2.103: os controles do pergaminho herdam a paleta da ficha. --}}
+@push('styles')
+<style>
+.character-sheet-theme[data-theme] .inventory-v103-read-button,
+.character-sheet-theme[data-theme] .inventory-v103-detail-cast {
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    border:1px solid var(--theme-border-strong,var(--theme-border));
+    border-radius:9px;padding:8px 11px;white-space:nowrap;
+    background:var(--theme-button-background,var(--theme-surface-card));
+    color:var(--theme-button-text,var(--theme-text-strong));
+    font:800 10px system-ui,sans-serif;cursor:pointer;
+    transition:background .15s,border-color .15s;
+}
+.character-sheet-theme[data-theme] .inventory-v103-read-button {
+    background:var(--theme-card-alt-background,var(--theme-paper-alt));
+    color:var(--theme-text-strong);
+}
+.character-sheet-theme[data-theme] .inventory-v103-read-button svg{width:14px;height:14px;flex-shrink:0;}
+.character-sheet-theme[data-theme] .inventory-v103-read-button:hover,
+.character-sheet-theme[data-theme] .inventory-v103-detail-cast:hover:not(:disabled){
+    background:var(--theme-button-hover-background,var(--theme-hover));
+    border-color:var(--theme-accent);
+}
+.character-sheet-theme[data-theme] .inventory-v103-detail-cast:disabled{opacity:.52;cursor:not-allowed;}
+@media(max-width:560px){.character-sheet-theme[data-theme] .inventory-v103-read-button{font-size:9px;padding:7px 8px;}}
+/* V66.2.104 — ações pontuais, sem interferir nos outros itens. */
+.character-sheet-theme[data-theme] .inventory-v104-feature-read{
+    margin-left:auto;flex:0 0 auto;padding:7px 10px;
+    background:var(--theme-card-alt-background,var(--theme-paper-alt));
+    color:var(--theme-text-primary);font-size:10px;
+}
+.character-sheet-theme[data-theme] .inventory-v104-feature-read:hover{
+    color:var(--theme-text-strong);background:var(--theme-hover);
+}
+@media(max-width:540px){
+    .character-sheet-theme[data-theme] .inventory-v104-feature-read{padding:7px 8px;font-size:9px;}
+    .character-sheet-theme[data-theme] .inventory-v11-ability-header{flex-wrap:wrap;row-gap:9px;}
+}
+</style>
+@endpush

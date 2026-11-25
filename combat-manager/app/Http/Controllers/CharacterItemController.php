@@ -96,6 +96,45 @@ class CharacterItemController extends Controller
     {
         $this->authorizeCharacter($character);
 
+        if ($request->filled('_vault_spell_detail')) {
+            $spellId = filter_var($request->query('_vault_spell_detail'), FILTER_VALIDATE_INT, [
+                'options' => ['min_range' => 1],
+            ]);
+            if (!$spellId) return response()->json(['ok' => false, 'spell' => null], 422);
+            $schema = \Illuminate\Support\Facades\Schema::class;
+            if (!$schema::hasTable('spells')) {
+                return response()->json(['ok' => false, 'spell' => null], 404);
+            }
+            $columns = array_flip($schema::getColumnListing('spells'));
+            $fields = ['id', 'name', 'level', 'school', 'source'];
+            foreach (['provider','page','rules_version','casting_time','range','duration',
+                      'ritual','concentration','components','description','description_data',
+                      'higher_level_text','higher_level_data','raw_data','scaling_level_dice',
+                      'saving_throw','attack_type','area_tags'] as $column) {
+                if (isset($columns[$column])) $fields[] = $column;
+            }
+            $query = \Illuminate\Support\Facades\DB::table('spells')->where('id', (int) $spellId);
+            if (isset($columns['active'])) $query->where('active', true);
+            if (isset($columns['upstream_missing'])) $query->where('upstream_missing', false);
+            if (isset($columns['source'])) {
+                $query->where(function ($builder) {
+                    $builder->whereNull('source')->orWhereRaw('UPPER(TRIM(source)) <> ?', ['PHB']);
+                });
+            }
+            $spell = $query->first($fields);
+            if (!$spell) return response()->json(['ok' => false, 'spell' => null], 404);
+            $display = app(\App\Services\Spells\SpellDisplayService::class)->payload($spell);
+            return response()->json([
+                'ok' => true,
+                'spell' => array_intersect_key($display, array_flip([
+                    'id', 'name', 'level', 'school_pt', 'subtitle_pt', 'source_label',
+                    'casting_time_display', 'range_display', 'components', 'duration_display',
+                    'ritual', 'concentration', 'description_html', 'higher_level_html',
+                    'higher_level_label', 'scaling_level_dice',
+                ])),
+            ])->header('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+        }
+
         $items = $character->items()
             ->orderBy('id')
             ->get()
@@ -203,6 +242,8 @@ class CharacterItemController extends Controller
     ): JsonResponse {
 
         $this->authorizeCharacter($character);
+
+        $this->authorizeItemCreationInCampaign($character);
 
         $this->forbidCurseMutation($request);
 
@@ -833,6 +874,10 @@ class CharacterItemController extends Controller
     {
 
         return [
+
+            'default_quantity' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:999999'],
+
+            'weight' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999999'],
 
             'name' => [
 
@@ -1726,9 +1771,12 @@ class CharacterItemController extends Controller
 
         $data['properties'] = $properties;
 
-        $data['quantity'] = 1;
+        $data['quantity'] = max(1, min(999999, (int) ($data['default_quantity'] ?? $existing?->quantity ?? 1)));
 
-        $data['weight'] = null;
+        $data['weight'] = array_key_exists('weight', $data)
+            ? (($data['weight'] === null || $data['weight'] === '') ? null : max(0, (float) $data['weight']))
+            : $existing?->weight;
+        unset($data['default_quantity']);
 
         $data['equipped'] = $equipped;
 
@@ -1944,159 +1992,59 @@ class CharacterItemController extends Controller
 
             ->all();
 
-        $properties['features'] = collect(
+$properties['features'] = collect($properties['features'] ?? [])
+    ->filter(fn ($feature) => is_array($feature))
+    ->map(fn (array $feature): array => $this->normalizePlayerItemFeature($feature))
+    ->filter(fn (array $feature) => ($feature['title'] ?? '') !== '' || ($feature['description'] ?? '') !== '')
+    ->values()->all();
 
-            $properties['features'] ?? []
-
-        )
-
+// As habilidades dos Vestígios usam exatamente o mesmo rastreador.
+// Não reordenar patamares nem apagar rótulos/descrições desconhecidos.
+if (is_array($properties['vestige']['stages'] ?? null)) {
+    foreach (['dormant', 'awakened', 'exalted'] as $stage) {
+        $features = $properties['vestige']['stages'][$stage]['features'] ?? null;
+        if (!is_array($features)) continue;
+        $properties['vestige']['stages'][$stage]['features'] = collect($features)
             ->filter(fn ($feature) => is_array($feature))
-
-            ->map(function (array $feature) {
-
-                $title = trim((string) ($feature['title'] ?? ''));
-
-                $description = trim((string) ($feature['description'] ?? ''));
-
-                $usage = is_array($feature['usage'] ?? null)
-
-                    ? $feature['usage']
-
-                    : [];
-
-                $enabled = (bool) ($usage['enabled'] ?? false);
-
-                if (!$enabled) {
-
-                    $usage = [
-
-                        'enabled' => false,
-
-                    ];
-
-                } else {
-
-                    $max = max(
-
-                        1,
-
-                        (int) ($usage['max'] ?? 1)
-
-                    );
-
-                    $counterMode =
-
-                        $usage['counter_mode']
-
-                        ?? 'spend';
-
-                    if (
-
-                        !in_array(
-
-                            $counterMode,
-
-                            self::FEATURE_COUNTER_MODES,
-
-                            true
-
-                        )
-
-                    ) {
-
-                        $counterMode = 'spend';
-
-                    }
-
-                    $defaultCurrent =
-
-                        $counterMode === 'build'
-
-                            ? 0
-
-                            : $max;
-
-                    $current = min(
-
-                        $max,
-
-                        max(
-
-                            0,
-
-                            array_key_exists(
-
-                                'current',
-
-                                $usage
-
-                            )
-
-                                ? (int) $usage['current']
-
-                                : $defaultCurrent
-
-                        )
-
-                    );
-
-                    $recovery = $usage['recovery'] ?? 'day';
-
-                    if (!in_array($recovery, self::FEATURE_RECOVERIES, true)) {
-
-                        $recovery = 'day';
-
-                    }
-
-                    $usage = [
-
-                        'enabled' => true,
-
-                        'counter_mode' => $counterMode,
-
-                        'current' => $current,
-
-                        'max' => $max,
-
-                        'recovery' => $recovery,
-
-                        'recovery_custom' => $recovery === 'custom'
-
-                            ? trim((string) ($usage['recovery_custom'] ?? ''))
-
-                            : null,
-
-                    ];
-
-                }
-
-                return [
-
-                    'title' => $title,
-
-                    'description' => $description,
-
-                    'usage' => $usage,
-
-                ];
-
-            })
-
-            ->filter(function (array $feature) {
-
-                return $feature['title'] !== ''
-
-                    || $feature['description'] !== '';
-
-            })
-
-            ->values()
-
-            ->all();
+            ->map(fn (array $feature): array => $this->normalizePlayerItemFeature($feature))
+            ->values()->all();
+    }
+}
 
         return $properties;
 
     }
+
+private function normalizePlayerItemFeature(array $feature): array
+{
+    $feature['title'] = trim((string) ($feature['title'] ?? ''));
+    $feature['description'] = (string) ($feature['description'] ?? '');
+    $usage = is_array($feature['usage'] ?? null) ? $feature['usage'] : [];
+    if (!filter_var($usage['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+        $feature['usage'] = array_replace($usage, ['enabled' => false]);
+        return $feature;
+    }
+    $mode = in_array($usage['counter_mode'] ?? '', self::FEATURE_COUNTER_MODES, true)
+        ? $usage['counter_mode'] : 'spend';
+    $max = max(1, min(999999, (int) ($usage['max'] ?? 1)));
+    $current = $mode === 'build' ? 0
+        : max(0, min($max, (int) ($usage['current'] ?? $max)));
+    $recovery = in_array($usage['recovery'] ?? '', self::FEATURE_RECOVERIES, true)
+        ? $usage['recovery'] : 'day';
+    $initialMode = $mode === 'build' ? 'fixed'
+        : (in_array($usage['initial_mode'] ?? '', ['full','fixed','roll'], true)
+            ? $usage['initial_mode'] : 'full');
+    $feature['usage'] = array_replace($usage, [
+        'enabled' => true, 'counter_mode' => $mode, 'current' => $current,
+        'max' => $max, 'recovery' => $recovery,
+        'recovery_enabled' => filter_var($usage['recovery_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN),
+        'recovery_custom' => trim((string) ($usage['recovery_custom'] ?? '')),
+        'initial_mode' => $initialMode,
+        'initial_formula' => substr(preg_replace('/\s+/', '', (string) ($usage['initial_formula'] ?? '2d6+1')), 0, 20),
+        'roll_trigger' => ($usage['roll_trigger'] ?? '') === 'manual' ? 'manual' : 'auto',
+    ]);
+    return $feature;
+}
 
     private function normalizeWeapon(array $weapon): array
 
@@ -2176,7 +2124,7 @@ class CharacterItemController extends Controller
 
             ->map(function (array $entry) {
 
-                return [
+                return array_replace($entry, [
 
                     'count' => max(1, (int) ($entry['count'] ?? 1)),
 
@@ -2184,7 +2132,7 @@ class CharacterItemController extends Controller
 
                     'type' => trim((string) ($entry['type'] ?? '')),
 
-                ];
+                ]);
 
             })
 
@@ -2192,7 +2140,7 @@ class CharacterItemController extends Controller
 
             ->all();
 
-        return [
+        return array_replace($weapon, [
 
             'category' => $category,
 
@@ -2208,7 +2156,7 @@ class CharacterItemController extends Controller
 
             'traits' => $traits,
 
-            'damage' => [
+            'damage' => array_replace($damage, [
 
                 'count' => max(1, (int) ($damage['count'] ?? 1)),
 
@@ -2224,13 +2172,13 @@ class CharacterItemController extends Controller
 
                 'type' => trim((string) ($damage['type'] ?? '')),
 
-            ],
+            ]),
 
             'extra_damage' => $extraDamage,
 
             'masteries' => $masteries,
 
-        ];
+        ]);
 
     }
 
@@ -2384,7 +2332,7 @@ class CharacterItemController extends Controller
 
                 ->all();
 
-        return [
+        return array_replace($armor, [
 
             'category' => $category,
 
@@ -2460,7 +2408,7 @@ class CharacterItemController extends Controller
 
                 $abilityModifiers,
 
-        ];
+        ]);
 
     }
 
@@ -2468,7 +2416,7 @@ class CharacterItemController extends Controller
 
     {
 
-        return [
+        return array_replace($shield, [
 
             'label' => trim((string) ($shield['label'] ?? 'Escudo')) ?: 'Escudo',
 
@@ -2476,7 +2424,7 @@ class CharacterItemController extends Controller
 
             'magic_bonus' => (int) ($shield['magic_bonus'] ?? 0),
 
-        ];
+        ]);
 
     }
 
@@ -2517,6 +2465,28 @@ class CharacterItemController extends Controller
         }
 
     }
+
+/**
+ * A regra pertence à campanha, nunca a uma preferência do navegador.
+ * Só controla a criação. Editar, equipar, resgatar espólios e receber
+ * transferências seguem suas autorizações existentes.
+ * Campanhas antigas permanecem liberadas até o Mestre desligar a opção.
+ */
+private function authorizeItemCreationInCampaign(Character $character): void
+{
+    if (!\Illuminate\Support\Facades\Schema::hasColumn('campaigns', 'allow_player_item_creation')) {
+        return;
+    }
+
+    // Caso uma ficha pertença a mais de uma campanha, a proibição de
+    // qualquer Mestre prevalece. Mestres não bloqueiam suas próprias fichas.
+    $blocked = $character->campaigns()
+        ->where('campaigns.allow_player_item_creation', false)
+        ->where('campaigns.owner_user_id', '!=', (int) \Illuminate\Support\Facades\Auth::id())
+        ->exists();
+
+    abort_if($blocked, 403, 'O Mestre não permite criar itens nesta campanha.');
+}
 
     private function authorizeCharacter(Character $character): void
 

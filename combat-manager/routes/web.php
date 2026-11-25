@@ -698,6 +698,34 @@ Route::middleware('auth')->group(function () {
         [CampaignController::class, 'show']
     )->name('campaigns.show');
 
+    /*
+    |--------------------------------------------------------------------------
+    | Apresentação visual da campanha — Mestre e Player
+    |--------------------------------------------------------------------------
+    |
+    | A página de apresentação não substitui campaigns.show.
+    | A autorização de acesso permanece no controller.
+    |
+    */
+    Route::get(
+        '/campaigns/{campaign}/overview',
+        [\App\Http\Controllers\CampaignOverviewController::class, 'show']
+    )->name('campaigns.overview');
+
+    /*
+    |--------------------------------------------------------------------------
+    | Capa da campanha — somente o mestre pode alterar
+    |--------------------------------------------------------------------------
+    |
+    | A autorização de proprietário é aplicada em CampaignCoverController.
+    |
+    */
+    Route::post(
+        '/campaigns/{campaign}/cover',
+        [\App\Http\Controllers\CampaignCoverController::class, 'update']
+    )->name('campaigns.cover.update');
+
+
     Route::get(
         '/campaigns/{campaign}/master/live',
         [CampaignMasterController::class, 'live']

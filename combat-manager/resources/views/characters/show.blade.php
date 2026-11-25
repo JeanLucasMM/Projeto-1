@@ -5080,6 +5080,84 @@
     z-index: 135 !important;
 }
 
+
+/* V66.2.182 — tema de personagem falecido aplicado aos componentes fora da ficha.
+   A navegação e os painéis laterais vivem em x-teleport="body", por isso
+   não herdam o grayscale da .character-sheet-page. */
+body.sb-character-deceased .sb-nav83,
+body.sheet-death-screen-active .sb-nav83 {
+    background:linear-gradient(170deg,#29292c 0%,#323034 54%,#242428 100%)!important;
+    border-right-color:#5b5051!important;color:#e5d4c6!important;
+    box-shadow:inset -1px 0 rgba(224,191,160,.12),2px 0 15px rgba(0,0,0,.12)!important;
+    filter:none!important;pointer-events:auto!important;
+}
+body.sb-character-deceased .sb-nav83__top,
+body.sb-character-deceased .sb-nav83__footer,
+body.sheet-death-screen-active .sb-nav83__footer {background:#29282c!important;border-color:rgba(210,182,155,.17)!important}
+body.sb-character-deceased .sb-nav83 .sb-nav83__logo,
+body.sheet-death-screen-active .sb-nav83 .sb-nav83__logo {
+    color:#f5eadf!important;
+    background:linear-gradient(145deg,#655251,#403a3d)!important;
+    border:1px solid rgba(207,176,150,.30)!important;
+    box-shadow:inset 0 1px rgba(255,255,255,.10),0 3px 10px rgba(0,0,0,.23)!important;
+}
+body.sb-character-deceased .sb-nav83 .sb-nav83__link,
+body.sheet-death-screen-active .sb-nav83 .sb-nav83__link {color:#cbb9ad!important;background:transparent!important}
+body.sb-character-deceased .sb-nav83 .sb-nav83__link:is(:hover,:focus-visible),
+body.sb-character-deceased .sb-nav83 .sb-nav83__link--active,
+body.sheet-death-screen-active .sb-nav83 .sb-nav83__link:is(:hover,:focus-visible),
+body.sheet-death-screen-active .sb-nav83 .sb-nav83__link--active {
+    color:#f5e8d8!important;background:rgba(203,177,154,.17)!important;
+}
+body.sb-character-deceased .sb-nav83 .sb-nav83__link--active::before,
+body.sheet-death-screen-active .sb-nav83 .sb-nav83__link--active::before {background:#cdb3a0!important}
+body.sb-character-deceased .sb-nav83 .sb-nav83__image-icon {filter:grayscale(1) brightness(1.25)!important;opacity:.82}
+body.sb-character-deceased .sb-nav83 .sb-nav83__tooltip,
+body.sheet-death-screen-active .sb-nav83 .sb-nav83__tooltip {
+    color:#f3e5d8!important;background:#373236!important;border-color:#776760!important;
+    box-shadow:0 6px 18px rgba(0,0,0,.24)!important;
+}
+body.sb-character-deceased .sb-sheet-tools-sidebar {border-top-color:rgba(207,174,152,.2)!important}
+body.sb-character-deceased .sb-sheet-tools-sidebar .sb-nav83__link {color:#cdb8ab!important}
+
+/* Party, Inventário, Grimório e Loja são teleportados para o body.
+   Preserva interação: o filtro altera somente a apresentação. */
+body.sb-character-deceased .character-side-tabs.character-monster-shared-tabs {
+    filter:grayscale(.95) saturate(.48) brightness(.91);
+    transition:filter .65s ease;
+}
+body.sb-character-deceased .character-side-tabs .character-side-tab,
+body.sb-character-deceased .character-side-tabs .player-shop-side-tab {
+    border-color:rgba(123,117,115,.65)!important;
+    box-shadow:0 8px 22px rgba(18,17,20,.16)!important;
+}
+body.sb-character-deceased .character-drawer {
+    filter:grayscale(.94) saturate(.42) brightness(.94);
+    border-left-color:#8c8581!important;
+    box-shadow:-13px 0 43px rgba(22,20,22,.19)!important;
+    transition:filter .45s ease;
+}
+/* O popover de reviver, quando solicitado, deve conservar suas cores. */
+body.sb-character-deceased .sb-revive-confirm-layer {filter:none!important}
+
+/* A aba de Último fôlego se encaixa na BORDA do header (sem ser recortada). */
+.character-sheet-theme[data-theme].character-sheet-page .character-sheet-hero,
+.character-sheet-theme[data-theme].character-sheet-page .hero-header-segment {
+    overflow:visible!important;
+}
+.character-sheet-theme[data-theme].character-sheet-page .hero-header-segment {
+    z-index:60!important;
+}
+.character-sheet-theme[data-theme].character-sheet-page .hero-header-segment .sb-death-compact-tab {
+    position:absolute!important;left:50%!important;right:auto!important;
+    top:auto!important;bottom:0!important;margin:0!important;
+    transform:translate(-50%,50%)!important;z-index:90!important;
+}
+.character-sheet-theme[data-theme].character-sheet-page .character-sheet-body {z-index:10!important}
+@media(max-width:600px) {
+    .character-sheet-theme[data-theme].character-sheet-page .hero-header-segment .sb-death-compact-tab {bottom:0!important}
+}
+
 </style>
 
 

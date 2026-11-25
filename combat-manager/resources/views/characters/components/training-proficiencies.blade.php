@@ -2855,6 +2855,10 @@
                     data.feature
                 );
 
+                if (type === 'weapon_training') {
+                    window.dispatchEvent(new CustomEvent('character-training-updated'));
+                }
+
             } catch (error) {
                 console.error(
                     'Erro ao adicionar proficiência:',
@@ -2922,6 +2926,10 @@
                                 entry.id
                             )
                     );
+
+                if (entry.type === 'weapon_training') {
+                    window.dispatchEvent(new CustomEvent('character-training-updated'));
+                }
 
             } catch (error) {
                 console.error(
@@ -3425,7 +3433,7 @@
             );
         },
 
-        async roll(raw) {
+        async roll(raw, mode = 'normal') {
             if (
                 this.rolling
                 || !raw
@@ -3457,6 +3465,10 @@
                 exhaustionPenalty;
 
             this.rolling = true;
+            const sbStage = window.SpellboundDiceFX;
+            const choice = window.SpellboundD20Gestures.choice(mode);
+            const sbToken = sbStage?.start?.({label:entry.name, expression, kind:'check', advantageMode:choice,
+                reroll:next => this.roll(entry, next)}) ?? null;
 
             /*
             | Abre o mesmo toast poligonal das Abilities imediatamente,
@@ -3489,7 +3501,7 @@
                     null,
             };
 
-            this.rollToastOpen = true;
+            this.rollToastOpen = !sbToken;
 
             if (this.rollToastTimer) {
                 window.clearTimeout(
@@ -3497,7 +3509,7 @@
                 );
             }
 
-            this.startRollingPreview();
+            if (!sbToken) this.startRollingPreview();
 
             const startedAt =
                 Date.now();
@@ -3505,7 +3517,14 @@
             let total = null;
             let die = null;
             let formatted = null;
+            let combined = null;
 
+            if (choice !== 'normal') {
+                combined = await window.SpellboundD20Gestures.rollTwo({
+                    url:this.diceRollUrl, headers:this.headers(), expression, modifier:bonus, mode:choice, fallback:true,
+                });
+                die=combined.die; total=combined.total; formatted=combined.formatted;
+            } else {
             try {
                 const response =
                     await fetch(
@@ -3585,6 +3604,7 @@
                 total =
                     die + bonus;
             }
+            }
 
             const elapsed =
                 Date.now()
@@ -3634,9 +3654,17 @@
                 formatted,
             };
 
+            if (sbToken) {
+                await sbStage.finish(sbToken, {
+                    label:entry.name, expression, total, modifier:bonus,
+                    rolls:combined?.rolls ?? [die], natural:die, formatted, exhaustionPenalty,
+                    advantageMode:choice, selectedIndex:combined?.selectedIndex ?? null,
+                });
+            }
+
             this.rolling = false;
 
-            window.dispatchEvent(
+            if (!sbToken) window.dispatchEvent(
                 new CustomEvent(
                     'character-dice-rolled',
                     {
@@ -3826,7 +3854,9 @@
                 >
                     <button
                         type="button"
-                        @click="roll(entry)"
+                        @click="window.SpellboundD20Gestures.left($event, mode => roll(entry, mode))"
+                        @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => roll(entry, mode))"
+                        @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => roll(entry, mode))"
                         class="training-v3-roll-summary-button"
                         :title="
                             'Rolar '
@@ -3910,7 +3940,9 @@
                 >
                     <button
                         type="button"
-                        @click="roll(entry)"
+                        @click="window.SpellboundD20Gestures.left($event, mode => roll(entry, mode))"
+                        @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => roll(entry, mode))"
+                        @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => roll(entry, mode))"
                         class="training-v3-roll-summary-button"
                     >
                         <span
@@ -4251,7 +4283,9 @@
 
                                         <button
                                             type="button"
-                                            @click="roll(entry)"
+                                            @click="window.SpellboundD20Gestures.left($event, mode => roll(entry, mode))"
+                        @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => roll(entry, mode))"
+                        @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => roll(entry, mode))"
                                             class="training-v2-roll"
                                         >
                                             <span>🎲</span>
@@ -4503,7 +4537,9 @@
 
                                         <button
                                             type="button"
-                                            @click="roll(entry)"
+                                            @click="window.SpellboundD20Gestures.left($event, mode => roll(entry, mode))"
+                        @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => roll(entry, mode))"
+                        @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => roll(entry, mode))"
                                             class="training-v2-roll"
                                         >
                                             <span>🎲</span>

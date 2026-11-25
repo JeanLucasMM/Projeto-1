@@ -61,6 +61,10 @@
 
         @endif
 
+        {{-- Ferramentas próprias da ficha: mantidas fora das rotas gerais. --}}
+        @if (in_array($dashboardMode, ['player', 'master'], true) && request()->routeIs('characters.show'))
+            @include('characters.components.sheet-tools-sidebar')
+        @endif
 
         {{-- ========================================================= --}}
         {{-- CONTEÚDO --}}

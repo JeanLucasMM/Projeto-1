@@ -244,7 +244,15 @@
     }
 
     $inventoryGroupStorageKey = 'character-inventory-group-drawers-' . $character->id;
+    // A permissão deve refletir a campanha vinculada ao personagem, não a preferência local.
+    // Campanhas anteriores à migração continuam liberadas até o Mestre escolher.
     $inventoryCanCreateItems = (bool) $inventoryCanCreateItems;
+    if ($inventoryCanCreateItems && \Illuminate\Support\Facades\Schema::hasColumn('campaigns', 'allow_player_item_creation')) {
+        $inventoryCanCreateItems = ! $character->campaigns()
+            ->where('campaigns.allow_player_item_creation', false)
+            ->where('campaigns.owner_user_id', '!=', (int) auth()->id())
+            ->exists();
+    }
 @endphp
 
 @include('characters.components.inventario.aparencia')
@@ -277,6 +285,13 @@
         },
         @js($inventoryCanCreateItems)
     )"
+    @inventory-vault-item-created.window="
+        if ($event.detail?.item) {
+            upsertItem(normalizeItem($event.detail.item));
+            window.dispatchEvent(new CustomEvent('character-equipment-updated', {detail: {item: $event.detail.item}}));
+            showToast($event.detail?.warning || 'Item criado no Inventário.', !!$event.detail?.warning);
+        }
+    "
     @party-item-transfer-completed.window="refreshInventory(true)"
     x-on:character-proficiency-updated.window="applyVestigeProficiency($event.detail)"
     x-on:character-progression-updated.window="applyVestigeProficiency($event.detail)"
@@ -341,6 +356,9 @@
 @include('characters.components.inventario.detalhes')
 @include('characters.components.inventario.criacao_edicao')
 @include('characters.components.inventario.auxiliares')
+@if($inventoryCanCreateItems)
+    @include('characters.components.inventario.cofre-criacao')
+@endif
 </section>
 
 {{-- Centro de notificações reutilizável da ficha --}}

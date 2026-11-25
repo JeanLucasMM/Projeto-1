@@ -10,6 +10,8 @@
     .sb-nav83__link { width:40px; height:40px; min-height:40px; flex:0 0 40px; margin:0; padding:0; position:relative; border:0; border-radius:12px; background:transparent; display:flex; justify-content:center; align-items:center; color:#987959; cursor:pointer; text-decoration:none; transition:color .18s ease,background .18s ease,transform .18s ease; }
     .sb-nav83__link svg { width:21px; height:21px; flex:0 0 21px; stroke-width:2.05; transition:transform .18s ease; }
     .sb-nav83__link:hover svg { transform:scale(1.055); }
+    /* Personagens: medalhão de retrato, coerente com a iconografia de fantasia. */
+    .sb-nav83__link--characters svg { width:23px; height:23px; flex-basis:23px; stroke-width:1.7; }
     /* Ícones PNG padronizados em dimensões, traço e proporção visual. A máscara acompanha currentColor. */
     .sb-nav83__image-icon {
         --sb-icon-shift-y: 0px;
@@ -65,8 +67,12 @@
             @php $sbActive = request()->routeIs('characters.*'); @endphp
             <a href="{{ route('characters.index') }}"
                aria-label="Personagens" title="Personagens"
-               class="sb-nav83__link player-sidebar__link {{ $sbActive ? 'sb-nav83__link--active player-sidebar__link--active' : '' }}">
-                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"><circle cx="10" cy="7" r="4"/><path d="M3 21a7 7 0 0 1 14 0M20 11v8m-4-4h8"/></svg>
+               class="sb-nav83__link sb-nav83__link--characters player-sidebar__link {{ $sbActive ? 'sb-nav83__link--active player-sidebar__link--active' : '' }}">
+                <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2.5 19.7 5.6v6c0 5.1-3.7 8.4-7.7 10.2-4-1.8-7.7-5.1-7.7-10.2v-6L12 2.5Z"/>
+                    <circle cx="12" cy="9.3" r="2.4"/>
+                    <path d="M7.5 16.8c.5-2.4 2.1-3.7 4.5-3.7s4 1.3 4.5 3.7"/>
+                </svg>
                 <span class="sb-nav83__tooltip">Personagens</span>
             </a>
             @php $sbActive = request()->routeIs('campaigns.*') || request()->routeIs('campaign-invitations.*'); @endphp

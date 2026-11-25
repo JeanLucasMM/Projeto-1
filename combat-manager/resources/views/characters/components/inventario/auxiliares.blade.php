@@ -1,3 +1,24 @@
+    {{-- Eventos da área de Ataques: rastreadores e munição no mesmo item do Inventário. --}}
+    <span hidden aria-hidden="true"
+          x-on:character-weapon-feature-updated.window="
+              if ($event.detail?.item) {
+                  const saved = normalizeItem($event.detail.item);
+                  const current = items.find(entry => Number(entry.id) === Number(saved.id));
+                  if (current) Object.assign(current, saved);
+                  if (detailItem && Number(detailItem.id) === Number(saved.id)
+                      && detailItem !== current) Object.assign(detailItem, saved);
+              }
+          "
+          x-on:spellbound-weapon-ammo-updated.window="
+              if ($event.detail?.item) {
+                  const saved = normalizeItem($event.detail.item);
+                  const current = items.find(entry => Number(entry.id) === Number(saved.id));
+                  if (current) Object.assign(current, saved);
+                  if (detailItem && Number(detailItem.id) === Number(saved.id)
+                      && detailItem !== current) Object.assign(detailItem, saved);
+              }
+          "></span>
+
     {{-- V66.2.41 — Ajuste enxuto dos espaços; configuração mantida por personagem. --}}
     <template x-teleport="body">
         <div x-show="attunementSettingsOpen" x-cloak
@@ -252,49 +273,26 @@
     </template>
 
 
-    {{-- ITENS EQUIPADOS — LISTA SIMPLES --}}
+    {{-- SPELLBOUND V66.2.111 — Equipados: lista enxuta, sem indicadores redundantes. --}}
     <template x-teleport="body">
         <div
             x-show="equippedDrawerOpen"
             x-cloak
-
             x-transition:enter="character-theme-modal-layer-enter"
             x-transition:enter-start="character-theme-modal-layer-enter-start"
             x-transition:enter-end="character-theme-modal-layer-enter-end"
             x-transition:leave="character-theme-modal-layer-leave"
             x-transition:leave-start="character-theme-modal-layer-leave-start"
             x-transition:leave-end="character-theme-modal-layer-leave-end"
-
+            @keydown.escape.window="equippedDrawerOpen = false"
             data-theme="{{ $characterTheme }}"
-
             role="dialog"
             aria-modal="true"
-            aria-label="Itens equipados"
-
-            class="
-                character-sheet-theme
-                character-theme-modal-layer
-                inventory-v35-modal-layer
-
-                fixed
-                inset-0
-                z-[238]
-
-                flex
-                items-center
-                justify-center
-
-                p-4
-            "
+            aria-labelledby="inventory-v311-equipped-title"
+            class="character-sheet-theme character-theme-modal-layer inventory-v35-modal-layer fixed inset-0 z-[238] flex items-center justify-center p-4"
         >
-            <div
-                class="
-                    character-theme-modal-backdrop
-                    absolute
-                    inset-0
-                "
-                @click="equippedDrawerOpen = false"
-            ></div>
+            <div class="character-theme-modal-backdrop absolute inset-0"
+                 @click="equippedDrawerOpen = false"></div>
 
             <section
                 x-transition:enter="character-theme-modal-panel-enter"
@@ -303,105 +301,57 @@
                 x-transition:leave="character-theme-modal-panel-leave"
                 x-transition:leave-start="character-theme-modal-panel-leave-start"
                 x-transition:leave-end="character-theme-modal-panel-leave-end"
-
-                class="
-                    character-theme-modal
-                    inventory-v35-modal
-                    inventory-v35-equipped-modal
-                    inventory-v29-equipped-modal
-                "
+                class="character-theme-modal inventory-v35-modal inventory-v35-equipped-modal inventory-v29-equipped-modal inventory-v311-equipped-modal"
             >
-                <header class="inventory-v29-equipped-header">
-                    <div>
-                        <span class="inventory-v29-equipped-kicker">
-                            Em uso
-                        </span>
-
-                        <div class="inventory-v29-equipped-title-row">
-                            <h3>Itens Equipados</h3>
-
-                            <span
-                                class="inventory-v29-equipped-count"
-                                x-text="equippedItems.length"
-                            ></span>
-                        </div>
+                <header class="inventory-v29-equipped-header inventory-v311-equipped-header">
+                    <div class="inventory-v29-equipped-title-row inventory-v311-equipped-title-row">
+                        <h3 id="inventory-v311-equipped-title">Itens Equipados</h3>
+                        <span class="inventory-v29-equipped-count inventory-v311-equipped-count"
+                              x-text="equippedItems.length" aria-label="Quantidade de itens equipados"></span>
                     </div>
-
-                    <span class="inventory-v29-equipped-hint">
-                        Clique em um item para abrir
-                    </span>
+                    <button type="button" class="inventory-v311-equipped-close"
+                            @click="equippedDrawerOpen = false" aria-label="Fechar itens equipados" title="Fechar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 6l12 12M18 6 6 18"/>
+                        </svg>
+                    </button>
                 </header>
 
-                <div class="inventory-v29-equipped-list-wrap">
+                <div class="inventory-v29-equipped-list-wrap inventory-v311-equipped-body">
                     <template x-if="equippedItems.length === 0">
-                        <div class="inventory-v29-equipped-empty">
-                            <span>◇</span>
+                        <div class="inventory-v29-equipped-empty inventory-v311-equipped-empty">
                             <strong>Nenhum item equipado</strong>
-                            <p>Itens marcados como equipados aparecerão aqui.</p>
+                            <p>Os itens equipados aparecerão aqui.</p>
                         </div>
                     </template>
 
-                    <div
-                        x-show="equippedItems.length > 0"
-                        x-cloak
-                        class="inventory-v29-equipped-list"
-                    >
-                        <template
-                            x-for="item in equippedItems"
-                            :key="'equipped-simple-' + item.id"
-                        >
-                            <button
-                                type="button"
-                                class="inventory-v29-equipped-row inventory-v238-equipped-row"
-                                :data-rarity="item.rarity || 'common'"
-                                :data-nature="itemNature(item)"
-                                @click="
-                                    equippedDrawerOpen = false;
-                                    openDetail(item)
-                                "
-                            >
-                                <div class="inventory-v29-equipped-thumb">
-                                    <template x-if="item.image_url">
-                                        <img
-                                            :src="item.image_url"
-                                            :alt="item.name"
-                                        >
-                                    </template>
-
+                    <div x-show="equippedItems.length > 0" x-cloak
+                         class="inventory-v29-equipped-list inventory-v311-equipped-list">
+                        <template x-for="item in equippedItems" :key="'equipped-row-' + item.id">
+                            <button type="button"
+                                    class="inventory-v29-equipped-row inventory-v311-equipped-row"
+                                    :data-rarity="item.rarity || 'common'"
+                                    :aria-label="'Abrir detalhes de ' + (item.name || 'item')"
+                                    @click="equippedDrawerOpen = false; openDetail(item)">
+                                <span class="inventory-v29-equipped-thumb inventory-v311-equipped-thumb">
+                                    <template x-if="item.image_url"><img :src="item.image_url" :alt="item.name || 'Imagem do item'" loading="lazy"></template>
                                     <template x-if="!item.image_url">
-                                        <span>◆</span>
-                                    </template>
-                                </div>
-
-                                <div class="inventory-v29-equipped-copy">
-                                    <div class="inventory-v238-equipped-name">
-                                        <span class="inventory-v238-equipped-nature" :data-nature="itemNature(item)" aria-hidden="true">
+                                        <span class="inventory-v311-equipped-fallback" aria-hidden="true">
                                             <span x-show="itemNature(item) === 'wonderful'">✦</span>
                                             <span x-show="itemNature(item) === 'technological'">⌁</span>
                                             <span x-show="itemNature(item) === 'mundane'">◇</span>
                                         </span>
-                                        <strong x-text="item.name"></strong>
-                                        <span x-show="item.rarity === 'artifact'" class="inventory-v238-equipped-rarity">Artefato</span>
-                                        <span x-show="item.rarity === 'legendary'" class="inventory-v238-equipped-rarity">Lendário</span>
-                                    </div>
-                                    <span x-text="cardClassificationLine(item)"></span>
-                                </div>
-
-                                <span
-                                    class="inventory-v29-equipped-chevron"
-                                    aria-hidden="true"
-                                >
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                    >
-                                        <path
-                                            d="m9 6 6 6-6 6"
-                                            stroke-width="1.7"
-                                            stroke-linecap="round"
-                                            stroke-linejoin="round"
-                                        />
+                                    </template>
+                                </span>
+                                <span class="inventory-v29-equipped-copy inventory-v311-equipped-copy">
+                                    <strong class="inventory-v311-equipped-name" x-text="item.name"></strong>
+                                    <span class="inventory-v311-equipped-rarity"
+                                          :data-rarity="item.rarity || 'common'"
+                                          x-text="rarityLabel(item) || 'Comum'"></span>
+                                </span>
+                                <span class="inventory-v29-equipped-chevron inventory-v311-equipped-chevron" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="m9 6 6 6-6 6"/>
                                     </svg>
                                 </span>
                             </button>

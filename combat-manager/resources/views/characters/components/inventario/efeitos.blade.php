@@ -9892,3 +9892,239 @@
             @media(prefers-reduced-motion:reduce) {
                 .character-sheet-theme[data-theme] .inventory-v35-found-modal .inventory-v242-found-claim {transition:none !important;}
             }
+
+
+            /* ===============================================================
+               SPELLBOUND V66.2.111 — EQUIPADOS: LISTA COMPACTA
+               Apenas foto, nome e raridade. Não altera o painel de itens,
+               os temas ou a lógica de equipar e abrir detalhes.
+               =============================================================== */
+            .character-sheet-theme[data-theme] .inventory-v35-equipped-modal.inventory-v311-equipped-modal {
+                display: flex !important;
+                flex-direction: column;
+                width: min(570px, calc(100vw - 28px)) !important;
+                max-width: 570px !important;
+                max-height: min(82dvh, 650px) !important;
+                min-height: 0 !important;
+                border: 1px solid var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 16px !important;
+                background: var(--theme-modal-surface, var(--theme-surface-card)) !important;
+                box-shadow: var(--theme-modal-shadow, 0 22px 64px rgba(0,0,0,.25)) !important;
+                overflow: hidden !important;
+                color: var(--theme-modal-text, var(--theme-text-primary)) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-header {
+                display: flex !important;
+                flex: 0 0 auto;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 17px 19px !important;
+                background: var(--theme-modal-header-background, var(--theme-band-background)) !important;
+                border-bottom: 1px solid var(--theme-modal-border, var(--theme-border)) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-title-row {
+                display: flex !important;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-title-row h3 {
+                margin: 0;
+                font: 750 clamp(19px, 3.7vw, 23px)/1.2 Georgia, serif !important;
+                color: var(--theme-modal-title, var(--theme-text-strong)) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-count {
+                display: inline-grid !important;
+                place-items: center;
+                flex: 0 0 auto;
+                min-width: 24px;
+                height: 24px;
+                padding: 0 6px;
+                border-radius: 99px;
+                border: 1px solid var(--theme-border) !important;
+                background: var(--theme-surface-card) !important;
+                color: var(--theme-text-secondary) !important;
+                font: 700 11px Arial, sans-serif !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-close {
+                display: grid;
+                place-items: center;
+                flex: 0 0 32px;
+                width: 32px;
+                height: 32px;
+                padding: 0;
+                border: 1px solid var(--theme-modal-border, var(--theme-border)) !important;
+                border-radius: 9px;
+                background: transparent !important;
+                color: var(--theme-text-secondary) !important;
+                cursor: pointer;
+                transition: background .15s ease, color .15s ease, border-color .15s ease;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-close svg {
+                width: 16px; height: 16px;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-close:is(:hover,:focus-visible) {
+                background: var(--theme-card-hover) !important;
+                color: var(--theme-text-strong) !important;
+                border-color: var(--theme-border-strong) !important;
+                outline: none;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-body {
+                flex: 1 1 auto;
+                min-height: 0;
+                max-height: none !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                padding: 11px 13px 14px !important;
+                background: var(--theme-modal-surface, var(--theme-surface-card)) !important;
+                scrollbar-width: thin;
+                scrollbar-color: var(--theme-border-strong) transparent;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-list {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 5px;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-row {
+                display: grid !important;
+                grid-template-columns: 48px minmax(0,1fr) 16px !important;
+                align-items: center !important;
+                gap: 12px !important;
+                width: 100% !important;
+                height: auto !important;
+                min-height: 66px !important;
+                padding: 8px 11px !important;
+                margin: 0 !important;
+                border: 1px solid transparent !important;
+                border-bottom-color: var(--theme-divider, var(--theme-border)) !important;
+                border-radius: 9px !important;
+                background: transparent !important;
+                box-shadow: none !important;
+                color: var(--theme-text-primary) !important;
+                text-align: left !important;
+                cursor: pointer;
+                transition: background .15s ease, border-color .15s ease !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-row:last-child {
+                border-bottom-color: transparent !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-row:is(:hover,:focus-visible) {
+                background: var(--theme-card-hover) !important;
+                border-color: var(--theme-border) !important;
+                transform: none !important;
+                outline: none;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-thumb {
+                display: grid !important;
+                place-items: center;
+                flex: 0 0 auto;
+                width: 48px !important;
+                height: 48px !important;
+                min-width: 48px !important;
+                min-height: 48px !important;
+                overflow: hidden;
+                border: 1px solid var(--theme-border) !important;
+                border-radius: 9px !important;
+                background: var(--theme-surface-raised) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-thumb img {
+                width: 100%; height: 100%; object-fit: contain; padding: 2px;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-fallback {
+                display: grid !important; place-items: center; width: 100%; height: 100%;
+                color: var(--theme-label) !important;
+                font: 700 22px Georgia, serif !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-fallback span {
+                display: inline; color: inherit !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-copy {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: center;
+                align-items: flex-start !important;
+                min-width: 0;
+                gap: 4px;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-name {
+                display: block;
+                max-width: 100%;
+                margin: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                color: var(--theme-text-strong) !important;
+                font: 700 15px/1.22 Georgia, serif !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-rarity {
+                display: block !important;
+                margin: 0 !important;
+                color: var(--theme-text-secondary) !important;
+                font: 600 11px/1.25 Arial, sans-serif !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-rarity:is([data-rarity="legendary"],[data-rarity="artifact"]) {
+                color: color-mix(in srgb, var(--theme-accent) 65%, var(--theme-text-secondary) 35%) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-chevron {
+                display: grid;
+                place-items: center;
+                width: 16px !important;
+                height: 20px !important;
+                margin: 0 !important;
+                color: var(--theme-label) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-chevron svg {
+                width: 14px; height: 14px;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-row:hover .inventory-v311-equipped-chevron {
+                color: var(--theme-accent-strong, var(--theme-accent)) !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-empty {
+                min-height: 160px;
+                padding: 35px 18px !important;
+                color: var(--theme-text-secondary) !important;
+                text-align: center;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-empty strong {
+                color: var(--theme-text-strong) !important;
+                font: 700 16px Georgia, serif !important;
+            }
+            .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-empty p {
+                margin-top: 7px;
+                color: var(--theme-text-secondary) !important;
+                font: 500 12px/1.4 Arial, sans-serif !important;
+            }
+            @media (max-width: 480px) {
+                .character-sheet-theme[data-theme] .inventory-v35-equipped-modal.inventory-v311-equipped-modal {
+                    width: calc(100vw - 20px) !important;
+                    max-height: 88dvh !important;
+                }
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-header {
+                    padding: 13px 15px !important;
+                }
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-body {
+                    padding: 8px 9px 10px !important;
+                }
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-row {
+                    grid-template-columns: 44px minmax(0,1fr) 14px !important;
+                    min-height: 61px !important;
+                    gap: 10px !important;
+                    padding: 7px 8px !important;
+                }
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-thumb {
+                    width: 44px !important; height: 44px !important;
+                    min-width: 44px !important; min-height: 44px !important;
+                }
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-name {
+                    font-size: 14px !important;
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-row,
+                .character-sheet-theme[data-theme] .inventory-v311-equipped-modal .inventory-v311-equipped-close {
+                    transition: none !important;
+                }
+            }

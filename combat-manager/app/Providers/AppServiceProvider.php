@@ -13,24 +13,21 @@ use App\Repositories\Contracts\CombatPlayerRepositoryInterface;
 use App\Repositories\Eloquent\CombatPlayerRepository;
 use App\Repositories\Contracts\FolderRepositoryInterface;
 use App\Repositories\Eloquent\FolderRepository;
-use Illuminate\Support\Facades\Blade;
 use App\Models\Campaign;
 use App\Models\Character;
 use App\Policies\CampaignPolicy;
 use App\Policies\CharacterPolicy;
+use App\Http\Controllers\CharacterItemController;
+use App\Http\Controllers\CharacterItemPlayerCurseController;
 use Illuminate\Support\Facades\Gate;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-            $this->app->bind(
-                NpcRepositoryInterface::class,
-                NpcRepository::class
-    
+        $this->app->bind(
+            NpcRepositoryInterface::class,
+            NpcRepository::class
         );
 
         $this->app->bind(
@@ -52,22 +49,18 @@ class AppServiceProvider extends ServiceProvider
             FolderRepositoryInterface::class,
             FolderRepository::class
         );
-        
+
+        // V66.2.100 — usa o controller de itens já existente como base.
+        // Apenas store()/update() recebem a regra de maldições do Player.
+        $this->app->bind(
+            CharacterItemController::class,
+            CharacterItemPlayerCurseController::class
+        );
     }
 
-    
-
-
-public function boot(): void
+    public function boot(): void
     {
-        Gate::policy(
-            Campaign::class,
-            CampaignPolicy::class
-        );
-
-        Gate::policy(
-            Character::class,
-            CharacterPolicy::class
-        );
+        Gate::policy(Campaign::class, CampaignPolicy::class);
+        Gate::policy(Character::class, CharacterPolicy::class);
     }
 }

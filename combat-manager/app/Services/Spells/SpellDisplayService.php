@@ -27,13 +27,13 @@ class SpellDisplayService
         $higherLevelData = $this->decode($spell->higher_level_data ?? null);
         $scaling = $this->decode($spell->scaling_level_dice ?? null);
         $areaTags = $this->decode($spell->area_tags ?? null);
-        $raw = null;
+        $raw = $this->decode($spell->raw_data ?? null);
+        $rawEntries = is_array($raw) ? ($raw['entries'] ?? ($raw['spell']['entries'] ?? null)) : null;
+        $higherLevelRenderData = null;
 
         // A fonte original foi preservada na importação. Ela também serve
         // de fallback quando os campos derivados não estiverem preenchidos.
         if ($scaling === null || $higherLevelData === null) {
-            $raw = $this->decode($spell->raw_data ?? null);
-
             if (is_array($raw)) {
                 if ($scaling === null) {
                     $scaling = $raw['scalingLevelDice'] ?? null;
@@ -57,6 +57,7 @@ class SpellDisplayService
                 $higherLevelData,
                 $corrections
             );
+            $higherLevelRenderData = $correctedData;
 
             if ($corrections > 0) {
                 // Corrige textos JÁ importados: higher_level_text pode ter sido
@@ -73,6 +74,10 @@ class SpellDisplayService
         $higherText = $this->cleanDisplayText(
             $this->normalizeHigherLevelText($higherText)
         );
+
+        // HTML de leitura estruturada, compartilhado por Inventário e Grimório.
+        // Preserva os blocos originais do 5etools e separacoes em textos antigos.
+        $structured = app(SpellStructuredContentRenderer::class);
 
         $level = (int) $spell->level;
         $school = (string) $spell->school;
@@ -103,9 +108,9 @@ class SpellDisplayService
             'ritual' => (bool) ($spell->ritual ?? false),
             'concentration' => (bool) ($spell->concentration ?? false),
             'description' => $description,
-            'description_html' => $this->rulesRenderer->render($description),
+            'description_html' => $structured->render($rawEntries, $description),
             'higher_level_text' => $higherText,
-            'higher_level_html' => $this->rulesRenderer->render($higherText),
+            'higher_level_html' => $structured->render($higherLevelRenderData ?? $higherLevelData, $higherText, true),
             'higher_level_label' => $level === 0
                 ? 'Aprimoramento do Truque'
                 : 'Em Níveis Superiores',
@@ -197,16 +202,16 @@ class SpellDisplayService
 
         // O Grimório já apresenta o título "Em Níveis Superiores".
         // Evita repetição da mesma informação em inglês no corpo.
-        $headings = '(?:At Higher Levels|Using a Higher-Level Spell Slot|Cantrip Upgrade|Em Níveis Superiores|Aprimoramento do Truque)';
+        $headings = '(?:At Higher Levels?|Using a Higher-Level Spell Slot|Cantrip Upgrades?|Cantrip Scaling|Cantrip Improvement|Em Níveis Superiores|Aprimoramento do Truque)';
 
         $text = preg_replace(
-            '/(^|\R)\s*' . $headings . '\.?\s*(?=\R|$)/iu',
+            '/(^|\R)\s*' . $headings . '\s*[:.]?\s*(?=\R|$)/iu',
             '$1',
             $text
         ) ?? $text;
 
         $text = preg_replace(
-            '/^' . $headings . '\.?\s+/iu',
+            '/^' . $headings . '\s*[:.]?\s+/iu',
             '',
             $text
         ) ?? $text;

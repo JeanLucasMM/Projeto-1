@@ -86,6 +86,8 @@
                     scrollQuickSearch: '',
                     scrollQuickFocused: false,
                     scrollBookModalOpen: false,
+                    scrollReaderOpen: false,
+                    scrollReaderItem: null,
                     scrollLibraryTab: 'spells',
                     scrollBooksOpen: false,
                     scrollInspectSearch: '',
@@ -1018,9 +1020,13 @@
                             );
 
                         this.previewOpen = true;
+                        if (this.previewItem?.properties?.spell_scroll) {
+                            this.requestScrollSpellReader(this.previewItem);
+                        }
                     },
 
                     closePreview() {
+                        this.closeScrollReader();
                         this.previewOpen = false;
                         this.previewItem = null;
                     },
@@ -1526,39 +1532,92 @@
                         };
                     },
 
-                    // Segunda habilidade: resumo curto e legível; a descrição
-                    // extensa fica no snapshot spell_info para o Inventário.
-                    scrollCastDefaultDescription(scroll) {
-                        const name = String(scroll?.spell_name ?? '').trim();
-                        if (!name) return '';
-                        const esc = value => this.scrollCastHtml(value);
-                        const level = scroll?.spell_level === 0 || String(scroll?.spell_level) === '0'
-                            ? 'Truque' : (Number(scroll?.spell_level) > 0
-                                ? Number(scroll.spell_level) + 'º nível' : 'Nível não definido');
-                        const info = scroll?.spell_info && typeof scroll.spell_info === 'object'
-                            ? scroll.spell_info : {};
-                        const school = info.school ? ' (' + esc(this.scrollSchoolLabel(info.school)) + ')' : '';
-                        const rows = [
-                            ['Conjuração', info.casting_time],
-                            ['Alcance', info.range],
-                            ['Componentes', info.components],
-                            ['Duração', info.duration],
-                        ].filter(([, value]) => String(value ?? '').trim() !== '');
-                        let body = '<p><em>' + esc(level) + school + '</em></p>';
-                        if (rows.length) {
-                            const midpoint = Math.ceil(rows.length / 2);
-                            for (const group of [rows.slice(0, midpoint), rows.slice(midpoint)]) {
-                                if (group.length) body += '<p>' + group.map(([label, value]) =>
-                                    '<strong>' + label + ':</strong> ' + esc(value)).join(' &nbsp; · &nbsp; ') + '</p>';
-                            }
-                        }
-                        if (info.ritual || info.concentration) {
-                            body += '<p><em>' + [info.ritual ? 'Ritual' : '', info.concentration ? 'Concentração' : '']
-                                .filter(Boolean).join(' · ') + '</em></p>';
-                        }
-                        return body;
+                    // V66.2.81 — modal único acessível do editor e da Visualização do Mestre.
+                    openScrollReader(item) {
+                        if (!item?.properties?.spell_scroll?.spell_name) return;
+                        this.scrollReaderItem = item;
+                        this.scrollReaderOpen = true;
+                        this.requestScrollSpellReader(item);
                     },
 
+                    closeScrollReader() {
+                        this.scrollReaderOpen = false;
+                        this.scrollReaderItem = null;
+                    },
+
+                    // V66.2.80 — leitor compartilhado entre editor e Visualização do Mestre.
+                    // Não incorpora descrição à habilidade: busca somente o registro vinculado.
+                    scrollLinkedSpell(item) {
+                        const id = item?.properties?.spell_scroll?.spell_id;
+                        if (id === null || id === undefined || id === '') return null;
+                        return this.spellCatalog.find(spell => String(spell.id) === String(id)) || null;
+                    },
+
+                    requestScrollSpellReader(item, retry = false) {
+                        const spell = this.scrollLinkedSpell(item);
+                        if (!spell) return;
+                        if (retry) spell._detail_error = false;
+                        if (!spell._detail_loaded && !spell._detail_loading) this.loadScrollSpellDetail(spell);
+                    },
+
+                    scrollSpellReaderData(item) {
+                        const scroll = item?.properties?.spell_scroll || {};
+                        const stored = scroll.spell_info || {};
+                        const spell = this.scrollLinkedSpell(item);
+                        const loaded = !!spell?._detail_loaded;
+                        const level = Number(scroll.spell_level);
+                        const levelText = scroll.spell_level === null || scroll.spell_level === undefined || scroll.spell_level === '' || !Number.isFinite(level)
+                            ? 'Nível não definido' : (level === 0 ? 'Truque' : level + 'º círculo');
+                        const school = this.scrollSchoolLabel(loaded ? (spell.school || stored.school) : stored.school);
+                        return {
+                            name: String(scroll.spell_name || spell?.name || 'Feitiço não selecionado'),
+                            subtitle: loaded && spell.subtitle_pt ? spell.subtitle_pt : (levelText + (school && school !== '—' ? ' (' + school + ')' : '')),
+                            castingTime: (loaded ? spell.casting_time_display : stored.casting_time) || '—',
+                            range: (loaded ? spell.range_display : stored.range) || '—',
+                            components: (loaded ? spell.components_display : stored.components) || '—',
+                            duration: (loaded ? spell.duration_display : stored.duration) || '—',
+                            ritual: loaded ? !!spell.ritual : !!stored.ritual,
+                            concentration: loaded ? !!spell.concentration : !!stored.concentration,
+                            higherLabel: (loaded ? spell.higher_level_label : stored.higher_level_label) || 'Em Níveis Superiores',
+                            loading: !!spell?._detail_loading,
+                            error: !!spell?._detail_error,
+                            hasLink: !!spell,
+                        };
+                    },
+
+                    scrollSpellReaderHtml(item, field = 'description') {
+                        const spell = this.scrollLinkedSpell(item);
+                        const stored = item?.properties?.spell_scroll?.spell_info || {};
+                        const higher = field === 'higher';
+                        const raw = spell?._detail_loaded
+                            ? (higher ? spell.higher_level_html : spell.description_html)
+                            : (higher ? stored.higher_level_text : stored.description_text);
+                        if (!raw) return '';
+                        const cacheKey = higher ? '_v281_higher' : '_v281_description';
+                        if (spell?._detail_loaded && spell[cacheKey]?.raw === raw) return spell[cacheKey].html;
+                        const doc = new DOMParser().parseFromString('<body>' + String(raw) + '</body>', 'text/html');
+                        // A versão do Player pode trazer tooltips absolutos. No
+                        // leitor próprio eles são removidos, sem alterar o texto.
+                        doc.body.querySelectorAll('.spell-rule-tooltip,[role="tooltip"],script,style,iframe,svg,object,embed').forEach(node => node.remove());
+                        const html = this.formatVaultText(doc.body.innerHTML);
+                        const clean = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+                        // Normaliza quebras importadas (inclusive sequências de
+                        // BR vazias) para evitar espaços gigantes entre ações.
+                        clean.body.querySelectorAll('br').forEach(br => {
+                            let sibling = br.previousSibling;
+                            while (sibling && sibling.nodeType === 3 && !sibling.textContent.trim()) sibling = sibling.previousSibling;
+                            if (!sibling || (sibling.nodeType === 1 && sibling.tagName === 'BR')) br.remove();
+                        });
+                        clean.body.querySelectorAll('p,div,blockquote').forEach(node => {
+                            if (!node.textContent.trim() && !node.querySelector('img,hr,svg')) node.remove();
+                        });
+                        const safeHtml = clean.body.innerHTML.replace(/(?:<br\s*\/?>\s*){2,}/gi, '<br>');
+                        if (spell?._detail_loaded) spell[cacheKey] = {raw,html:safeHtml};
+                        return safeHtml;
+                    },
+
+                    // Segunda habilidade: resumo curto e legível; a descrição
+                    // extensa fica no snapshot spell_info para o Inventário.
                     scrollCardDefaultDescription(scroll) {
                         const name = String(scroll?.spell_name ?? '').trim();
                         if (!name) return '';
@@ -1594,9 +1653,7 @@
                         const name = String(scroll.spell_name).trim();
                         const rulesTitle = 'Uso e Conjuração de Pergaminhos';
                         const generatedTitle = this.scrollCastDefaultTitle(scroll);
-                        const generatedDescription = this.scrollCastDefaultDescription(scroll);
                         const oldTitle = String(previousScroll?.auto_cast_title ?? scroll.auto_cast_title ?? '');
-                        const oldDescription = String(previousScroll?.auto_cast_description ?? scroll.auto_cast_description ?? '');
                         const normTitle = row => String(row?.title ?? '').trim();
 
                         // Reconhece também habilidades manuais do formato antigo, sem system_key.
@@ -1631,7 +1688,7 @@
                             cast = this.blankFeature();
                             cast.system_key = 'spell_scroll_cast';
                             cast.title = generatedTitle;
-                            cast.description = generatedDescription;
+                            cast.description = '';
                             cast.editor_open = false;
                             features.splice(features.indexOf(rules) + 1, 0, cast);
                         } else {
@@ -1641,10 +1698,9 @@
                                 || (oldTitle && normTitle(cast) === oldTitle)) {
                                 cast.title = generatedTitle;
                             }
-                            if (!String(cast.description ?? '').trim()
-                                || (oldDescription && cast.description === oldDescription)) {
-                                cast.description = generatedDescription;
-                            }
+                            // A segunda entrada é somente o vínculo do feitiço.
+                            // Não deixa textos legados como “1º nível” aparecerem como habilidade.
+                            cast.description = '';
                         }
                         // O uso pertence SOMENTE à habilidade de regras.
                         cast.usage = this.normalizeFeatureUsage({ enabled: false });
@@ -1656,7 +1712,7 @@
                             return true;
                         });
                         scroll.auto_cast_title = generatedTitle;
-                        scroll.auto_cast_description = generatedDescription;
+                        scroll.auto_cast_description = '';
                         return cast;
                     },
 
@@ -1671,6 +1727,7 @@
                             row.system_key === (which === 'spell' ? 'spell_scroll_cast' : 'spell_scroll_rules'));
                         if (!feature) return;
                         (this.form.properties.features || []).forEach(entry => { entry.editor_open = entry === feature; });
+                        if (which === 'spell') this.requestScrollSpellReader(this.form);
                         this.$nextTick(() => this.$refs.vaultEditorAbilities?.scrollIntoView({
                             behavior: 'smooth', block: 'start',
                         }));
@@ -2826,10 +2883,7 @@
                         const scrollId = this.form?.properties?.spell_scroll?.spell_id;
                         const spellFromCatalog = scrollId === null || scrollId === undefined
                             ? null : this.spellCatalog.find(spell => String(spell.id) === String(scrollId));
-                        if (spellFromCatalog && (!this.form.properties.spell_scroll.spell_info?.casting_time
-                            || !this.form.properties.spell_scroll.spell_info?.description_text)) {
-                            this.loadScrollSpellDetail(spellFromCatalog);
-                        }
+                        if (spellFromCatalog) this.requestScrollSpellReader(this.form);
                         this.formFolderId = normalized.folder_id;
                         this.editorTab = 'general';
                         // Editar as habilidades não modifica a etapa do personagem.
@@ -2844,6 +2898,7 @@
                         if (this.saving) return;
                         this.closeCropEditor();
 
+                        this.closeScrollReader();
                         this.scrollBookModalOpen = false;
                         this.editorOpen = false;
                         this.editingId = null;
@@ -3834,6 +3889,9 @@
 
                         feature.editor_open =
                             !feature.editor_open;
+                        if (feature.editor_open && feature.system_key === 'spell_scroll_cast') {
+                            this.requestScrollSpellReader(this.form);
+                        }
                     },
 
                     moveFeature(index, direction, groupKey = null) {

@@ -1647,6 +1647,7 @@
 
                     properties.features = Array.isArray(properties.features)
                         ? properties.features.map(feature => ({
+                            ...feature,
                             title: feature?.title ?? '',
                             description: feature?.description ?? '',
                             usage: this.normalizeFeatureUsage(feature?.usage),
@@ -1751,6 +1752,7 @@
 
                     weapon.extra_damage = Array.isArray(raw.extra_damage)
                         ? raw.extra_damage.map(part => ({
+                            ...part,
                             count: Math.max(1, parseInt(part?.count) || 1),
                             die: part?.die ?? 'd6',
                             type: part?.type ?? '',
@@ -1801,6 +1803,7 @@
                         || !enabled
                     ) {
                         return {
+                            ...(raw && typeof raw === 'object' ? raw : {}),
                             enabled: false,
                             counter_mode: 'spend',
                             current: 1,
@@ -1862,6 +1865,7 @@
                             : 'day';
 
                     return {
+                        ...(raw && typeof raw === 'object' ? raw : {}),
                         enabled: true,
                         counter_mode:
                             counterMode,
@@ -3097,6 +3101,7 @@
 
                     properties.features = properties.features
                         .map(feature => ({
+                            ...feature,
                             title: String(feature.title ?? '').trim(),
                             description: String(feature.description ?? '').trim(),
                             usage: this.normalizeFeatureUsage(feature.usage),
@@ -3106,6 +3111,7 @@
                     if (properties.weapon) {
                         properties.weapon.traits = properties.weapon.traits
                             .map(trait => ({
+                                ...trait,
                                 key: String(trait.key ?? '').trim(),
                                 name: String(trait.name ?? '').trim(),
                                 description: String(trait.description ?? '').trim(),
@@ -3115,6 +3121,7 @@
 
                         properties.weapon.masteries = properties.weapon.masteries
                             .map(mastery => ({
+                                ...mastery,
                                 key: String(mastery.key ?? '').trim(),
                                 name: String(mastery.name ?? '').trim(),
                                 description: String(mastery.description ?? '').trim(),
@@ -3124,6 +3131,7 @@
 
                         properties.weapon.extra_damage = properties.weapon.extra_damage
                             .map(part => ({
+                                ...part,
                                 count: Math.max(1, parseInt(part.count) || 1),
                                 die: String(part.die ?? '').trim(),
                                 type: String(part.type ?? '').trim(),

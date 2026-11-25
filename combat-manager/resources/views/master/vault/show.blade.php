@@ -357,7 +357,8 @@
                                 x-for="(feature, index) in cardFeatures(previewItem)"
                                 :key="'preview-feature-' + index"
                             >
-                                <article class="master-vault-v9-preview-feature">
+                                <article class="master-vault-v9-preview-feature"
+                                         :class="{ 'vault-v284-scroll-compact': feature.system_key === 'spell_scroll_cast' && !!previewItem?.properties?.spell_scroll }">
                                     <div class="master-vault-v9-preview-feature-head">
                                         <h4 x-text="feature.title || ('Habilidade ' + (index + 1))"></h4>
                                         <span
@@ -372,8 +373,19 @@
                                                     : '')
                                             "
                                         ></span>
+                                        <template x-if="feature.system_key === 'spell_scroll_cast' && previewItem?.properties?.spell_scroll">
+                                            <button type="button" class="vault-v284-preview-read"
+                                                    @click.stop="openScrollReader(previewItem)"
+                                                    :aria-label="'Ler feitiço ' + (scrollSpellReaderData(previewItem).name || '')">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h7a3 3 0 0 1 3 3v11a3 3 0 0 0-3-3H4V5.5Zm16 0h-4a3 3 0 0 0-3 3m7-3v11h-4a3 3 0 0 0-3 3"/></svg>
+                                                <span>Ler feitiço</span>
+                                                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 4 6 6-6 6"/></svg>
+                                            </button>
+                                        </template>
                                     </div>
-                                    <div class="vault-v30-rich-text" x-html="formatVaultText(feature.description)"></div>
+                                    <template x-if="feature.system_key !== 'spell_scroll_cast' || !previewItem?.properties?.spell_scroll">
+                                        <div class="vault-v30-rich-text" x-html="formatVaultText(feature.description)"></div>
+                                    </template>
                                 </article>
                             </template>
                         </section>
@@ -516,3 +528,59 @@
             </div>
         </template>
 
+
+        {{-- V66.2.81 — Leitura do feitiço em janela própria, sem sobrecarregar editor ou preview. --}}
+        <template x-teleport="body">
+            <div class="vault-v281-reader-layer" x-show="scrollReaderOpen && scrollReaderItem" x-cloak
+                 role="dialog" aria-modal="true" aria-label="Leitura do feitiço vinculado"
+                 @keydown.escape.stop.prevent="closeScrollReader()">
+                <div class="vault-v281-reader-backdrop" @click="closeScrollReader()"></div>
+                <article class="vault-v281-reader-dialog">
+                    <header class="vault-v281-reader-head">
+                        <div class="vault-v281-reader-brand"><span class="vault-v281-reader-brand-icon">✧</span><span>Grimório · Feitiço vinculado</span></div>
+                        <button type="button" class="vault-v281-reader-close" @click="closeScrollReader()" aria-label="Fechar leitura">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" stroke-linecap="round"/></svg>
+                        </button>
+                    </header>
+                    <div class="vault-v281-reader-scroll">
+                        <div class="vault-v281-reader-article">
+                            <div class="vault-v281-reader-title-row">
+                                <div>
+                                    <h3 x-text="scrollSpellReaderData(scrollReaderItem).name"></h3>
+                                    <em x-text="scrollSpellReaderData(scrollReaderItem).subtitle"></em>
+                                </div>
+                                <small x-text="scrollReaderItem?.properties?.spell_scroll?.spell_source || ''"></small>
+                            </div>
+                            <dl class="vault-v281-reader-statlines">
+                                <div><dt>Conjuração</dt><dd x-text="scrollSpellReaderData(scrollReaderItem).castingTime"></dd></div>
+                                <div><dt>Alcance</dt><dd x-text="scrollSpellReaderData(scrollReaderItem).range"></dd></div>
+                                <div><dt>Componentes</dt><dd x-text="scrollSpellReaderData(scrollReaderItem).components"></dd></div>
+                                <div><dt>Duração</dt><dd x-text="scrollSpellReaderData(scrollReaderItem).duration"></dd></div>
+                            </dl>
+                            <div class="vault-v281-reader-flags" x-show="scrollSpellReaderData(scrollReaderItem).concentration || scrollSpellReaderData(scrollReaderItem).ritual" x-cloak>
+                                <span x-show="scrollSpellReaderData(scrollReaderItem).concentration">Concentração</span>
+                                <span x-show="scrollSpellReaderData(scrollReaderItem).ritual">Ritual</span>
+                            </div>
+                            <div class="vault-v281-reader-prose" x-show="scrollSpellReaderHtml(scrollReaderItem,'description')" x-html="scrollSpellReaderHtml(scrollReaderItem,'description')"></div>
+                            <section class="vault-v281-reader-higher" x-show="scrollSpellReaderHtml(scrollReaderItem,'higher')" x-cloak>
+                                <h4 x-text="scrollSpellReaderData(scrollReaderItem).higherLabel"></h4>
+                                <div class="vault-v281-reader-prose" x-html="scrollSpellReaderHtml(scrollReaderItem,'higher')"></div>
+                            </section>
+                            <p class="vault-v281-reader-loading" x-show="!scrollSpellReaderHtml(scrollReaderItem,'description') && scrollSpellReaderData(scrollReaderItem).loading" x-cloak>Consultando o Grimório...</p>
+                            <div class="vault-v281-reader-unavailable" x-show="!scrollSpellReaderHtml(scrollReaderItem,'description') && !scrollSpellReaderData(scrollReaderItem).loading" x-cloak>
+                                <span x-text="scrollSpellReaderData(scrollReaderItem).error ? 'Não foi possível carregar este feitiço.' : 'Descrição não disponível para este feitiço.'"></span>
+                                <button type="button" x-show="scrollSpellReaderData(scrollReaderItem).hasLink" @click="requestScrollSpellReader(scrollReaderItem,true)">Tentar novamente</button>
+                            </div>
+                        </div>
+                    </div>
+                    <footer class="vault-v281-reader-foot">
+                        <span>Dados do Grimório · Valores de CD e ataque definidos pelo pergaminho</span>
+                        <div>
+                            <button type="button" x-show="scrollReaderItem === form && !!form?.properties?.spell_scroll" x-cloak
+                                    @click="closeScrollReader();openScrollLibrary()" class="vault-v281-reader-change">Trocar feitiço</button>
+                            <button type="button" @click="closeScrollReader()" class="vault-v281-reader-done">Fechar</button>
+                        </div>
+                    </footer>
+                </article>
+            </div>
+        </template>

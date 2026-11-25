@@ -2584,6 +2584,103 @@
                 background: radial-gradient(circle,#7190a9 0 28%,#252c33 30% 49%,#7190a9 51% 100%) !important;
             }
 
+            /*
+            |--------------------------------------------------------------------------
+            | V66.2.154 — HOVER DE ROLAGEM EM PERÍCIAS E SALVAGUARDAS
+            |--------------------------------------------------------------------------
+            | Não modifica proficiências, valores ou os eventos de rolagem.
+            | Utiliza os tokens do tema e sobrepõe o background: inherit
+            | herdado de .is-trained/.is-expertise (que impedia o hover).
+            */
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row {
+                border-radius: 6px;
+                cursor: pointer;
+                transition:
+                    background-color .18s ease,
+                    box-shadow .18s ease,
+                    color .18s ease !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row:not(.character-stat-save-row):is(:hover, :focus-visible),
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row:is(.is-trained, .is-expertise):not(.character-stat-save-row):is(:hover, :focus-visible) {
+                background: var(--theme-card-hover, var(--theme-surface-raised)) !important;
+                box-shadow:
+                    inset 0 0 0 1px color-mix(in srgb, var(--theme-accent) 40%, transparent),
+                    0 1px 5px rgba(0, 0, 0, .045) !important;
+            }
+
+            /* Também realça Salvamento, inclusive no tema Meia-noite,
+               que tinha uma regra própria com !important para hover. */
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-save-row:is(.is-proficient, :not(.is-proficient)):is(:hover, :focus-visible) {
+                background: var(--theme-card-hover, var(--theme-surface-raised)) !important;
+                box-shadow:
+                    inset 0 0 0 1px color-mix(in srgb, var(--theme-accent) 40%, transparent),
+                    0 1px 5px rgba(0, 0, 0, .045) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row:is(:hover, :focus-visible) > span:nth-child(2) {
+                color: var(--theme-text-strong) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row:is(:hover, :focus-visible) > span:last-child {
+                color: var(--theme-accent-strong, var(--theme-accent)) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row .character-stat-training-dot {
+                transition: filter .18s ease, transform .18s ease;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row:is(:hover, :focus-visible) .character-stat-training-dot {
+                filter: brightness(1.15) drop-shadow(0 0 3px color-mix(in srgb, var(--theme-accent) 40%, transparent));
+                transform: scale(1.07);
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row,
+                .character-sheet-theme[data-theme].character-stats-v7 .character-stat-row .character-stat-training-dot {
+                    transition: none !important;
+                }
+            }
+
+            /*
+            | V66.2.155 — HOVER DO TESTE PRINCIPAL DE ATRIBUTO
+            | A própria área clicável (modificador + valor) recebe o mesmo
+            | tratamento das perícias. A esfera ganha luz temática, sem mudar
+            | tamanho ou deslocar o cabeçalho. Não altera eventos de rolagem.
+            */
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-roll-main {
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background-color .18s ease, box-shadow .18s ease !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-roll-main:is(:hover, :focus-visible) {
+                background: var(--theme-card-hover, var(--theme-surface-raised)) !important;
+                box-shadow:
+                    inset 0 0 0 1px color-mix(in srgb, var(--theme-accent) 40%, transparent),
+                    0 1px 5px rgba(0, 0, 0, .045) !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-roll-main .character-stat-value-orb {
+                transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease !important;
+            }
+
+            .character-sheet-theme[data-theme].character-stats-v7 .character-stat-roll-main:is(:hover, :focus-visible) .character-stat-value-orb {
+                border-color: color-mix(in srgb, var(--theme-accent) 66%, var(--theme-border)) !important;
+                background: color-mix(in srgb, var(--theme-surface-raised) 91%, var(--theme-accent) 9%) !important;
+                box-shadow:
+                    inset 0 0 0 3px color-mix(in srgb, var(--theme-accent) 16%, transparent),
+                    0 0 0 2px color-mix(in srgb, var(--theme-accent) 17%, transparent),
+                    0 0 15px color-mix(in srgb, var(--theme-accent) 25%, transparent) !important;
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .character-sheet-theme[data-theme].character-stats-v7 .character-stat-roll-main,
+                .character-sheet-theme[data-theme].character-stats-v7 .character-stat-roll-main .character-stat-value-orb {
+                    transition: none !important;
+                }
+            }
+
         </style>
     @endpush
 
@@ -3059,6 +3156,7 @@
                         sides,
                         modifier = 0,
                         exhaustionPenalty = 0,
+                        mode = 'normal',
                     }) {
                         if (this.rolling) {
                             return;
@@ -3100,6 +3198,11 @@
                         this.rolling =
                             true;
 
+                        const sbStage = window.SpellboundDiceFX;
+                        const choice = window.SpellboundD20Gestures.choice(mode);
+                        const sbToken = sbStage?.start?.({label, expression, kind:'check', advantageMode: choice,
+                            reroll:next => this.rollCheck(label, modifier, next)}) ?? null;
+
                         this.lastRoll = {
                             label,
                             sides:
@@ -3128,7 +3231,7 @@
                         | Abre imediatamente: a pessoa vê o dado "rolando".
                         */
                         this.rollToastOpen =
-                            true;
+                            !sbToken;
 
                         if (
                             this.rollToastTimer
@@ -3138,7 +3241,7 @@
                             );
                         }
 
-                        this.startRollingPreview(
+                        if (!sbToken) this.startRollingPreview(
                             normalizedSides
                         );
 
@@ -3153,7 +3256,17 @@
 
                         let formatted =
                             null;
+                        let combined = null;
 
+                        if (choice !== 'normal' && normalizedSides === 20) {
+                            combined = await window.SpellboundD20Gestures.rollTwo({
+                                url:this.diceRollUrl, expression, modifier:effectiveBonus, mode:choice, fallback:true,
+                                headers:{'Content-Type':'application/json','Accept':'application/json',
+                                    'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content ?? '{{ csrf_token() }}',
+                                    'X-Requested-With':'XMLHttpRequest'},
+                            });
+                            total = combined.total; die = combined.die; formatted = combined.formatted;
+                        } else {
                         try {
                             const response =
                                 await fetch(
@@ -3284,6 +3397,7 @@
                                 +
                                 effectiveBonus;
                         }
+                        }
 
                         /*
                         | Antes a resposta aparecia quase instantaneamente.
@@ -3332,10 +3446,19 @@
                             formatted,
                         };
 
+                        if (sbToken) {
+                            await sbStage.finish(sbToken, {
+                                label, expression, total, modifier: effectiveBonus,
+                                rolls:combined?.rolls ?? [die], natural:normalizedSides === 20 ? die : null,
+                                advantageMode:choice, selectedIndex:combined?.selectedIndex ?? null,
+                                formatted, exhaustionPenalty:penalty,
+                            });
+                        }
+
                         this.rolling =
                             false;
 
-                        window.dispatchEvent(
+                        if (!sbToken) window.dispatchEvent(
                             new CustomEvent(
                                 'character-dice-rolled',
                                 {
@@ -3362,7 +3485,8 @@
 
                     async rollCheck(
                         label,
-                        modifier
+                        modifier,
+                        mode = 'normal'
                     ) {
                         await this.performPolyhedralRoll({
                             label,
@@ -3378,6 +3502,7 @@
 
                             exhaustionPenalty:
                                 this.exhaustionRollPenalty,
+                            mode,
                         });
                     },
 
@@ -3681,12 +3806,9 @@
 
                             <button
                                 type="button"
-                                @click="
-                                    rollCheck(
-                                        abilities[abilityKey].label,
-                                        modifier(abilityKey)
-                                    )
-                                "
+                                @click="window.SpellboundD20Gestures.left($event, mode => rollCheck(abilities[abilityKey].label, modifier(abilityKey), mode))"
+                                @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollCheck(abilities[abilityKey].label, modifier(abilityKey), mode))"
+                                @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollCheck(abilities[abilityKey].label, modifier(abilityKey), mode))"
                                 class="
                                     character-stat-roll-main
                                     flex
@@ -3768,13 +3890,9 @@
 
                         <button
                             type="button"
-                            @click="
-                                rollCheck(
-                                    abilities[abilityKey].label +
-                                    ' — Salvaguarda',
-                                    savingThrowTotal(abilityKey)
-                                )
-                            "
+                            @click="window.SpellboundD20Gestures.left($event, mode => rollCheck(abilities[abilityKey].label + ' — Salvaguarda', savingThrowTotal(abilityKey), mode))"
+                                @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollCheck(abilities[abilityKey].label + ' — Salvaguarda', savingThrowTotal(abilityKey), mode))"
+                                @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollCheck(abilities[abilityKey].label + ' — Salvaguarda', savingThrowTotal(abilityKey), mode))"
                             class="
                                 character-stat-row
                                 character-stat-save-row
@@ -3852,15 +3970,9 @@
                             >
                                 <button
                                     type="button"
-                                    @click="
-                                        rollCheck(
-                                            skill.label,
-                                            skillTotal(
-                                                abilityKey,
-                                                skill.key
-                                            )
-                                        )
-                                    "
+                                    @click="window.SpellboundD20Gestures.left($event, mode => rollCheck(skill.label, skillTotal(abilityKey, skill.key), mode))"
+                                @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollCheck(skill.label, skillTotal(abilityKey, skill.key), mode))"
+                                @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollCheck(skill.label, skillTotal(abilityKey, skill.key), mode))"
                                     class="
                                         character-stat-row
                                         flex

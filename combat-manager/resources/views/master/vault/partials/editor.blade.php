@@ -2,7 +2,9 @@
             <div
                 x-show="editorOpen"
                 x-cloak
-                class="master-vault-v4-layer"
+                class="master-vault-v4-layer @if(!empty($inventoryVaultCreator)) character-sheet-theme inventory-vault-themed @endif"
+                @if(!empty($inventoryVaultCreator)) data-theme="{{ $characterTheme ?? 'spellbound' }}"
+                :data-theme="editorOpen ? (document.querySelector('.character-sheet-theme[data-theme]:not(.inventory-vault-themed)')?.dataset.theme || @js($characterTheme ?? 'spellbound')) : @js($characterTheme ?? 'spellbound')" @endif
                 x-transition.opacity.duration.140ms
                 role="dialog"
                 aria-modal="true"
@@ -369,7 +371,7 @@
 
                                 {{-- V66.2.67 — busca rápida e biblioteca completa em modal independente. --}}
                                 <template x-if="itemCategory() === 'spell_scroll'">
-                                <article class="master-vault-v4-module vault-v266-scroll-editor vault-v267-scroll-editor">
+                                <article class="master-vault-v4-module vault-v266-scroll-editor vault-v267-scroll-editor" x-init="syncScrollCastFeature()">
                                     <header class="master-vault-v4-module-head vault-v266-scroll-head">
                                         <div>
                                             <span class="vault-v260-eyebrow">Biblioteca arcana · Pergaminhos</span>
@@ -378,23 +380,32 @@
                                         <button type="button" class="master-vault-v4-remove" @click="setItemCategory('other')">Limpar Categoria</button>
                                     </header>
                                     <div class="master-vault-v4-module-body vault-v266-scroll-body vault-v267-scroll-body">
-                                        <section class="vault-v267-quick-card">
-                                            <div class="vault-v267-quick-title">
-                                                <span class="vault-v267-quick-emblem" aria-hidden="true">
-                                                    <img src="{{ asset('images/vault/icons/editor-spell-scroll.png') }}" alt="">
-                                                </span>
-                                                <div><strong>Feitiço do pergaminho</strong><small>Pesquise pelo nome ou abra a biblioteca para explorar o catálogo.</small></div>
-                                                <span class="vault-v267-base-tag">Edição 2024</span>
+                                        {{-- V66.2.81 — Seleção em primeiro plano; ajustes e regras somente quando solicitados. --}}
+                                        <section class="vault-v281-scroll-builder" aria-label="Configuração do pergaminho">
+                                            <div class="vault-v281-topline">
+                                                <div class="vault-v281-topline-title">
+                                                    <span class="vault-v281-book-emblem" aria-hidden="true">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5.5h7a3.1 3.1 0 0 1 3 3v11a3 3 0 0 0-3-3H4V5.5Zm16 0h-4a3 3 0 0 0-3 3m7-3v11h-4a3 3 0 0 0-3 3"/></svg>
+                                                    </span>
+                                                    <div><h4>Feitiço do pergaminho</h4><span x-show="!form.properties.spell_scroll?.spell_name" x-cloak>Selecione o feitiço para continuar</span></div>
+                                                </div>
+                                                <button type="button" class="vault-v281-library-action" @click="openScrollLibrary()">
+                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 5.5h7a3.1 3.1 0 0 1 3 3v11a3 3 0 0 0-3-3H4V5.5Zm16 0h-4a3 3 0 0 0-3 3m7-3v11h-4a3 3 0 0 0-3 3"/></svg>
+                                                    <span>Biblioteca</span>
+                                                </button>
                                             </div>
-                                            <div class="vault-v267-quick-controls">
+
+                                            {{-- A pesquisa só ocupa espaço enquanto nenhum feitiço foi vinculado. --}}
+                                            <div class="vault-v281-quick-choice" x-show="!form.properties.spell_scroll?.spell_name" x-cloak>
                                                 <div class="vault-v267-quick-search-wrap" @click.outside="scrollQuickFocused=false">
-                                                    <label class="vault-v267-quick-search">
+                                                    <label class="vault-v267-quick-search vault-v281-search">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="10.7" cy="10.7" r="6.2"/><path d="m15.5 15.5 5 5" stroke-linecap="round"/></svg>
                                                         <input type="search" x-model="scrollQuickSearch"
                                                                @focus="scrollQuickFocused=true"
                                                                @keydown.escape.stop="scrollQuickFocused=false"
                                                                @keydown.enter.prevent="scrollQuickMatches.length && selectScrollSpell(scrollQuickMatches[0])"
-                                                               placeholder="Digite o nome do feitiço..." aria-label="Pesquisar feitiços para o pergaminho" autocomplete="off">
+                                                               placeholder="Pesquisar pelo nome do feitiço..." autocomplete="off"
+                                                               aria-label="Pesquisar feitiço para o pergaminho">
                                                     </label>
                                                     <div class="vault-v267-suggestions" x-show="scrollQuickFocused && scrollQuickSearch.trim().length > 0" x-cloak>
                                                         <template x-for="spell in scrollQuickMatches" :key="'quick-scroll-'+spell.id">
@@ -403,82 +414,67 @@
                                                                 <span class="vault-v267-suggestion-meta"><b x-text="spell.level_label"></b><small x-text="spell.source"></small></span>
                                                             </button>
                                                         </template>
-                                                        <div class="vault-v267-suggestion-empty" x-show="scrollQuickMatches.length===0">Nenhum feitiço encontrado. Abra a biblioteca para ativar fontes extras.</div>
+                                                        <div class="vault-v267-suggestion-empty" x-show="scrollQuickMatches.length===0">Nenhum feitiço encontrado.</div>
                                                     </div>
                                                 </div>
-                                                <button type="button" class="vault-v267-open-book" @click="openScrollLibrary()"
-                                                        title="Abrir biblioteca completa de feitiços" aria-label="Abrir biblioteca de feitiços">
-                                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3.8 5.5h7a3.3 3.3 0 0 1 3.2 3.2v10.8a3.3 3.3 0 0 0-3.2-3.2h-7V5.5ZM20.2 5.5h-4a3.3 3.3 0 0 0-3.2 3.2M20.2 5.5v10.8h-4a3.3 3.3 0 0 0-3.2 3.2" stroke-linejoin="round"/></svg>
-                                                    <span>Abrir biblioteca</span>
+                                            </div>
+
+                                            {{-- O cartão inteiro abre o verbete; trocar é ação independente. --}}
+                                            <div class="vault-v281-current" x-show="form.properties.spell_scroll?.spell_name" x-cloak>
+                                                <button type="button" class="vault-v281-current-spell" @click="openScrollReader(form)" title="Abrir o verbete completo do feitiço">
+                                                    <span class="vault-v281-current-mark" aria-hidden="true">✧</span>
+                                                    <span class="vault-v281-current-copy">
+                                                        <strong x-text="form.properties.spell_scroll?.spell_name"></strong>
+                                                        <small x-text="scrollSpellReaderData(form).subtitle"></small>
+                                                    </span>
+                                                    <span class="vault-v281-read-call">Ler feitiço
+                                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m7 4 6 6-6 6"/></svg>
+                                                    </span>
                                                 </button>
+                                                <button type="button" class="vault-v281-change-spell" @click="openScrollLibrary()">Trocar</button>
                                             </div>
-                                            <div class="vault-v267-selection" x-show="form.properties.spell_scroll?.spell_name" x-cloak>
-                                                <span class="vault-v267-selection-mark" aria-hidden="true">✓</span>
-                                                <div class="vault-v267-selection-text">
-                                                    <small>Feitiço selecionado</small>
-                                                    <strong x-text="form.properties.spell_scroll?.spell_name"></strong>
-                                                </div>
-                                                <span class="vault-v267-selection-level" x-text="form.properties.spell_scroll?.spell_level === 0 ? 'Truque' : (form.properties.spell_scroll?.spell_level ? form.properties.spell_scroll.spell_level + 'º nível' : '—')"></span>
-                                                <button type="button" class="vault-v267-change-link" @click="openScrollLibrary()">Trocar</button>
-                                            </div>
-                                            <div class="vault-v275-spell-defaults" x-show="form.properties.spell_scroll?.spell_name && scrollSpellDefaultRarity(form.properties.spell_scroll?.spell_level)" x-cloak>
-                                                <span><strong>Raridade:</strong> <span x-text="scrollSpellRarityLabel(scrollSpellDefaultRarity(form.properties.spell_scroll?.spell_level))"></span></span>
-                                                <span x-text="scrollCastDefaultTitle(form.properties.spell_scroll).replace(form.properties.spell_scroll?.spell_name || '', '').replace(/[()]/g, '').trim()"></span>
-                                                <button type="button" x-show="form.rarity !== scrollSpellDefaultRarity(form.properties.spell_scroll?.spell_level)" @click="applyScrollRecommendedRarity(null, true)">Aplicar raridade sugerida</button>
-                                            </div>
-                                            <div class="vault-v273-casting-note vault-v274-scroll-abilities" x-show="form.properties.spell_scroll?.spell_name" x-cloak>
-                                                <span class="vault-v273-casting-icon" aria-hidden="true">✦</span>
-                                                <div><strong>Uso e Conjuração de Pergaminhos</strong>
-                                                    <small x-text="scrollCastUsageCaption()"></small>
-                                                    <span class="vault-v274-spell-line" x-text="scrollCastDefaultTitle(form.properties.spell_scroll)"></span>
-                                                </div>
-                                                <div class="vault-v274-scroll-actions">
-                                                    <button type="button" @click="openScrollCastFeature('rules')">Editar regras e usos</button>
-                                                    <button type="button" @click="openScrollCastFeature('spell')">Editar feitiço</button>
-                                                </div>
-                                            </div>
-                                            <details class="vault-v274-scroll-stats" x-show="form.properties.spell_scroll?.spell_name" x-cloak>
-                                                <summary>Personalizar CD e bônus de ataque <span x-text="'· ' + scrollCastDefaultTitle(form.properties.spell_scroll)"></span></summary>
-                                                <div class="vault-v274-scroll-stats-grid">
-                                                    <label><span>CD do pergaminho</span>
-                                                        <input type="number" min="1" max="99" step="1"
-                                                               x-model.number="form.properties.spell_scroll.spell_dc" @change="syncScrollCastFeature()"
-                                                               :placeholder="scrollSpellDefaultStats(form.properties.spell_scroll.spell_level).dc ?? '—'">
-                                                    </label>
-                                                    <label><span>Bônus de ataque</span>
-                                                        <input type="number" min="-30" max="99" step="1"
-                                                               x-model.number="form.properties.spell_scroll.spell_attack_bonus" @change="syncScrollCastFeature()"
-                                                               :placeholder="scrollSpellDefaultStats(form.properties.spell_scroll.spell_level).attack ?? '—'">
-                                                    </label>
-                                                    <button type="button" @click="form.properties.spell_scroll.spell_dc=null;form.properties.spell_scroll.spell_attack_bonus=null;syncScrollCastFeature()">Restaurar padrão</button>
+
+                                            {{-- Resumo discreto; as definições ficam recolhidas por padrão. --}}
+                                            <details class="vault-v281-settings" x-show="form.properties.spell_scroll?.spell_name" x-cloak>
+                                                <summary>
+                                                    <span class="vault-v281-settings-label">
+                                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.55" aria-hidden="true"><path d="M4 7h16M4 17h16M9 4v6M15 14v6" stroke-linecap="round"/></svg>
+                                                        Ajustes do pergaminho
+                                                    </span>
+                                                    <span class="vault-v281-settings-values">
+                                                        <span x-text="scrollSpellRarityLabel(form.rarity)"></span>
+                                                        <span x-text="'CD ' + (scrollSpellStats(form.properties.spell_scroll).dc ?? '—')"></span>
+                                                        <span x-text="(() => { const v=scrollSpellStats(form.properties.spell_scroll).attack; return v == null ? 'Ataque —' : 'Ataque ' + (v >= 0 ? '+' : '') + v })()"></span>
+                                                        <span x-text="scrollCastUsageCaption()"></span>
+                                                    </span>
+                                                    <svg class="vault-v281-settings-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true"><path d="m5 7 5 5 5-5" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                </summary>
+                                                <div class="vault-v281-settings-content">
+                                                    <div class="vault-v281-settings-grid">
+                                                        <div><small>Raridade</small><strong x-text="scrollSpellRarityLabel(form.rarity)"></strong></div>
+                                                        <div><small>CD</small><strong x-text="scrollSpellStats(form.properties.spell_scroll).dc ?? '—'"></strong></div>
+                                                        <div><small>Ataque</small><strong x-text="(() => { const v = scrollSpellStats(form.properties.spell_scroll).attack; return v == null ? '—' : (v >= 0 ? '+' : '') + v })()"></strong></div>
+                                                        <div><small>Usos</small><strong x-text="scrollCastUsageCaption()"></strong></div>
+                                                    </div>
+                                                    <div class="vault-v281-custom-fields">
+                                                        <label><span>CD personalizada</span><input type="number" min="1" max="99" step="1" x-model.number="form.properties.spell_scroll.spell_dc" @change="syncScrollCastFeature()" :placeholder="scrollSpellDefaultStats(form.properties.spell_scroll.spell_level).dc ?? '—'"></label>
+                                                        <label><span>Bônus de ataque</span><input type="number" min="-30" max="99" step="1" x-model.number="form.properties.spell_scroll.spell_attack_bonus" @change="syncScrollCastFeature()" :placeholder="scrollSpellDefaultStats(form.properties.spell_scroll.spell_level).attack ?? '—'"></label>
+                                                    </div>
+                                                    <div class="vault-v281-settings-actions">
+                                                        <button type="button" @click="form.properties.spell_scroll.spell_dc=null;form.properties.spell_scroll.spell_attack_bonus=null;syncScrollCastFeature()">Restaurar CD e ataque</button>
+                                                        <button type="button" x-show="form.rarity !== scrollSpellDefaultRarity(form.properties.spell_scroll?.spell_level)" x-cloak @click="applyScrollRecommendedRarity(null,true)">Aplicar raridade sugerida</button>
+                                                    </div>
                                                 </div>
                                             </details>
-                                            <p class="vault-v267-quick-empty" x-show="!form.properties.spell_scroll?.spell_name" x-cloak>
-                                                Nenhum feitiço vinculado. <span x-text="scrollBaseCount ? (scrollBaseCount + ' feitiços oficiais disponíveis.') : 'Não há feitiços oficiais importados neste Grimório.'"></span>
-                                            </p>
+
                                         </section>
-                                        <details class="vault-v266-manual vault-v267-manual">
-                                            <summary>Feitiço personalizado / preenchimento manual <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true"><path d="m5 7.5 5 5 5-5" stroke-width="1.6" stroke-linecap="round"/></svg></summary>
-                                            <div class="vault-v247-spell-manual">
-                                                <label class="master-vault-v4-field"><span>Nome do feitiço</span>
-                                                    <input type="text" class="master-vault-v4-input" maxlength="160"
-                                                           x-model="form.properties.spell_scroll.spell_name" placeholder="Nome do feitiço"
-                                                           @input="clearScrollLinkForManualInput()" @change="syncScrollCastFeature()"></label>
-                                                <label class="master-vault-v4-field"><span>Nível</span>
-                                                    <select class="master-vault-v4-select" x-model.number="form.properties.spell_scroll.spell_level" @change="syncScrollLevelAndRarity()">
-                                                        <option value="">Não definido</option>
-                                                        <template x-for="level in [0,1,2,3,4,5,6,7,8,9]" :key="'scroll-level-'+level">
-                                                            <option :value="level" x-text="level === 0 ? 'Truque' : level + 'º nível'"></option>
-                                                        </template>
-                                                    </select>
-                                                </label>
-                                            </div>
-                                        </details>
                                     </div>
 
                                     {{-- V66.2.70 — Biblioteca em duas abas, sem painéis empilhados. --}}
                                     <template x-teleport="body">
-                                        <div class="vault-v267-library-layer vault-v270-library-layer" x-show="scrollBookModalOpen" x-cloak
+                                        <div class="vault-v267-library-layer vault-v270-library-layer @if(!empty($inventoryVaultCreator)) character-sheet-theme inventory-vault-themed @endif"
+                                             @if(!empty($inventoryVaultCreator)) data-theme="{{ $characterTheme ?? 'spellbound' }}"
+                                             :data-theme="scrollBookModalOpen ? (document.querySelector('.character-sheet-theme[data-theme]:not(.inventory-vault-themed)')?.dataset.theme || @js($characterTheme ?? 'spellbound')) : @js($characterTheme ?? 'spellbound')" @endif x-show="scrollBookModalOpen" x-cloak
                                              @keydown.escape.stop.prevent="closeScrollLibrary()" role="presentation">
                                             <div class="vault-v267-library-backdrop" @click="closeScrollLibrary()"></div>
                                             <section class="vault-v267-library-dialog vault-v270-library-dialog" role="dialog" aria-modal="true" aria-label="Biblioteca de feitiços" tabindex="-1">
@@ -487,7 +483,13 @@
                                                         <span class="vault-v267-library-emblem" aria-hidden="true">
                                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 5.5h7a3.1 3.1 0 0 1 3 3v11a3 3 0 0 0-3-3H4V5.5Zm16 0h-4a3 3 0 0 0-3 3m7-3v11h-4a3 3 0 0 0-3 3"/></svg>
                                                         </span>
-                                                        <div><small>OFICINA DO MESTRE · BIBLIOTECA ARCANA</small><h3>Escolher feitiço</h3><p>Pesquise no catálogo ou explore os livros da campanha.</p></div>
+                                                        <div>
+                                                            @if(!empty($inventoryVaultCreator))
+                                                                <small>BIBLIOTECA ARCANA</small><h3>Escolher feitiço</h3>
+                                                            @else
+                                                                <small>OFICINA DO MESTRE · BIBLIOTECA ARCANA</small><h3>Escolher feitiço</h3><p>Pesquise no catálogo ou explore os livros da campanha.</p>
+                                                            @endif
+                                                        </div>
                                                     </div>
                                                     <button type="button" class="vault-v267-library-close" @click="closeScrollLibrary()" aria-label="Fechar biblioteca">
                                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 6 18 18M18 6 6 18" stroke-linecap="round"/></svg>
@@ -586,8 +588,16 @@
                                                                         </div>
                                                                     </div>
                                                                     <div class="vault-v270-preview-action">
-                                                                        <small x-text="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id)?'Feitiço já vinculado a este pergaminho':'O texto permanece no Grimório; o pergaminho salva a referência.'"></small>
-                                                                        <button type="button" class="vault-v267-link-spell" @click="selectScrollSpell(scrollPreviewSpell)" x-text="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id)?'Confirmar feitiço':'Vincular ao pergaminho'"></button>
+                                                                        @if(!empty($inventoryVaultCreator))
+                                                                            <small class="vault-v293-preview-status" x-text="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id)?'Feitiço atual do pergaminho':''"></small>
+                                                                            <button type="button" class="vault-v267-link-spell" @click="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id) ? closeScrollLibrary() : selectScrollSpell(scrollPreviewSpell)">
+                                                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                                                                <span x-text="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id)?'Voltar ao editor':'Escolher este feitiço'"></span>
+                                                                            </button>
+                                                                        @else
+                                                                            <small x-text="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id)?'Feitiço já vinculado a este pergaminho':'O texto permanece no Grimório; o pergaminho salva a referência.'"></small>
+                                                                            <button type="button" class="vault-v267-link-spell" @click="selectScrollSpell(scrollPreviewSpell)" x-text="String(form.properties.spell_scroll?.spell_id)===String(scrollPreviewSpell.id)?'Confirmar feitiço':'Vincular ao pergaminho'"></button>
+                                                                        @endif
                                                                     </div>
                                                                 </div>
                                                             </template>
@@ -646,7 +656,14 @@
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <footer class="vault-v267-library-footer vault-v270-footer"><span x-text="scrollLibraryTab==='spells' ? scrollVisibleCount+' feitiço(s) nos filtros atuais' : scrollExtraBooks.length+' livro(s) adicional(is) habilitado(s)'"></span><button type="button" @click="scrollLibraryTab==='books' ? scrollLibraryTab='spells' : closeScrollLibrary()" x-text="scrollLibraryTab==='books'?'Voltar aos feitiços':'Voltar ao editor'"></button></footer>
+                                                @if(!empty($inventoryVaultCreator))
+                                                    <footer class="vault-v267-library-footer vault-v270-footer" x-show="scrollLibraryTab==='books'" x-cloak>
+                                                        <span x-text="scrollExtraBooks.length+' livro(s) adicional(is) habilitado(s)'"></span>
+                                                        <button type="button" @click="scrollLibraryTab='spells'">Voltar aos feitiços</button>
+                                                    </footer>
+                                                @else
+                                                    <footer class="vault-v267-library-footer vault-v270-footer"><span x-text="scrollLibraryTab==='spells' ? scrollVisibleCount+' feitiço(s) nos filtros atuais' : scrollExtraBooks.length+' livro(s) adicional(is) habilitado(s)'"></span><button type="button" @click="scrollLibraryTab==='books' ? scrollLibraryTab='spells' : closeScrollLibrary()" x-text="scrollLibraryTab==='books'?'Voltar aos feitiços':'Voltar ao editor'"></button></footer>
+                                                @endif
                                             </section>
                                         </div>
                                     </template>
@@ -1681,7 +1698,7 @@
                                  HABILIDADES — GAVETAS POR ETAPA (V66.1.19)
                                  Cada etapa usa properties.vestige.stages[key].features.
                             ====================================================== --}}
-                            <section class="master-vault-v5-abilities vault-v19-abilities" x-ref="vaultEditorAbilities">
+                            <section class="master-vault-v5-abilities vault-v19-abilities" :class="{'vault-v283-scroll-abilities':itemCategory()==='spell_scroll'}" x-ref="vaultEditorAbilities">
                                 <header class="master-vault-v5-abilities-head">
                                     <div class="master-vault-v5-abilities-head-main">
                                         <span class="master-vault-v5-abilities-mark">
@@ -1995,21 +2012,52 @@
                                                 x-collapse
                                                 class="master-vault-v5-ability-content"
                                             >
-                                                <div class="master-vault-v5-ability-content-grid">
+                                                <div class="master-vault-v5-ability-content-grid" :class="{'vault-v281-feature-grid': feature.system_key === 'spell_scroll_cast'}">
                                                     <div>
-                                                        <label class="master-vault-v4-field">
-                                                            <span>Nome da Habilidade</span>
-
-                                                            <input
-                                                                type="text"
-                                                                maxlength="120"
-                                                                x-model="feature.title"
-                                                                placeholder="Ex.: Descarga Arcana"
-                                                                class="master-vault-v4-input"
-                                                            >
-                                                        </label>
-
-                                                        <div class="master-vault-v4-field vault-v31-rich-field" x-data="vaultTiptapField(feature, 'description', 10000, 'Descrição da habilidade', feature)">
+                                                        <template x-if="feature.system_key === 'spell_scroll_cast'">
+                                                            <div class="vault-v281-feature-reader">
+                                                                <button type="button" class="vault-v281-feature-open" @click="openScrollReader(form)">
+                                                                    <span class="vault-v281-feature-open-symbol" aria-hidden="true">✧</span>
+                                                                    <span class="vault-v281-feature-open-copy">
+                                                                        <strong x-text="scrollSpellReaderData(form).name"></strong>
+                                                                        <small x-text="scrollSpellReaderData(form).subtitle"></small>
+                                                                    </span>
+                                                                    <span class="vault-v281-feature-open-action">Ler feitiço
+                                                                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" aria-hidden="true"><path d="m7 4 6 6-6 6"/></svg>
+                                                                    </span>
+                                                                </button>
+                                                                {{-- V66.2.82 — edição do nome opcional e separada da leitura. --}}
+                                                                <details class="vault-v282-title-panel">
+                                                                    <summary>
+                                                                        <span class="vault-v282-title-icon" aria-hidden="true">
+                                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 5.5 3 3M4 20l4.5-1 10-10a2.1 2.1 0 0 0-3-3l-10 10L4 20Z"/></svg>
+                                                                        </span>
+                                                                        <span class="vault-v282-title-copy"><strong>Nome no inventário</strong><small>Alterar o título exibido</small></span>
+                                                                        <span class="vault-v282-title-tag">Opcional</span>
+                                                                        <svg class="vault-v282-title-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg>
+                                                                    </summary>
+                                                                    <div class="vault-v282-title-body">
+                                                                        <label class="vault-v282-title-label">
+                                                                            <span>Título exibido</span>
+                                                                            <input type="text" maxlength="120" x-model="feature.title"
+                                                                                   placeholder="Nome do feitiço no item" autocomplete="off">
+                                                                        </label>
+                                                                        <button type="button" class="vault-v282-title-reset"
+                                                                                @click="feature.title=scrollCastDefaultTitle(form.properties.spell_scroll)"
+                                                                                title="Voltar ao nome e aos valores sugeridos para o feitiço">Restaurar padrão</button>
+                                                                    </div>
+                                                                </details>
+                                                            </div>
+                                                        </template>
+                                                        <template x-if="feature.system_key !== 'spell_scroll_cast'">
+                                                            <label class="master-vault-v4-field">
+                                                                <span>Nome da Habilidade</span>
+                                                                <input type="text" maxlength="120" x-model="feature.title"
+                                                                       placeholder="Ex.: Descarga Arcana" class="master-vault-v4-input">
+                                                            </label>
+                                                        </template>
+                                                        <template x-if="feature.system_key !== 'spell_scroll_cast'">
+                                                                                                                <div class="master-vault-v4-field vault-v31-rich-field" x-data="vaultTiptapField(feature, 'description', 10000, 'Descrição da habilidade', feature)">
         <div class="vault-v31-rich-toolbar" role="toolbar" aria-label="Formatar descrição da habilidade">
             <span class="vault-v31-rich-label">Descrição da habilidade</span>
             <div class="vault-v31-rich-actions">
@@ -2047,6 +2095,7 @@
             <span :class="{ 'is-over': contentLength > maxLength }" x-text="contentLength + ' / ' + maxLength"></span>
         </div>
     </div>
+                                                        </template>
                                                     </div>
 
                                                     <aside class="master-vault-v5-ability-side vault-v256-ability-side" x-show="!['weapon_enchantment','armor_enchantment','shield_enchantment','spell_scroll_cast'].includes(feature.system_key)" x-cloak>
@@ -2340,7 +2389,7 @@
                             >
                                 <span
                                     x-show="!saving"
-                                    x-text="editingId ? 'Salvar Alterações' : 'Criar no Vault'"
+                                    x-text="editingId ? 'Salvar Alterações' : ((typeof initialPlayerInventory !== 'undefined' && initialPlayerInventory) ? 'Criar no Inventário' : 'Criar no Vault')"
                                 ></span>
 
                                 <span

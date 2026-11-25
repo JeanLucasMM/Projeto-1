@@ -699,6 +699,8 @@ class CampaignMasterController extends Controller
 
                 ],
 
+                'allow_player_item_creation' => ['required', 'boolean'],
+
             ]);
 
 
@@ -734,6 +736,9 @@ class CampaignMasterController extends Controller
         ]);
 
 
+
+        $campaign->allow_player_item_creation = (bool) $validated['allow_player_item_creation'];
+        $campaign->save();
 
         return redirect()
 

@@ -1969,7 +1969,7 @@
                             }
                         },
 
-                        async rollCombatCallInitiative() {
+                        async rollCombatCallInitiative(mode = 'normal') {
                             if (
                                 this.combatCall?.phase !== 'initiative'
                                 ||
@@ -1982,6 +1982,12 @@
 
                             this.combatCallRolling = true;
                             this.combatCallError = null;
+                            const sbStage = window.SpellboundDiceFX;
+                            const choice = window.SpellboundD20Gestures.choice(mode);
+                            const sbToken = sbStage?.start?.({
+                                label:'Iniciativa · Convocação', expression:'1d20', kind:'initiative',
+                                advantageMode:choice, reroll:next => this.rollCombatCallInitiative(next),
+                            }) ?? null;
 
                             if (this.combatCallRollingTimer) {
                                 window.clearInterval(
@@ -2006,8 +2012,18 @@
                                 );
 
                             let roll = Math.floor(Math.random() * 20) + 1;
+                            let combined = null;
                             const startedAt = Date.now();
 
+                            if (choice !== 'normal') {
+                                combined = await window.SpellboundD20Gestures.rollTwo({
+                                    url:this.rollUrl, expression:'1d20', modifier:0, mode:choice, fallback:true,
+                                    headers:{'Content-Type':'application/json','Accept':'application/json',
+                                        'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content ?? '{{ csrf_token() }}',
+                                        'X-Requested-With':'XMLHttpRequest'},
+                                });
+                                roll = combined.die;
+                            } else {
                             try {
                                 const response = await fetch(
                                     this.rollUrl,
@@ -2048,6 +2064,7 @@
                             } catch (error) {
                                 // mesmo fallback local já usado pela iniciativa atual
                             }
+                            }
 
                             const elapsed = Date.now() - startedAt;
 
@@ -2079,6 +2096,12 @@
                                     this.combatCallEffectiveBonus
                                 );
 
+                            if (sbToken) await sbStage.finish(sbToken, {
+                                label:'Iniciativa · Convocação', expression:'1d20',
+                                rolls:combined?.rolls ?? [roll], natural:roll, total:this.combatCallFinalInitiative,
+                                advantageMode:choice, selectedIndex:combined?.selectedIndex ?? null,
+                                modifier:this.combatCallEffectiveBonus,
+                            });
                             this.combatCallRolling =
                                 false;
 
@@ -2356,7 +2379,7 @@
                             }
                         },
 
-                        async rollInitiative() {
+                        async rollInitiative(mode = 'normal') {
                             if (
                                 this.rollingInitiative
                                 ||
@@ -2367,12 +2390,28 @@
 
                             this.rollingInitiative =
                                 true;
+                            const sbStage = window.SpellboundDiceFX;
+                            const choice = window.SpellboundD20Gestures.choice(mode);
+                            const sbToken = sbStage?.start?.({
+                                label:'Iniciativa', expression:'1d20', kind:'initiative',
+                                advantageMode:choice, reroll:next => this.rollInitiative(next),
+                            }) ?? null;
 
                             let roll =
                                 Math.floor(
                                     Math.random() * 20
                                 ) + 1;
+                            let combined = null;
 
+                            if (choice !== 'normal') {
+                                combined = await window.SpellboundD20Gestures.rollTwo({
+                                    url:this.rollUrl, expression:'1d20', modifier:0, mode:choice, fallback:true,
+                                    headers:{'Content-Type':'application/json','Accept':'application/json',
+                                        'X-CSRF-TOKEN':document.querySelector('meta[name="csrf-token"]')?.content ?? '{{ csrf_token() }}',
+                                        'X-Requested-With':'XMLHttpRequest'},
+                                });
+                                roll = combined.die;
+                            } else {
                             try {
                                 const response =
                                     await fetch(
@@ -2444,6 +2483,7 @@
                                     error
                                 );
                             }
+                            }
 
                             this.lastInitiativeRoll =
                                 roll;
@@ -2454,6 +2494,13 @@
                                 this.initiativeModifier
                                 -
                                 this.exhaustionRollPenalty;
+
+                            if (sbToken) await sbStage.finish(sbToken, {
+                                label:'Iniciativa', expression:'1d20',
+                                rolls:combined?.rolls ?? [roll], natural:roll, total:this.combatInitiative,
+                                advantageMode:choice, selectedIndex:combined?.selectedIndex ?? null,
+                                modifier:this.initiativeModifier - this.exhaustionRollPenalty,
+                            });
 
                             const success =
                                 await this.persist(
@@ -3134,9 +3181,9 @@
 
                     <button
                         type="button"
-                        @click="
-                            rollCombatCallInitiative()
-                        "
+                        @click="window.SpellboundD20Gestures.left($event, mode => rollCombatCallInitiative(mode))"
+                        @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollCombatCallInitiative(mode))"
+                        @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollCombatCallInitiative(mode))"
                         :disabled="
                             combatCallBusy
                             ||
@@ -3642,7 +3689,10 @@
                         </div>
                         <div class="mt-2.5 grid grid-cols-2 gap-2">
                             <button type="button" class="hero-quick-editor-primary rounded-lg px-2 py-2.5 text-[10px] font-bold transition disabled:opacity-50"
-                                @click="rollInitiative()" :disabled="rollingInitiative || saving"
+                                @click="window.SpellboundD20Gestures.left($event, mode => rollInitiative(mode))"
+                                @dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollInitiative(mode))"
+                                @contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollInitiative(mode))"
+                                :disabled="rollingInitiative || saving"
                                 x-text="rollingInitiative ? 'Rolando...' : 'Rolar iniciativa'"></button>
                             <button type="button" class="hero-quick-editor-button rounded-lg px-2 py-2.5 text-[10px] font-bold transition disabled:opacity-50"
                                 @click="saveManualInitiative()" :disabled="saving">Usar valor</button>

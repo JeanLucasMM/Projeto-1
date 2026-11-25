@@ -17,10 +17,13 @@ class Campaign extends Model
         'name',
         'description',
         'experience_enabled',
+        'cover_image_path',
+        'cover_image_focus_y',
     ];
 
     protected $casts = [
         'experience_enabled' => 'boolean',
+        'cover_image_focus_y' => 'integer',
     ];
 
     public function owner(): BelongsTo
@@ -46,10 +49,7 @@ class Campaign extends Model
     public function characters(): BelongsToMany
     {
         return $this->belongsToMany(Character::class, 'campaign_characters')
-            ->withPivot([
-                'is_active',
-                'experience_points',
-            ])
+            ->withPivot(['is_active', 'experience_points'])
             ->withTimestamps();
     }
 
@@ -61,17 +61,13 @@ class Campaign extends Model
     public function isOwner(User|int $user): bool
     {
         $userId = $user instanceof User ? $user->id : $user;
-
         return (int) $this->owner_user_id === (int) $userId;
     }
 
     public function hasMember(User|int $user): bool
     {
         $userId = $user instanceof User ? $user->id : $user;
-
-        return $this->members()
-            ->where('user_id', $userId)
-            ->exists();
+        return $this->members()->where('user_id', $userId)->exists();
     }
 
     public function canBeViewedBy(User $user): bool

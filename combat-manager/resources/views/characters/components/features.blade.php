@@ -5231,6 +5231,8 @@
             this.featureDurationTotal = null;
             this.stopFeatureDiceTicker();
 
+            // Rolagem de duração permanece exclusivamente dentro do modal.
+            // Não abrir a camada global SpellboundDiceFX nesta seção.
             const dice = this.featureDurationDice;
             // A animacao e apenas visual: o resultado valido vem da API de dados.
             dice.forEach(die => {
@@ -5389,9 +5391,12 @@
                 }
             } catch (error) { this.effectError = error?.message || 'Falha ao preparar o teste.'; }
         },
-        async rollFeatureConcentration() {
+        async rollFeatureConcentration(mode = 'normal') {
             if (!this.featureCheck || !this.featureCheckFeature || this.featureCheckRolling || this.featureCheckResolved) return;
             const nonce = ++this._featureDiceNonce;
+            // Concentração também conserva somente seu dado interno.
+            // Mantém os gestos de vantagem/desvantagem sem duplicar o HUD.
+            const choice = window.SpellboundD20Gestures.choice(mode);
             this.featureCheckRolling = true;
             this.effectError = '';
             this.featureCheckManualMode = false;
@@ -5406,15 +5411,19 @@
             try {
                 const check = this.featureCheck;
                 const [roll] = await Promise.all([
-                    this.effectRequest(this.urls.diceRoll, 'POST', {
-                        expression: check.expression || '1d20',
-                    }),
+                    choice === 'normal'
+                        ? this.effectRequest(this.urls.diceRoll, 'POST', {expression:check.expression || '1d20'})
+                        : window.SpellboundD20Gestures.rollTwo({
+                            url:this.urls.diceRoll, expression:check.expression || '1d20',
+                            modifier:Number(check.modifier || 0), mode:choice,
+                            headers:this.jsonHeaders(),
+                        }),
                     new Promise(resolve => window.setTimeout(resolve, 1200)),
                 ]);
                 if (nonce !== this._featureDiceNonce) return;
-                const total = this.extractFeatureDiceTotal(roll);
                 const modifier = Number(check.modifier || 0);
-                const die = total - modifier;
+                const total = choice === 'normal' ? this.extractFeatureDiceTotal(roll) : roll.total;
+                const die = choice === 'normal' ? total - modifier : roll.die;
                 if (!Number.isSafeInteger(die) || die < 1 || die > 20) {
                     throw new Error('O resultado do d20 nao corresponde ao modificador do teste.');
                 }
@@ -7531,7 +7540,9 @@
                         x-text="'Exaustão: -' + Number(featureCheck?.exhaustion_penalty ?? 0) + ' no salvamento'"></p>
 
                     <button type="button" x-show="!featureCheckRoll && !featureCheckRolling && !featureCheckManualMode && !featureCheckResolved" x-cloak
-                        x-on:click="rollFeatureConcentration()"
+                        x-on:click="window.SpellboundD20Gestures.left($event, mode => rollFeatureConcentration(mode))"
+                        x-on:dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollFeatureConcentration(mode))"
+                        x-on:contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollFeatureConcentration(mode))"
                         class="sb-button-primary mt-4 w-full rounded-xl px-4 py-3 text-[9px] font-black uppercase tracking-[0.1em]">
                         Rolar Constituição
                     </button>
@@ -7582,7 +7593,9 @@
                             Voltar aos dados
                         </button>
                         <button type="button" x-show="!featureCheckManualMode && featureCheckRoll"
-                            x-on:click="rollFeatureConcentration()" :disabled="featureCheckRolling"
+                            x-on:click="window.SpellboundD20Gestures.left($event, mode => rollFeatureConcentration(mode))"
+                        x-on:dblclick.prevent="window.SpellboundD20Gestures.double($event, mode => rollFeatureConcentration(mode))"
+                        x-on:contextmenu.prevent="window.SpellboundD20Gestures.right($event, mode => rollFeatureConcentration(mode))" :disabled="featureCheckRolling"
                             class="sb-button-soft rounded-lg border px-3 py-2 text-[8px] font-black uppercase tracking-[0.04em] disabled:opacity-40">
                             Rolar novamente
                         </button>

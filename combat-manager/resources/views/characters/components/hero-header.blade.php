@@ -5,6 +5,9 @@
     'imageOverrideUrl' => null,
 ])
 
+{{-- Módulo visual exclusivo do d20 contra a morte; nunca define física. --}}
+@include('characters.components.dice.death-save-effects')
+
 @php
     /*
      * character          = ficha mecânica atual
@@ -829,6 +832,8 @@
 @endphp
 
 
+@include('components.ui.poly-die-styles')
+
 @once
     @push('styles')
         <style>
@@ -1428,12 +1433,16 @@
                     opacity 1.25s ease;
             }
 
+            /* A ficha continua legível e clicável; cinza, sem escurecimento excessivo. */
             .character-sheet-page.character-sheet-dead {
-                filter:
-                    grayscale(1)
-                    saturate(.12)
-                    brightness(.76);
+                filter:grayscale(.85) saturate(.62) brightness(.94);
             }
+            .character-sheet-page.character-sheet-dead .hero-header-segment {
+                border-color:rgba(102,96,94,.57)!important;
+            }
+            .character-sheet-page.character-sheet-dead a,
+            .character-sheet-page.character-sheet-dead button {pointer-events:auto}
+
 
             .death-card-arrive {
                 animation:
@@ -3415,6 +3424,297 @@
                 }
             }
 
+
+            /* V66.2.173 — destino: d20 cinemático e morte por salvamento. */
+            .death-save-action-grid{gap:12px!important}
+            .death-save-action{min-width:0;isolation:isolate}
+            .death-save-prompt{min-height:15px;max-width:158px;text-align:center;font:800 9px/1.35 system-ui,sans-serif;letter-spacing:.055em;text-transform:uppercase;color:var(--theme-text-secondary,#805b4b)}
+            .death-save-die-stage{position:relative;width:156px;height:168px;display:grid;place-items:center;isolation:isolate;overflow:visible}
+            .death-save-ambient{position:absolute;inset:8px 0 6px;border-radius:50%;pointer-events:none;background:radial-gradient(circle,rgba(166,131,91,.18),rgba(111,68,52,.055) 49%,transparent 73%);animation:death-save-idle-glow 2.9s ease-in-out infinite}
+            .death-save-die-button{position:relative;z-index:2;width:135px;height:135px;display:grid;place-items:center;border:0!important;padding:0;background:transparent!important;cursor:grab;touch-action:none;user-select:none;outline-offset:2px;transform:translate3d(var(--death-grab-x,0px),var(--death-grab-y,0px),0) rotate(var(--death-grab-angle,0deg));transition:transform .26s cubic-bezier(.22,.83,.23,1)}
+            .death-save-die-button:hover:not(:disabled){filter:brightness(1.07)}
+            .death-save-die-button:focus-visible{outline:2px solid var(--theme-accent,#946c4c);border-radius:24px}
+            .death-save-die-stage.is-dragged .death-save-die-button{cursor:grabbing;transition:none!important}
+            .death-save-die-button:disabled{cursor:default}
+            .death-save-die-art{display:grid;place-items:center;filter:drop-shadow(0 10px 8px rgba(40,22,20,.26));transition:filter .3s ease;transform-origin:50% 52%}
+            .death-save-die-art .sb-poly-die{pointer-events:none;--sb-die-base:color-mix(in srgb,var(--theme-accent-strong,#813d35) 75%,#72463e 25%)}
+            .death-save-die-art .sb-poly-number{z-index:1;font-weight:850;text-shadow:0 2px 2px rgba(0,0,0,.24);animation:none!important;rotate:none!important}
+            .death-save-die-art .sb-poly-face{animation:none!important}
+            .death-save-die-shadow{position:absolute;z-index:0;bottom:12px;left:calc(50% - 37px);width:74px;height:16px;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse,rgba(38,23,18,.37),rgba(38,23,18,.02) 72%);filter:blur(5px);transition:opacity .2s ease,transform .3s ease}
+            .death-save-die-stage.is-dragged .death-save-die-shadow{opacity:.42;transform:scale(.75)}
+            .death-save-die-stage.is-rolling .death-save-ambient{animation:death-save-charged-glow 1.45s ease-in-out infinite}
+            .death-save-die-stage.is-rolling .death-save-die-button{transition:none!important;filter:none!important}
+            .death-save-die-stage.is-rolling .death-save-die-shadow{animation:death-save-shadow-roll 3.9s ease-out both}
+            .death-save-die-stage.is-rolling .death-save-die-art .sb-poly-face{transform-origin:50% 50%;animation:death-save-face-spin 3.9s cubic-bezier(.15,.62,.14,1) both!important}
+            .death-save-motion-a{animation:death-save-fall-a 3.9s cubic-bezier(.15,.59,.18,1) both!important}
+            .death-save-motion-b{animation:death-save-fall-b 3.9s cubic-bezier(.15,.59,.18,1) both!important}
+            .death-save-motion-c{animation:death-save-fall-c 3.9s cubic-bezier(.15,.59,.18,1) both!important}
+            .death-save-motion-d{animation:death-save-fall-d 3.9s cubic-bezier(.15,.59,.18,1) both!important}
+            @keyframes death-save-face-spin{0%{transform:rotate(0deg) scale(.92)}19%{transform:rotate(580deg) scale(1.06)}40%{transform:rotate(980deg) scale(1)}59%{transform:rotate(1360deg) scale(.99)}76%{transform:rotate(1650deg) scale(.99)}89%{transform:rotate(1770deg) scale(1)}100%{transform:rotate(1800deg) scale(1)}}
+            @keyframes death-save-fall-a{0%{transform:translate3d(var(--death-start-x,0px),var(--death-start-y,0px),0) scale(.80)}18%{transform:translate3d(24px,0px,0) scale(1.07)}31%{transform:translate3d(45px,-36px,0) scale(.98)}44%{transform:translate3d(-14px,2px,0) scale(1.03)}58%{transform:translate3d(-31px,-18px,0) scale(.99)}72%{transform:translate3d(15px,1px,0) scale(1.01)}87%{transform:translate3d(9px,-5px,0) scale(1)}100%{transform:translate3d(0,0,0) scale(1)}}
+            @keyframes death-save-fall-b{0%{transform:translate3d(var(--death-start-x,0px),var(--death-start-y,0px),0) scale(.76)}19%{transform:translate3d(-34px,1px,0) scale(1.07)}34%{transform:translate3d(-42px,-34px,0) scale(.98)}47%{transform:translate3d(19px,1px,0) scale(1.03)}60%{transform:translate3d(31px,-15px,0) scale(.99)}75%{transform:translate3d(-12px,0,0) scale(1.01)}89%{transform:translate3d(-7px,-4px,0) scale(1)}100%{transform:translate3d(0,0,0) scale(1)}}
+            @keyframes death-save-fall-c{0%{transform:translate3d(var(--death-start-x,0px),var(--death-start-y,0px),0) scale(.79)}20%{transform:translate3d(-38px,0,0) scale(1.07)}32%{transform:translate3d(48px,-40px,0) scale(.98)}47%{transform:translate3d(-17px,0,0) scale(1.03)}60%{transform:translate3d(19px,-16px,0) scale(.99)}73%{transform:translate3d(-11px,0,0) scale(1.01)}90%{transform:translate3d(5px,-4px,0) scale(1)}100%{transform:translate3d(0,0,0) scale(1)}}
+            @keyframes death-save-fall-d{0%{transform:translate3d(var(--death-start-x,0px),var(--death-start-y,0px),0) scale(.82)}21%{transform:translate3d(39px,1px,0) scale(1.07)}34%{transform:translate3d(-43px,-35px,0) scale(.98)}48%{transform:translate3d(22px,0,0) scale(1.03)}62%{transform:translate3d(-21px,-19px,0) scale(.99)}75%{transform:translate3d(12px,0,0) scale(1.01)}89%{transform:translate3d(-6px,-4px,0) scale(1)}100%{transform:translate3d(0,0,0) scale(1)}}
+            @keyframes death-save-shadow-roll{0%{transform:scale(.38);opacity:.20}18%,44%,72%{transform:scale(1.13);opacity:.7}31%,58%,86%{transform:scale(.73);opacity:.34}100%{transform:scale(1);opacity:.58}}
+            @keyframes death-save-idle-glow{0%,100%{opacity:.4;transform:scale(.95)}50%{opacity:.85;transform:scale(1.08)}}
+            @keyframes death-save-charged-glow{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.92;transform:scale(1.22)}}
+            .death-save-die-stage.is-settled::before,.death-save-die-stage.is-settled::after{content:'';position:absolute;inset:8px;border-radius:50%;pointer-events:none;z-index:1;opacity:0}
+            .death-save-die-stage.is-natural-20::before{background:radial-gradient(circle,rgba(255,233,152,.55),rgba(244,188,61,.27) 38%,transparent 72%);animation:death-save-aura-gold 3.8s ease-in-out both}
+            .death-save-die-stage.is-natural-20::after{background:radial-gradient(circle at 21% 35%,#fff5bf 0 2px,transparent 3px),radial-gradient(circle at 81% 27%,#ffe19b 0 2px,transparent 3px),radial-gradient(circle at 86% 78%,#ffe8aa 0 1px,transparent 3px),radial-gradient(circle at 26% 82%,#ffd17a 0 1.5px,transparent 3px);animation:death-save-aura-gold 3.8s ease-in-out both}
+            .death-save-die-stage.is-natural-1::before{background:radial-gradient(circle,rgba(255,157,157,.38),rgba(181,38,49,.25) 42%,transparent 73%);animation:death-save-aura-red 3.2s ease-in-out both}
+            .death-save-die-stage.is-natural-1::after{background:radial-gradient(circle at 16% 38%,#ff9c8c 0 2px,transparent 3px),radial-gradient(circle at 79% 25%,#f36d69 0 2px,transparent 3px),radial-gradient(circle at 85% 83%,#cb4646 0 1.5px,transparent 3px);animation:death-save-aura-red 3.2s ease-in-out both}
+            @keyframes death-save-aura-gold{0%{opacity:0;transform:scale(.7)}18%{opacity:.86;transform:scale(1.06)}38%{opacity:.3;transform:scale(1.2)}60%{opacity:.9;transform:scale(1.15)}78%{opacity:.4;transform:scale(1.26)}100%{opacity:0;transform:scale(1.42)}}
+            @keyframes death-save-aura-red{0%{opacity:0;transform:scale(.7)}20%{opacity:.88;transform:scale(1.05)}45%{opacity:.32;transform:scale(1.20)}69%{opacity:.83;transform:scale(1.18)}100%{opacity:0;transform:scale(1.38)}}
+            .death-save-caption{min-height:36px;max-width:190px;text-align:center;color:var(--theme-text-secondary,#775746);font:750 10px/1.3 system-ui,sans-serif}
+            .death-save-caption strong{display:block;font:900 10px/1.45 system-ui,sans-serif;color:var(--theme-text-strong,#51312b)}
+            .death-save-caption strong.is-gold{color:#b88024;text-shadow:0 1px 7px rgba(245,197,78,.22)}
+            .death-save-caption strong.is-red{color:#c4544a}
+            .death-save-error{max-width:182px;margin:4px auto;text-align:center;font:700 10px/1.45 system-ui,sans-serif;color:var(--theme-state-damage,#be4b45)}
+            .death-save-retry{padding:6px 12px;border:1px solid color-mix(in srgb,var(--theme-accent,#986c53) 45%,transparent);border-radius:999px;background:var(--theme-surface-card,#fff8eb);color:var(--theme-text-strong,#5a3831);font:800 10px/1.3 system-ui,sans-serif;cursor:pointer;transition:background .2s}
+            .death-save-retry:hover{background:var(--theme-card-hover,#eee2d3)}
+            .death-save-last-breath::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:0;background:radial-gradient(circle,transparent 12%,rgba(69,8,15,.48) 85%),linear-gradient(135deg,rgba(129,22,25,.3),transparent 52%);animation:death-save-vignette 3.4s ease-out both}
+            .death-save-last-breath .death-card-arrive{animation:death-save-final-card 1.25s cubic-bezier(.16,.8,.2,1) both!important}
+            @keyframes death-save-vignette{0%{opacity:0}23%{opacity:.9}42%{opacity:.35}66%{opacity:1}100%{opacity:.76}}
+            @keyframes death-save-final-card{0%{opacity:0;transform:translateY(38px) scale(.9);filter:blur(3px) grayscale(0)}45%{opacity:1;transform:translateY(-4px) scale(1.015);filter:blur(0) grayscale(.5)}100%{opacity:1;transform:translateY(0) scale(1);filter:blur(0) grayscale(1)}}
+            @media(max-width:650px){.death-save-action-grid{grid-template-columns:minmax(0,1fr)!important;gap:14px!important}.death-save-action{order:-1}.death-save-die-stage{height:148px}.death-save-die-art .sb-poly-die{scale:.87}.death-save-action-grid>div{width:100%}}
+            @media(prefers-reduced-motion:reduce){.death-save-die-stage,.death-save-die-button,.death-save-die-art .sb-poly-face,.death-save-ambient,.death-save-die-shadow,.death-save-die-stage::before,.death-save-die-stage::after,.death-save-last-breath::before,.death-save-last-breath .death-card-arrive{animation:none!important;transition:none!important}}
+            /* V66.2.175 — faixa de salvamentos: sem modal, sem backdrop, ficha sempre utilizável. */
+            .sb-death-strip { --sb-death-red:#b75050; --sb-death-green:#248268; }
+            .sb-death-strip-inner{display:flex;flex-direction:column;gap:6px;padding:10px 13px 9px;border-radius:15px;border:1px solid color-mix(in srgb,var(--theme-border-strong,var(--theme-border)) 70%,var(--sb-death-red) 30%);background:linear-gradient(120deg,color-mix(in srgb,var(--theme-surface-card) 95%,var(--sb-death-red) 5%),var(--theme-surface-card));box-shadow:0 7px 22px rgba(45,19,17,.13),inset 0 1px 0 rgba(255,255,255,.14);color:var(--theme-text-primary)}
+            .sb-death-strip-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:1px 1px 3px;border-bottom:1px solid color-mix(in srgb,var(--theme-border-soft) 80%,transparent)}
+            .sb-death-strip-heading strong{display:block;font:900 15px/1.14 Georgia,serif;color:var(--theme-text-strong)}
+            .sb-death-strip-overline{display:block;margin-bottom:3px;font:850 8px/1 system-ui,sans-serif;letter-spacing:.17em;text-transform:uppercase;color:var(--sb-death-red)}
+            .sb-death-strip-subtitle{margin-top:3px;font:650 9px/1.2 system-ui,sans-serif;color:var(--theme-text-secondary)}
+            .sb-death-strip-collapse{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;color:var(--theme-text-secondary);border:1px solid var(--theme-border-soft);background:var(--theme-surface-raised);cursor:pointer}
+            .sb-death-strip-collapse:hover{background:var(--theme-card-hover);color:var(--theme-text-strong)}
+            .sb-death-strip-action{display:flex;align-items:center;justify-content:center;gap:13px;min-height:73px}
+            .sb-death-track{flex:1 1 130px;min-width:0;max-width:165px;padding:7px 9px 9px;border:1px solid color-mix(in srgb,var(--theme-border-soft) 84%,var(--sb-death-green) 16%);border-radius:11px;background:color-mix(in srgb,var(--theme-surface-raised) 93%,var(--sb-death-green) 7%)}
+            .sb-death-track.is-failure{border-color:color-mix(in srgb,var(--theme-border-soft) 84%,var(--sb-death-red) 16%);background:color-mix(in srgb,var(--theme-surface-raised) 93%,var(--sb-death-red) 7%)}
+            .sb-death-track-head{display:flex;align-items:center;justify-content:space-between;gap:4px;margin-bottom:6px;color:var(--theme-text-secondary);font:850 9px/1.1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.05em}
+            .sb-death-track-head strong{font:900 12px/1 Georgia,serif;color:var(--sb-death-green)}
+            .sb-death-track.is-failure .sb-death-track-head strong{color:var(--sb-death-red)}
+            .sb-death-track-pips{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+            .sb-death-pip{width:23px;height:23px;border:1px solid color-mix(in srgb,var(--theme-border-strong,var(--theme-border)) 76%,var(--sb-death-green) 24%);border-radius:50%;background:var(--theme-surface-card);color:transparent;display:grid;place-items:center;cursor:pointer;transition:transform .18s,background .18s,border-color .18s}
+            .sb-death-track.is-failure .sb-death-pip{border-color:color-mix(in srgb,var(--theme-border-strong,var(--theme-border)) 76%,var(--sb-death-red) 24%)}
+            .sb-death-pip.is-filled{background:var(--sb-death-green);border-color:var(--sb-death-green);color:white}
+            .sb-death-track.is-failure .sb-death-pip.is-filled{background:var(--sb-death-red);border-color:var(--sb-death-red)}
+            .sb-death-pip:hover:not(:disabled){transform:scale(1.08)}
+            .sb-death-die-launch{position:relative;flex:none;width:81px;height:81px;display:grid;place-items:center;background:none;border:0;outline-offset:1px;cursor:grab;touch-action:none;user-select:none;transition:filter .16s ease}
+            .sb-death-die-launch .sb-poly-die{pointer-events:none;transform:translate3d(var(--death-grab-x,0px),var(--death-grab-y,0px),0) rotate(var(--death-grab-angle,0deg));filter:drop-shadow(0 7px 7px rgba(0,0,0,.26));transition:transform .22s cubic-bezier(.2,.76,.28,1)}
+            .sb-death-die-launch .sb-poly-number{rotate:calc(-1 * var(--death-grab-angle,0deg))}
+            .sb-death-die-launch.is-grabbed{cursor:grabbing}.sb-death-die-launch.is-grabbed .sb-poly-die{transition:none!important}
+            .sb-death-die-launch:hover:not(:disabled){filter:brightness(1.1)}
+            .sb-death-die-launch.is-busy .sb-poly-die{opacity:.36}
+            .sb-death-roll-cta{flex:none;padding:10px 12px;border:1px solid var(--theme-accent-strong,var(--theme-accent));border-radius:10px;background:var(--theme-button-background,var(--theme-accent));color:var(--theme-button-text,#fff);font:850 10px/1 system-ui,sans-serif;cursor:pointer;white-space:nowrap;transition:filter .18s ease,transform .18s ease}
+            .sb-death-roll-cta:hover:not(:disabled){filter:brightness(1.13);transform:translateY(-1px)}
+            .sb-death-roll-cta:disabled,.sb-death-die-launch:disabled{opacity:.6;cursor:not-allowed}
+            .sb-death-strip-feedback{display:flex;align-items:center;gap:10px;justify-content:center;min-height:10px;text-align:center;font:750 10px/1.25 system-ui,sans-serif;color:var(--theme-text-secondary)}
+            .sb-death-strip-feedback .is-gold{color:#c6963f}.sb-death-strip-feedback .is-red,.sb-death-strip-feedback .is-error{color:var(--sb-death-red)}
+            .sb-death-save-retry{border:1px solid var(--theme-border-soft);border-radius:7px;padding:4px 8px;background:var(--theme-surface-raised);font:850 9px/1 system-ui,sans-serif;color:var(--theme-text-strong)}
+            @media(max-width:620px){.sb-death-strip-inner{gap:7px;padding:9px}.sb-death-strip-action{flex-wrap:wrap;gap:6px}.sb-death-track{flex:1 1 35%;max-width:none;order:2}.sb-death-die-launch{order:0;width:83px;height:83px}.sb-death-roll-cta{order:1}.sb-death-strip-subtitle{font-size:9px}}
+            /* V66.2.176 — faixa leve e dados liberados para toda a viewport. */
+            .sb-death-strip{--sb-death-red:#a65b5d;--sb-death-green:#337c67}
+            .sb-death-strip-inner{position:relative;gap:8px!important;padding:13px 15px 10px!important;border-radius:18px!important;border:1px solid color-mix(in srgb,var(--theme-border-soft) 75%,var(--sb-death-red) 25%)!important;background:linear-gradient(145deg,color-mix(in srgb,var(--theme-surface-card) 97%,var(--sb-death-red) 3%),var(--theme-surface-card))!important;box-shadow:0 7px 21px rgba(42,19,17,.09),inset 0 1px 0 color-mix(in srgb,var(--theme-paper-strong) 20%,transparent)!important}
+            .sb-death-strip-heading{padding:0 0 7px!important;border-bottom:1px solid color-mix(in srgb,var(--theme-border-soft) 75%,transparent)!important}
+            .sb-death-strip-identity{display:flex;align-items:center;gap:10px;min-width:0}
+            .sb-death-strip-symbol{width:32px;height:32px;display:grid;place-items:center;flex:none;border-radius:10px;background:color-mix(in srgb,var(--theme-accent) 12%,var(--theme-surface-raised));border:1px solid color-mix(in srgb,var(--theme-accent) 19%,var(--theme-border-soft));color:var(--theme-accent-strong,var(--theme-accent));font-size:19px;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--theme-paper-strong) 23%,transparent)}
+            .sb-death-strip-heading strong{font:900 16px/1.12 Georgia,serif!important;letter-spacing:-.02em}
+            .sb-death-strip-subtitle{font:650 10px/1.32 system-ui,sans-serif!important;margin-top:3px!important}
+            .sb-death-strip-collapse{width:28px!important;height:28px!important;border-radius:9px!important}
+            .sb-death-strip-action{gap:15px!important;min-height:110px!important;align-items:center!important}
+            .sb-death-track{flex:1 1 142px!important;max-width:none!important;padding:10px 12px 12px!important;border-radius:12px!important;background:color-mix(in srgb,var(--theme-surface-card) 91%,var(--sb-death-green) 9%)!important;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--theme-paper-strong) 20%,transparent)}
+            .sb-death-track.is-failure{background:color-mix(in srgb,var(--theme-surface-card) 91%,var(--sb-death-red) 9%)!important}
+            .sb-death-track-head{margin-bottom:10px!important;font-size:10px!important;letter-spacing:.065em!important}
+            .sb-death-track-head strong{font-size:16px!important}
+            .sb-death-track-pips{gap:12px!important}
+            .sb-death-pip{width:26px!important;height:26px!important;border-width:1.5px!important;box-shadow:inset 0 1px 0 color-mix(in srgb,var(--theme-paper-strong) 17%,transparent)}
+            .sb-death-die-home{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:113px;gap:1px}
+            .sb-death-die-home-hint{font:800 9px/1.1 system-ui,sans-serif;text-transform:uppercase;letter-spacing:.11em;color:var(--theme-text-secondary);opacity:.8}
+            .sb-death-die-launch{width:111px!important;height:111px!important;border-radius:20px!important}
+            .sb-death-die-launch .sb-poly-die{transform:none!important;filter:drop-shadow(0 12px 9px rgba(0,0,0,.19))!important;transition:filter .22s ease,scale .22s ease!important}
+            .sb-death-die-launch:hover:not(:disabled) .sb-poly-die{scale:1.065;filter:drop-shadow(0 16px 10px rgba(0,0,0,.24)) drop-shadow(0 0 9px color-mix(in srgb,var(--theme-accent) 18%,transparent))!important}
+            .sb-death-die-launch.is-ghosted .sb-poly-die{visibility:hidden!important}
+            .sb-death-die-launch.is-busy .sb-poly-die{opacity:.32}
+            .sb-death-roll-cta{display:flex!important;align-items:center;justify-content:center;flex-direction:column;gap:4px;padding:9px!important;min-width:54px!important;border-radius:12px!important;font-size:9px!important;line-height:1.1!important}
+            .sb-death-strip-feedback{font:750 10px/1.25 system-ui,sans-serif!important}
+            .sb-death-strip-feedback:empty{display:none}
+            .sb-death-drag-ghost{position:fixed;left:0;top:0;z-index:455;pointer-events:none!important;user-select:none;will-change:top,left,transform;transform:translate3d(-50%,-50%,0) rotate(var(--sb-death-ghost-angle,0deg));filter:drop-shadow(0 20px 16px rgba(0,0,0,.32));display:grid;place-items:center;color:var(--theme-text-strong)}
+            .sb-death-drag-ghost .sb-poly-die{scale:1.02;--sb-die-base:color-mix(in srgb,var(--theme-accent-strong,#813d35) 75%,#72463e 25%);filter:drop-shadow(0 2px 2px rgba(0,0,0,.17))}
+            .sb-death-drag-ghost .sb-poly-number{rotate:var(--sb-death-ghost-counter,0deg)!important}
+            @media(max-width:720px){.sb-death-strip-inner{padding:10px!important}.sb-death-strip-action{gap:7px!important;flex-wrap:wrap}.sb-death-track{flex:1 1 32%!important;order:2;padding:9px 7px!important}.sb-death-die-home{order:0;min-width:100px}.sb-death-roll-cta{order:1;min-width:57px!important}.sb-death-pip{width:24px!important;height:24px!important}.sb-death-track-pips{gap:6px!important}}
+            @media(max-width:720px){
+                .sb-death-strip-action{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;align-items:center;justify-items:center;gap:10px!important}
+                .sb-death-die-home{grid-column:1;grid-row:1;order:initial!important}
+                .sb-death-roll-cta{grid-column:2;grid-row:1;order:initial!important;min-width:76px!important;min-height:50px}
+                .sb-death-track{width:100%;max-width:none;min-width:0!important;flex:none!important;order:initial!important}
+                .sb-death-track.is-success{grid-column:1;grid-row:2}
+                .sb-death-track.is-failure{grid-column:2;grid-row:2}
+            }
+            @media(prefers-reduced-motion:reduce){.sb-death-drag-ghost,.sb-death-die-launch .sb-poly-die{transition:none!important;animation:none!important}}
+
+            /* V66.2.177 — Salvamento compacto: apenas contadores, dado e ações necessárias. */
+            .sb-death-strip{max-width:690px!important}
+            .sb-death-strip-inner{padding:12px 16px 11px!important;border-radius:17px!important;border-color:color-mix(in srgb,var(--theme-border-soft) 72%,var(--sb-death-red) 28%)!important;background:linear-gradient(165deg,color-mix(in srgb,var(--theme-surface-card) 98%,var(--sb-death-red) 2%),var(--theme-surface-card))!important;box-shadow:0 10px 26px rgba(50,20,18,.09),inset 0 1px 0 color-mix(in srgb,var(--theme-paper-strong) 23%,transparent)!important}
+            .sb-death-strip-heading{padding:0 0 9px!important;border-bottom:1px solid color-mix(in srgb,var(--theme-border-soft) 76%,transparent)!important}
+            .sb-death-strip-identity{gap:0!important}
+            .sb-death-strip-heading strong{font:900 17px/1.15 Georgia,serif!important;letter-spacing:-.014em!important}
+            .sb-death-strip-subtitle{font-size:10px!important;color:var(--theme-text-secondary)!important}
+            .sb-death-strip-collapse{width:24px!important;height:24px!important;border-radius:7px!important;background:transparent!important;font:800 20px/1 system-ui,sans-serif!important;color:var(--theme-text-secondary)!important;border:1px solid transparent!important}
+            .sb-death-strip-collapse:hover,.sb-death-strip-collapse:focus-visible{background:var(--theme-card-hover)!important;border-color:var(--theme-border-soft)!important;color:var(--theme-text-strong)!important}
+            .sb-death-strip-action{min-height:91px!important;gap:14px!important}
+            .sb-death-track{padding:8px 11px!important;background:transparent!important;border:1px solid color-mix(in srgb,var(--theme-border-soft) 78%,var(--sb-death-green) 22%)!important;border-radius:10px!important;box-shadow:none!important}
+            .sb-death-track.is-failure{background:transparent!important;border-color:color-mix(in srgb,var(--theme-border-soft) 78%,var(--sb-death-red) 22%)!important}
+            .sb-death-track-head{margin-bottom:7px!important;font-size:9px!important;letter-spacing:.07em!important}
+            .sb-death-track-pips{gap:10px!important}
+            .sb-death-pip{width:25px!important;height:25px!important;box-shadow:inset 0 1px 1px rgba(0,0,0,.025)!important}
+            .sb-death-die-home{min-width:106px!important}
+            .sb-death-die-launch{width:104px!important;height:104px!important}
+            .sb-death-die-launch .sb-poly-die{transition:scale .2s ease,filter .2s ease!important}
+            .sb-death-die-home-hint{font-size:9px!important;letter-spacing:.06em!important}
+            .sb-death-roll-cta{display:grid!important;place-items:center!important;min-width:70px!important;min-height:37px!important;padding:8px 11px!important;font:850 10px/1 system-ui,sans-serif!important;border-radius:9px!important;box-shadow:0 5px 12px color-mix(in srgb,var(--theme-accent) 13%,transparent)!important}
+            .sb-death-strip-feedback{min-height:20px!important;gap:12px!important;font-size:10px!important}
+            .sb-death-save-retry{padding:5px 8px!important;border-radius:8px!important}
+            .sb-death-drag-ghost{will-change:transform,opacity!important;contain:layout style;filter:drop-shadow(0 16px 14px rgba(0,0,0,.26))!important}
+            .sb-death-drag-ghost .sb-poly-die{transition:none!important}
+            @media(max-width:720px){.sb-death-strip-inner{padding:10px!important}.sb-death-strip-action{min-height:0!important;gap:9px!important}.sb-death-die-launch{width:96px!important;height:96px!important}.sb-death-track{padding:7px 8px!important}.sb-death-roll-cta{min-width:86px!important;min-height:40px!important}}
+
+            /* Memorial persistente. O navegador é utilizável e não recebe filtro cinza. */
+            body.sb-character-deceased .sb-nav83 {
+                background:linear-gradient(180deg,#303033,#29282b)!important;
+                border-right:1px solid #65534d!important;
+                color:#e6d4c3!important;
+                filter:none!important;
+                box-shadow:inset -1px 0 0 rgba(225,188,141,.09);
+                transition:background .65s ease,border-color .65s ease;
+            }
+            body.sb-character-deceased .sb-nav83__top,
+            body.sb-character-deceased .sb-nav83__footer {border-color:rgba(219,185,149,.17)!important}
+            body.sb-character-deceased .sb-nav83 .sb-nav83__logo {
+                background:#66504a!important;color:#fff3e5!important;
+                box-shadow:inset 0 0 0 1px rgba(233,189,144,.35),0 2px 8px rgba(0,0,0,.18)!important;
+            }
+            body.sb-character-deceased .sb-nav83 .sb-nav83__link {
+                color:#c7b3a5!important;background:transparent!important;
+            }
+            body.sb-character-deceased .sb-nav83 .sb-nav83__link:is(:hover,:focus-visible),
+            body.sb-character-deceased .sb-nav83 .sb-nav83__link--active {
+                color:#f7e3ce!important;background:rgba(206,160,129,.15)!important;
+            }
+            body.sb-character-deceased .sb-nav83 .sb-nav83__link--active::before {
+                background:#c9a08a!important;
+            }
+            body.sb-character-deceased .sb-nav83__tooltip,
+            body.sb-character-deceased .sb-sheet-tools-sidebar .sb-nav83__tooltip {
+                background:#383235!important;color:#f6e5d7!important;
+                border-color:#77615a!important;
+            }
+            body.sb-character-deceased .sb-sheet-tools-sidebar {
+                border-top-color:rgba(212,168,141,.22)!important;
+            }
+            body.sb-character-deceased .sb-sheet-tools-sidebar .sb-nav83__link {
+                color:#cbb8a9!important;background:transparent!important;
+            }
+            body.sb-character-deceased .sb-sheet-tools-sidebar .sb-nav83__link:is(:hover,:focus-visible),
+            body.sb-character-deceased .sb-sheet-tools-sidebar .sb-nav83__link.is-open {
+                color:#f6e4d1!important;background:rgba(206,160,129,.15)!important;
+            }
+            /* O escurecimento não captura eventos da navegação. */
+            body.sheet-death-screen-active .sb-nav83,
+            body.sb-character-deceased .sb-nav83 {pointer-events:auto}
+
+            /* V66.2.179 — Salvamentos como ferramenta flutuante, sem aumentar header. */
+            .sb-death-floating{position:fixed!important;right:82px;bottom:25px;left:auto;top:auto;z-index:285!important;width:min(420px,calc(100vw - 88px))!important;max-width:none!important;margin:0!important;pointer-events:auto;color:var(--theme-text-primary);font-family:system-ui,-apple-system,'Segoe UI',sans-serif}
+            /* V66.2.184: um portal remanescente nunca pode aparecer com PV positivos.
+               Por padrão, o componente é invisível; Alpine libera a exibição
+               somente se todas as regras de salvamento forem atendidas. */
+            .sb-death-floating:not([data-death-visible="true"]){display:none!important}
+            .sb-death-floating .sb-death-strip-inner{gap:7px!important;padding:12px 14px 10px!important;border-radius:18px!important;border:1px solid color-mix(in srgb,var(--theme-border-strong,var(--theme-border)) 77%,#8b3d39 23%)!important;background:linear-gradient(160deg,var(--theme-surface-card),color-mix(in srgb,var(--theme-surface-card) 92%,#a36356 8%))!important;box-shadow:0 15px 42px rgba(31,21,19,.23),0 3px 9px rgba(0,0,0,.075),inset 0 1px 0 rgba(255,255,255,.32)!important}
+            .sb-death-floating .sb-death-strip-heading{cursor:grab;touch-action:none;user-select:none;padding:0 0 7px!important;gap:7px!important;border-bottom:1px solid color-mix(in srgb,var(--theme-border-soft) 64%,transparent)!important}
+            .sb-death-floating .sb-death-strip-heading.is-moving{cursor:grabbing}
+            .sb-death-floating .sb-death-strip-heading strong{font:900 16px/1.15 Georgia,serif!important;letter-spacing:0!important}
+            .sb-death-floating .sb-death-strip-subtitle{font:650 9px/1.15 system-ui,sans-serif!important;letter-spacing:.01em;opacity:.77;margin-top:2px!important}
+            .sb-death-floating .sb-death-strip-collapse{flex:none;width:24px!important;height:24px!important;border-radius:50%!important;border:1px solid color-mix(in srgb,var(--theme-border-soft) 70%,transparent)!important;background:color-mix(in srgb,var(--theme-surface-raised) 84%,transparent)!important;font:900 16px/1 system-ui,sans-serif!important}
+            .sb-death-floating .sb-death-strip-action{display:grid!important;grid-template-columns:minmax(0,1fr) 104px minmax(0,1fr)!important;gap:6px!important;align-items:center!important;min-height:97px!important}
+            .sb-death-floating .sb-death-track,.sb-death-floating .sb-death-track.is-failure{order:initial!important;grid-row:1!important;flex:none!important;max-width:none!important;min-width:0!important;width:100%!important;border:0!important;border-radius:0!important;border-top:1px solid color-mix(in srgb,var(--theme-border-soft) 60%,transparent)!important;background:none!important;padding:9px 2px 3px!important;box-shadow:none!important}
+            .sb-death-floating .sb-death-track.is-success{grid-column:1!important}.sb-death-floating .sb-death-track.is-failure{grid-column:3!important}
+            .sb-death-floating .sb-death-track-head{margin-bottom:12px!important;font:850 8px/1 system-ui,sans-serif!important;letter-spacing:.1em!important}
+            .sb-death-floating .sb-death-track-head strong{font:900 14px/1 Georgia,serif!important}
+            .sb-death-floating .sb-death-track-pips{gap:7px!important;justify-content:center!important}
+            .sb-death-floating .sb-death-pip{width:22px!important;height:22px!important;border-radius:50%!important;border-width:1px!important;transition:transform .15s ease,background .2s ease!important}
+            .sb-death-floating .sb-death-die-home{grid-column:2!important;grid-row:1!important;order:initial!important;min-width:0!important;width:104px!important;height:105px!important;display:grid!important;place-items:center!important;align-self:center!important}
+            .sb-death-floating .sb-death-die-launch{display:grid!important;place-items:center!important;width:102px!important;height:102px!important;grid-row:1!important;grid-column:1!important;touch-action:none!important;cursor:grab!important}
+            .sb-death-floating .sb-death-die-launch:disabled{cursor:not-allowed!important}
+            .sb-death-floating .sb-death-die-launch .sb-poly-die{transition:scale .23s cubic-bezier(.22,.75,.24,1),filter .23s ease!important;filter:drop-shadow(0 10px 8px rgba(0,0,0,.24))!important;pointer-events:none}
+            .sb-death-floating .sb-death-die-launch:hover:not(:disabled) .sb-poly-die{scale:1.065;filter:drop-shadow(0 14px 11px rgba(0,0,0,.29)) drop-shadow(0 0 10px color-mix(in srgb,var(--theme-accent) 20%,transparent))!important}
+            .sb-death-floating .sb-death-die-home-hint{grid-row:1;grid-column:1;align-self:end;justify-self:center;margin-bottom:-1px;font:900 8px/1 system-ui,sans-serif!important}
+            .sb-death-floating .sb-death-strip-feedback{min-height:16px!important;gap:8px!important;justify-content:center!important;font:800 10px/1.25 system-ui,sans-serif!important}
+            .sb-death-floating .sb-death-save-retry{font-size:9px!important;border-radius:9px!important;cursor:pointer}
+            .sb-death-drag-ghost{z-index:450!important;transform-origin:50% 50%;filter:drop-shadow(0 17px 17px rgba(0,0,0,.28))!important}
+            .hero-header-segment .sb-death-compact-tab{position:absolute!important;left:50%;bottom:-17px;right:auto;top:auto;transform:translateX(-50%);z-index:55!important;margin:0!important;white-space:nowrap}
+            .sb-death-compact-tab .hero-death-tab-button{min-height:37px;height:auto!important;padding:9px 13px!important;gap:7px!important;border-radius:999px!important;background:var(--theme-surface-card)!important;color:var(--theme-text-strong)!important;border:1px solid color-mix(in srgb,var(--theme-border-soft) 72%,var(--theme-accent) 28%)!important;box-shadow:0 8px 20px rgba(0,0,0,.12)!important;font-size:9px!important}
+            .sb-death-tab-count{font:900 9px/1 Georgia,serif;color:var(--theme-state-damage,#b7514e);padding-left:5px;border-left:1px solid var(--theme-border-soft)}
+            .sb-death-compact-tab .hero-death-tab-button.is-open{border-color:color-mix(in srgb,var(--theme-accent) 42%,var(--theme-border-soft))!important;box-shadow:0 10px 24px rgba(0,0,0,.14)!important}
+            @media(max-width:620px){.sb-death-floating{right:10px;bottom:12px;width:min(410px,calc(100vw - 20px))!important}.sb-death-floating .sb-death-strip-inner{padding:10px!important}.sb-death-floating .sb-death-strip-action{grid-template-columns:minmax(0,1fr) 84px minmax(0,1fr)!important;min-height:82px!important;gap:4px!important}.sb-death-floating .sb-death-die-home{width:84px!important;height:88px!important}.sb-death-floating .sb-death-die-launch{width:84px!important;height:84px!important}.sb-death-floating .sb-death-die-launch .sb-poly-die{scale:.74}.sb-death-floating .sb-death-pip{width:20px!important;height:20px!important}.sb-death-floating .sb-death-track-pips{gap:4px!important}.hero-header-segment .sb-death-compact-tab{bottom:-17px!important;top:auto!important;left:50%!important;right:auto!important}}
+            @media(prefers-reduced-motion:reduce){.sb-death-floating .sb-death-die-launch .sb-poly-die{transition:none!important}}
+
+            /* V66.2.181 — A despedida usa a apresentação clássica.
+               Apenas mantém contraste e disponibiliza a navegação. */
+            .sb-death-final-card .death-revive-reveal button {font-family:Georgia,serif}
+            .sb-death-finale {background:rgba(10,9,10,.54);backdrop-filter:blur(3px)}
+            .sb-death-final-card {box-shadow:0 28px 92px rgba(0,0,0,.54)!important}
+
+            /* V66.2.181 — Atalho preso ao próprio header, estado de morte persistente. */
+            .hero-header-segment .sb-death-compact-tab{pointer-events:auto}
+            .hero-header-segment .sb-death-compact-tab .hero-death-tab-button{
+                background:var(--theme-surface-card,#fffaf2)!important;
+                border:1px solid color-mix(in srgb,var(--theme-border-soft,#cab5a0) 70%,var(--theme-accent,#9c6f54) 30%)!important;
+                color:var(--theme-text-strong,#553b2f)!important;
+                box-shadow:0 5px 16px rgba(55,33,28,.11),inset 0 1px 0 rgba(255,255,255,.35)!important;
+            }
+            .hero-header-segment .sb-death-compact-tab .hero-death-tab-button:hover{
+                background:var(--theme-card-hover,#faf2e8)!important;
+                transform:translateY(-2px);
+            }
+            /* V66.2.182 — o estado faz parte do retrato, não do rodapé do hero. */
+            .hero-header-identity-zone.sb-identity-deceased .hero-data-status-strip{
+                cursor:pointer!important;outline-offset:2px;
+                border-color:#958885!important;
+                background:linear-gradient(180deg,#e8e3de,#d9d4ce)!important;
+                transition:background .18s ease,box-shadow .18s ease;
+            }
+            .hero-header-identity-zone.sb-identity-deceased .hero-data-status-strip:is(:hover,:focus-visible){
+                background:#eee7e0!important;box-shadow:0 0 0 2px rgba(154,132,121,.24)!important;
+            }
+            .hero-header-identity-zone.sb-identity-deceased .hero-data-status-text{color:#645957!important;letter-spacing:.09em!important;font-size:9px!important}
+            .hero-header-identity-zone.sb-identity-deceased .hero-data-status-dot{background:#766b69!important;box-shadow:0 0 0 3px rgba(122,109,101,.12)}
+            /* Remover recorte imposto pelo Theme Core: aba metade abaixo da borda. */
+            .character-sheet-theme[data-theme] .hero-header-segment:has(.sb-death-compact-tab){overflow:visible!important}
+            .hero-header-segment .sb-death-compact-tab{
+                bottom:0!important;left:50%!important;top:auto!important;right:auto!important;
+                transform:translate(-50%,50%)!important;z-index:210!important;pointer-events:auto!important;
+            }
+            .hero-header-segment .sb-death-compact-tab .hero-death-tab-button{min-height:33px!important;border-radius:999px!important}
+            @media(max-width:620px){.hero-header-segment .sb-death-compact-tab{bottom:0!important}}
+            /* Confirmação de reviver: não bloqueia a ficha até uma cura ser solicitada. */
+            .sb-revive-confirm-layer{position:fixed;inset:0;z-index:650;display:grid;place-items:center;padding:16px;isolation:isolate}
+            .sb-revive-confirm-backdrop{position:absolute;inset:0;background:rgba(15,13,15,.65);backdrop-filter:blur(3px)}
+            .sb-revive-confirm-card{position:relative;width:min(390px,100%);padding:27px 25px 22px;text-align:center;
+                border:1px solid #9d8177;border-radius:23px;background:linear-gradient(180deg,#faf6f1,#eee4da);
+                box-shadow:0 27px 80px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.7);color:#463735}
+            .sb-revive-confirm-seal{margin:0 auto 10px;display:grid;place-items:center;width:39px;height:39px;border-radius:50%;
+                border:1px solid #b9a39a;background:#e9dfd8;color:#7a625b;font:600 22px/1 Georgia,serif}
+            .sb-revive-confirm-overline{font:850 9px/1 system-ui,sans-serif;letter-spacing:.17em;text-transform:uppercase;color:#947b71}
+            .sb-revive-confirm-card h2{margin:9px 0 10px;font:900 21px/1.17 Georgia,serif;color:#3e302e}
+            .sb-revive-confirm-copy{font:600 12px/1.55 system-ui,sans-serif;color:#70605a}
+            .sb-revive-confirm-copy strong{color:#463735}
+            .sb-revive-confirm-error{margin:11px 0 0;color:#a2322a;font:750 11px/1.4 system-ui,sans-serif}
+            .sb-revive-confirm-actions{margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+            .sb-revive-confirm-actions button{padding:11px 12px;border-radius:10px;font:850 11px/1 system-ui,sans-serif;cursor:pointer;transition:filter .2s ease}
+            .sb-revive-confirm-actions button:disabled{opacity:.6;cursor:wait}
+            .sb-revive-confirm-cancel{background:#fffaf5;border:1px solid #d6c5b6;color:#65544e}
+            .sb-revive-confirm-accept{background:#684a43;border:1px solid #684a43;color:#fff8ef;box-shadow:0 6px 15px rgba(78,40,34,.16)}
+            .sb-revive-confirm-actions button:hover:not(:disabled){filter:brightness(1.07)}
+
         </style>
     @endpush
 @endonce
@@ -3499,6 +3799,10 @@
         */
 
         deathSequenceStarted: false,
+        deathSequenceDismissed: (() => {
+            try { return sessionStorage.getItem('spellbound-death-ack-{{ (int) $character->id }}') === '1'; }
+            catch (_error) { return false; }
+        })(),
         deathHopeVisible: false,
         deathReviveVisible: false,
 
@@ -3507,6 +3811,10 @@
 
         deathReviving: false,
         deathReviveError: null,
+        // Cura sobre um personagem já falecido requer confirmação explícita.
+        reviveHealPrompt: null,
+        reviveHealBusy: false,
+        reviveHealError: null,
 
         morquenReviveUrl:
             @js(
@@ -3528,6 +3836,25 @@
         deathRollPreview: null,
         deathRollResult: null,
         deathRollSettled: false,
+        deathRollError: null,
+        deathRollPendingResult: null,
+        deathRollVariant: 0,
+        deathRollSequence: 0,
+        deathAutoPrompted: false,
+        deathTurnActive: false,
+        deathTurnSeen: false,
+        deathTurnKey: null,
+        deathTurnResolved: false,
+        deathByRoll: false,
+        deathDieDrag: null,
+        // A peça arrastada vive no body; jamais fica recortada pelo cabeçalho.
+        deathDieGhost: null,
+        deathGhostFrame: null,
+        deathGhostTarget: null,
+        deathDieOffset: {x:0,y:0,tilt:0},
+        deathDieRelease: {x:0,y:0},
+        deathPanelAt: null,
+        deathPanelDragging: null,
 
         stabilizationEffect: false,
 
@@ -3909,7 +4236,7 @@
 
         get statusLabel() {
             if (this.isDead) {
-                return '';
+                return 'Falecido';
             }
 
             if (this.isMorquenConsciousAtZero) {
@@ -3938,7 +4265,7 @@
 
         get statusClass() {
             if (this.isDead) {
-                return 'text-red-700';
+                return 'text-[#786663]';
             }
 
             if (this.isMorquenConsciousAtZero) {
@@ -5235,30 +5562,320 @@
         |--------------------------------------------------------------------------
         */
 
-        openDeathDrawer() {
-            if (!this.isDying) {
-                return;
-            }
-
-            this.deathDrawerOpen =
-                true;
+        // O painel é criado apenas quando o personagem realmente precisa
+        // fazer salvamentos. Incluímos a checagem explícita de PV para evitar
+        // depender de uma janela aberta em uma instância anterior do Alpine.
+        deathSavePanelEligible() {
+            return Number(this.currentHp) <= 0
+                && Number(this.exhaustionLevel) < 6
+                && this.isDying
+                && !this.isDead
+                && !this.isStable
+                && this.deathSaveSuccesses < this.deathSuccessLimit
+                && this.deathSaveFailures < this.deathFailureLimit;
         },
 
+        deathSavePanelVisible() {
+            return this.deathSavePanelEligible() && !!this.deathDrawerOpen;
+        },
+
+        // Em navegações internas, um x-teleport de uma ficha anterior pode
+        // sobreviver fora da árvore da ficha. Limpar esses órfãos no início
+        // evita que uma rolagem antiga apareça sobre outro personagem.
+        clearOrphanDeathPanels() {
+            document.querySelectorAll('.sb-death-floating').forEach((panel) => {
+                panel.remove();
+            });
+        },
+
+        openDeathDrawer() {
+            if (!this.deathSavePanelEligible()) return;
+            this.deathDrawerOpen = true;
+        },
 
         closeDeathDrawer() {
-            this.deathDrawerOpen =
-                false;
-
-            this.deathRollResult =
-                null;
-
-            this.deathRollPreview =
-                null;
-
-            this.deathRollSettled =
-                false;
+            if (this.deathRolling) return;
+            this.deathDrawerOpen = false;
+            this.cancelDeathDieDrag();
         },
 
+        // Um pedido inicial quando o personagem chega a 0 PV. Fechar a gaveta
+        // manualmente não abre a mesma gaveta novamente a cada atualização.
+        syncDeathSaveAvailability(dying) {
+            // Não reabrir o painel se o personagem recuperou PV,
+            // estabilizou ou morreu, mesmo após uma atualização externa.
+            const alive = this.currentHp > 0 && !this.isDead;
+            const resolved = !this.deathSavePanelEligible();
+            if (resolved) {
+                this.deathDrawerOpen = false;
+                if (!this.deathRolling) this.cancelDeathDieDrag();
+                if (this.isStable) this.deathTurnResolved = true;
+                if (alive) {
+                    this.deathAutoPrompted = false;
+                    this.deathTurnResolved = false;
+                    this.deathByRoll = false;
+                    this.deathRollPendingResult = null;
+                }
+                return;
+            }
+            if (dying && !this.deathAutoPrompted) {
+                this.deathAutoPrompted = true;
+                this.deathDrawerOpen = true;
+            }
+            if (!dying) {
+                this.deathAutoPrompted = false;
+                this.deathTurnResolved = false;
+                this.deathByRoll = false;
+                this.deathDrawerOpen = false;
+                this.deathRollPendingResult = null;
+                this.cancelDeathDieDrag();
+            }
+        },
+
+        // A ficha já compartilha character-turn-state com Iniciativa.
+        // A mudança false -> true marca um novo turno; quando a origem envia
+        // rodada/ID, detectamos também mudança da chave sem duplicar o aviso.
+        syncDeathTurnState(payload) {
+            if (!payload || typeof payload !== 'object') return;
+            const active = !!payload.isCurrentTurn;
+            this.deathTurnSeen = true;
+            const suppliedKey = payload.turnKey ?? payload.turn_id
+                ?? payload.currentTurnId ?? payload.round_id
+                ?? payload.round_number ?? payload.round ?? null;
+            const key = suppliedKey == null ? null : String(suppliedKey);
+            const newTurn = active && (!this.deathTurnActive
+                || (key !== null && key !== this.deathTurnKey));
+            this.deathTurnActive = active;
+            if (key !== null) this.deathTurnKey = key;
+            if (newTurn && this.deathRollPendingResult === null && !this.deathRolling) {
+                this.deathTurnResolved = false;
+                if (this.isDying) {
+                    this.deathDrawerOpen = true;
+                    this.deathRollResult = null;
+                    this.deathRollPreview = null;
+                    this.deathRollSettled = false;
+                    this.deathRollError = null;
+                    this.deathDieOffset = {x:0,y:0,tilt:0};
+                }
+            }
+        },
+
+        deathDieStyle() {
+            // A miniatura nunca é deslocada: a peça na mão é movida pelo body.
+            return '--death-grab-x:0px;--death-grab-y:0px;--death-grab-angle:0deg;';
+        },
+
+        // A janela fica no body e nunca amplia o cabeçalho da ficha.
+        deathPanelStorageKey(){ return 'spellbound-death-panel-v179-{{ (int) $character->id }}'; },
+        restoreDeathPanelPosition(){
+            try {
+                const at=JSON.parse(localStorage.getItem(this.deathPanelStorageKey())||'null');
+                if(at && Number.isFinite(at.x) && Number.isFinite(at.y)) {
+                    this.deathPanelAt={x:at.x,y:at.y};
+                    this.$nextTick(()=>this.clampDeathPanelPosition());
+                }
+            } catch(_error) {}
+        },
+        deathPanelStyle(){
+            const at=this.deathPanelAt;
+            return at ? `left:${at.x}px;top:${at.y}px;right:auto;bottom:auto;` : '';
+        },
+        clampDeathPanelPosition(){
+            if(!this.deathPanelAt) return;
+            const el=this.$refs?.deathFloatingPanel;
+            const w=el?.offsetWidth||430, h=el?.offsetHeight||180;
+            this.deathPanelAt={
+                x:Math.max(7,Math.min(window.innerWidth-w-7,this.deathPanelAt.x)),
+                y:Math.max(7,Math.min(window.innerHeight-h-7,this.deathPanelAt.y)),
+            };
+        },
+        beginDeathPanelDrag(event){
+            if(event.pointerType==='mouse' && event.button!==0) return;
+            if(event.target.closest('button'))return;
+            const rect=this.$refs?.deathFloatingPanel?.getBoundingClientRect();
+            if(!rect)return;
+            this.deathPanelAt={x:rect.left,y:rect.top};
+            this.deathPanelDragging={id:event.pointerId,x:event.clientX,y:event.clientY,left:rect.left,top:rect.top};
+        },
+        moveDeathPanelDrag(event){
+            const drag=this.deathPanelDragging;
+            if(!drag || drag.id!==event.pointerId)return;
+            this.deathPanelAt={x:drag.left+event.clientX-drag.x,y:drag.top+event.clientY-drag.y};
+            this.clampDeathPanelPosition();
+        },
+        endDeathPanelDrag(){
+            if(!this.deathPanelDragging)return;
+            this.deathPanelDragging=null;
+            try{localStorage.setItem(this.deathPanelStorageKey(),JSON.stringify(this.deathPanelAt));}catch(_error){}
+        },
+
+        beginDeathDieDrag(event) {
+            if (!this.isDying || this.deathRolling || (this.deathTurnSeen && this.deathTurnResolved)
+                || this.deathRollPendingResult !== null) return;
+            if (event.pointerType === 'mouse' && event.button !== 0) return;
+            this.removeDeathDieGhost();
+            try{this.$refs?.deathSaveDie?.setPointerCapture?.(event.pointerId);}catch(_error){}
+            const rect=this.$refs?.deathSaveDie?.getBoundingClientRect();
+            this.deathDieDrag = {
+                id:event.pointerId, fromX:event.clientX, fromY:event.clientY,
+                centerX:rect ? rect.left+rect.width/2 : event.clientX,
+                centerY:rect ? rect.top+rect.height/2 : event.clientY,
+                lastX:event.clientX,lastY:event.clientY,
+                lastTime:event.timeStamp || performance.now(),
+                worldX:event.clientX,worldY:event.clientY,
+                vx:0,vy:0,tilt:0,moved:false,
+                samples:[{x:event.clientX,y:event.clientY,t:event.timeStamp||performance.now()}],
+            };
+            this.deathDieOffset = {x:0,y:0,tilt:0};
+        },
+
+        buildDeathDieGhost(drag) {
+            if (this.deathDieGhost || !drag) return;
+            const button=this.$refs?.deathSaveDie;
+            const poly=button?.querySelector('.sb-poly-die');
+            if (!poly) return;
+            const ghost=document.createElement('div');
+            ghost.className='character-sheet-theme sb-death-drag-ghost';
+            ghost.setAttribute('data-theme',this.$root.closest('[data-theme]')?.getAttribute('data-theme')||'spellbound');
+            ghost.setAttribute('aria-hidden','true');
+            const art=poly.cloneNode(true);
+            // Não registrar uma segunda instância Alpine dentro da peça fantasma.
+            [art,...art.querySelectorAll('*')].forEach(node=>{
+                for(const attr of [...node.attributes]) {
+                    if (/^(?:x-|@|:)/.test(attr.name)) node.removeAttribute(attr.name);
+                }
+            });
+            ghost.appendChild(art);
+            document.body.appendChild(ghost);
+            this.deathDieGhost=ghost;
+            button.classList.add('is-ghosted');
+        },
+
+        // Coalescer eventos do mouse em um único transform por quadro.
+        flushDeathDieGhost() {
+            if(this.deathGhostFrame!==null){window.cancelAnimationFrame(this.deathGhostFrame);this.deathGhostFrame=null;}
+            const ghost=this.deathDieGhost, at=this.deathGhostTarget;
+            if(!ghost || !at)return;
+            ghost.style.transform=`translate3d(${at.x.toFixed(2)}px,${at.y.toFixed(2)}px,0) translate3d(-50%,-50%,0) rotate(${at.tilt.toFixed(2)}deg)`;
+            ghost.style.setProperty('--sb-death-ghost-counter',(-at.tilt).toFixed(2)+'deg');
+        },
+        moveDeathDieGhost(drag) {
+            if(!this.deathDieGhost || !drag)return;
+            this.deathGhostTarget={x:Number(drag.worldX)||0,y:Number(drag.worldY)||0,tilt:Number(drag.tilt)||0};
+            if(this.deathGhostFrame!==null)return;
+            this.deathGhostFrame=window.requestAnimationFrame(()=>this.flushDeathDieGhost());
+        },
+
+        // O palco físico é compartilhado, mas pode precisar de um quadro
+        // para montar o DOM. A peça não deve congelar nessa passagem.
+        continueDeathDieFlight(drag,impulse){
+            const ghost=this.deathDieGhost;
+            if(!ghost || !drag || !ghost.animate)return;
+            const current=ghost.style.transform;
+            const speed=Math.max(.25,Math.min(1.6,impulse.speed||.5));
+            const distance=Math.max(7,Math.min(16,13*speed));
+            const dx=(impulse.vx/(impulse.speed||1))*distance;
+            const dy=(impulse.vy/(impulse.speed||1))*distance;
+            const end=`translate3d(${(drag.worldX+dx).toFixed(2)}px,${(drag.worldY+dy).toFixed(2)}px,0) translate3d(-50%,-50%,0) rotate(${(drag.tilt+speed*55).toFixed(2)}deg)`;
+            ghost.animate([
+                {transform:current,opacity:1,offset:0},
+                {transform:end,opacity:.88,offset:1},
+            ],{duration:170,easing:'cubic-bezier(.2,.35,.45,1)',fill:'forwards'});
+        },
+
+        removeDeathDieGhost() {
+            if(this.deathGhostFrame!==null)window.cancelAnimationFrame(this.deathGhostFrame);
+            this.deathGhostFrame=null;
+            this.deathGhostTarget=null;
+            this.deathDieGhost?.remove();
+            this.deathDieGhost=null;
+            this.$refs?.deathSaveDie?.classList.remove('is-ghosted');
+        },
+
+        putDeathDieGhostBack() {
+            const ghost=this.deathDieGhost;
+            const rect=this.$refs?.deathSaveDie?.getBoundingClientRect();
+            if (!ghost || !rect) {this.removeDeathDieGhost();return;}
+            ghost.style.transition='transform .22s cubic-bezier(.2,.83,.25,1),opacity .22s ease';
+            ghost.style.transform=`translate3d(${(rect.left+rect.width/2).toFixed(2)}px,${(rect.top+rect.height/2).toFixed(2)}px,0) translate3d(-50%,-50%,0) rotate(0deg)`;
+            ghost.style.opacity='0';
+            window.setTimeout(()=>{if(this.deathDieGhost===ghost)this.removeDeathDieGhost();else ghost.remove();},210);
+        },
+
+        moveDeathDieDrag(event) {
+            const drag=this.deathDieDrag;
+            if (!drag || drag.id!==event.pointerId) return;
+            const dx=event.clientX-drag.fromX;
+            const dy=event.clientY-drag.fromY;
+            if (Math.hypot(dx,dy)>6) drag.moved=true;
+            const now=event.timeStamp||performance.now();
+            const dt=Math.max(8,now-drag.lastTime);
+            const deltaX=event.clientX-drag.lastX, deltaY=event.clientY-drag.lastY;
+            if(Math.hypot(deltaX,deltaY)>.15){
+                drag.vx=drag.vx*.44+(deltaX/dt)*.56;
+                drag.vy=drag.vy*.44+(deltaY/dt)*.56;
+                drag.lastX=event.clientX;drag.lastY=event.clientY;
+                drag.lastTime=now;
+                drag.samples.push({x:event.clientX,y:event.clientY,t:now});
+                drag.samples=drag.samples.filter(item=>now-item.t<150).slice(-16);
+            }
+            if(drag.moved){
+                this.buildDeathDieGhost(drag);
+                // Cursor conserva o ponto do poliedro em que o jogador clicou.
+                const margin=window.innerWidth<600?63:71;
+                drag.worldX=Math.max(margin,Math.min(Math.max(margin,innerWidth-margin),drag.centerX+dx));
+                drag.worldY=Math.max(margin,Math.min(Math.max(margin,innerHeight-margin),drag.centerY+dy));
+                drag.tilt=Math.max(-32,Math.min(32,drag.vx*18+drag.vy*4));
+                this.moveDeathDieGhost(drag);
+            }
+        },
+
+        deathThrowImpulse(drag,at) {
+            const samples=drag?.samples||[];
+            if(samples.length<2)return {vx:0,vy:0,speed:0};
+            const last=samples[samples.length-1];
+            const idle=Math.max(0,at-last.t);
+            if(idle>135)return {vx:0,vy:0,speed:0};
+            let first=samples[0];
+            for(let i=samples.length-2;i>=0;i--){
+                first=samples[i];if(last.t-first.t>=70)break;
+            }
+            const dt=Math.max(12,last.t-first.t);
+            const vx=(last.x-first.x)/dt,vy=(last.y-first.y)/dt;
+            const freshness=Math.max(0,1-idle/150);
+            return {vx:vx*freshness,vy:vy*freshness,speed:Math.hypot(vx,vy)*freshness};
+        },
+
+        releaseDeathDieDrag(event) {
+            const drag=this.deathDieDrag;
+            if (!drag || drag.id!==event.pointerId) return;
+            this.moveDeathDieDrag(event);
+            this.flushDeathDieGhost();
+            const traveled=Math.hypot(event.clientX-drag.fromX,event.clientY-drag.fromY);
+            const impulse=this.deathThrowImpulse(drag,event.timeStamp||performance.now());
+            this.deathDieDrag=null;
+            // Clique e soltura lenta não rolam. O jogador precisa lançar
+            // ativamente o d20, como os Dados Livres.
+            const thrown=traveled>=23 && impulse.speed>=.33;
+            if(thrown) {
+                this.continueDeathDieFlight(drag,impulse);
+                void this.rollDeathSave({
+                    x:drag.worldX,y:drag.worldY,
+                    vx:Math.max(-2.9,Math.min(2.9,impulse.vx*2.2)),
+                    vy:Math.max(-2.9,Math.min(2.9,impulse.vy*2.2)),
+                    tilt:drag.tilt,
+                });
+            } else {
+                // Acompanha a mão de volta com amortecimento.
+                this.putDeathDieGhostBack();
+            }
+        },
+
+        cancelDeathDieDrag() {
+            this.deathDieDrag=null;
+            this.deathDieOffset={x:0,y:0,tilt:0};
+            this.removeDeathDieGhost();
+        },
 
         triggerStabilizationEffect() {
             this.stabilizationEffect =
@@ -5330,293 +5947,145 @@
 
             if (this.isStable) {
                 this.triggerStabilizationEffect();
-
-                this.deathDrawerOpen =
-                    false;
+                this.deathTurnResolved = true;
+                this.deathDrawerOpen = false;
+                this.cancelDeathDieDrag();
             }
-
             if (this.isDead) {
-                this.deathDrawerOpen =
-                    false;
+                this.deathDrawerOpen = false;
+                this.cancelDeathDieDrag();
             }
         },
 
 
-        async rollDeathSave() {
-            if (
-                !this.isDying ||
-                this.deathRolling
-            ) {
+        // Mesma física e mesmo resultado da API usados pelos Ataques.
+        // O d20 do salvamento é maior, mas NÃO usa um segundo palco/modal.
+        async rollDeathSave(origin=null) {
+            if (!this.isDying || this.deathRolling || (this.deathTurnSeen && this.deathTurnResolved)
+                || this.deathRollPendingResult !== null) {this.removeDeathDieGhost();return;}
+            const fx=window.SpellboundDiceFX;
+            if (!fx?.start || !fx?.finish || !fx?.fail) {
+                this.removeDeathDieGhost();
+                this.deathRollError='O motor de dados ainda não está pronto. Abra a ficha completamente e tente novamente.';
                 return;
             }
-
-            this.deathRolling =
-                true;
-
-            this.deathRollResult =
-                null;
-
-            this.deathRollSettled =
-                false;
-
-            this.deathRollPreview =
-                Math.floor(
-                    Math.random() * 20
-                )
-                + 1;
-
-            /*
-            |--------------------------------------------------------------------------
-            | SUSPENSE
-            |--------------------------------------------------------------------------
-            |
-            | O resultado real é solicitado imediatamente, mas não é revelado
-            | antes de aproximadamente 3 segundos.
-            |
-            | Enquanto isso, mostramos números falsos rapidamente. Isso é
-            | somente apresentação: nenhuma falha/sucesso é aplicada antes do
-            | valor verdadeiro ser revelado.
-            |
-            */
-
-            const startedAt =
-                Date.now();
-
-            const previewTimer =
-                setInterval(
-                    () => {
-                        this.deathRollPreview =
-                            Math.floor(
-                                Math.random() * 20
-                            )
-                            + 1;
-                    },
-                    85
-                );
-
-            let roll = 1;
-
+            // Sem origem: o dado entra pelos mesmos lugares e com a mesma
+            // física dos ataques. Com origem: arremesso igual aos Dados Livres.
+            const token=fx.start({
+                kind:'death',
+                label:'Salvamento contra a morte',
+                expression:'1d20',
+                parts:[{label:'d20',expression:'1d20',initialFace:'?'}],
+                ...(origin ? {
+                    origin:{...origin,scale:1},
+                    onMotionStart:()=>this.removeDeathDieGhost(),
+                } : {}),
+            });
+            if (!token) {
+                this.removeDeathDieGhost();
+                this.deathRollError='Conclua a rolagem atual antes de realizar este salvamento.';
+                return;
+            }
+            this.deathRolling=true;
+            this.deathRollError=null;
+            this.deathRollSettled=false;
+            this.deathRollResult=null;
+            this.deathRollSequence++;
+            this.deathDieOffset={x:0,y:0,tilt:0};
             try {
-                const response =
-                    await fetch(
-                        '{{ url('/api/roll') }}',
-                        {
-                            method:
-                                'POST',
-
-                            headers: {
-                                'Content-Type':
-                                    'application/json',
-
-                                'Accept':
-                                    'application/json',
-
-                                'X-CSRF-TOKEN':
-                                    '{{ csrf_token() }}',
-
-                                'X-Requested-With':
-                                    'XMLHttpRequest',
-                            },
-
-                            body:
-                                JSON.stringify({
-                                    expression:
-                                        '1d20',
-                                }),
-                        }
-                    );
-
-                if (response.ok) {
-                    const data =
-                        await response.json();
-
-                    roll =
-                        parseInt(
-                            data?.data?.total
-                            ?? data?.data?.result
-                            ?? data?.data?.value
-                            ?? data?.data?.sum
-                            ?? data?.total
-                            ?? data?.result
-                            ?? 1
-                        )
-                        || 1;
-                } else {
-                    roll =
-                        Math.floor(
-                            Math.random() * 20
-                        )
-                        + 1;
+                const response=await fetch('{{ url('/api/roll') }}',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json','Accept':'application/json',
+                        'X-CSRF-TOKEN':'{{ csrf_token() }}','X-Requested-With':'XMLHttpRequest'},
+                    body:JSON.stringify({expression:'1d20'}),
+                });
+                const payload=await response.json().catch(()=>({}));
+                if (!response.ok) throw new Error(payload?.message||'Não foi possível rolar o dado.');
+                const data=payload?.data??payload;
+                const face=Array.isArray(data?.rolls)&&data.rolls.length?Number(data.rolls[0]):NaN;
+                if (!Number.isInteger(face) || face<1 || face>20)
+                    throw new Error('A API não retornou uma face válida de d20.');
+                const finished=await fx.finish(token,{
+                    label:'Salvamento contra a morte',
+                    expression:'1d20',
+                    total:face,
+                    rolls:[face],
+                    results:[{total:face,rolls:[face],modifier:0}],
+                    natural:face,
+                    exhaustionPenalty:this.exhaustionRollPenalty || 0,
+                });
+                if (!finished) throw new Error('A apresentação da rolagem foi interrompida.');
+                this.deathRollResult=face;
+                this.deathRollSettled=true;
+                this.deathRollPendingResult=face;
+                // Aplica o resultado apenas após a animação terminar.
+                await this.commitDeathSaveRoll();
+            } catch(error) {
+                this.removeDeathDieGhost();
+                fx.fail(token,error?.message||'Falha ao rolar o dado.');
+                this.deathRollError=error?.message||'Não foi possível realizar o salvamento.';
+                if (this.deathRollPendingResult===null) {
+                    this.deathRollResult=null;
+                    this.deathRollSettled=false;
                 }
-
-            } catch (error) {
-                roll =
-                    Math.floor(
-                        Math.random() * 20
-                    )
-                    + 1;
+            } finally {
+                this.removeDeathDieGhost();
+                this.deathRolling=false;
+                this.deathDieOffset={x:0,y:0,tilt:0};
             }
-
-            /*
-             * Garante que a tensão dure pelo menos 3 segundos,
-             * mesmo que o endpoint responda instantaneamente.
-             */
-            const elapsed =
-                Date.now() - startedAt;
-
-            const remaining =
-                Math.max(
-                    0,
-                    3000 - elapsed
-                );
-
-            await new Promise(
-                resolve =>
-                    setTimeout(
-                        resolve,
-                        remaining
-                    )
-            );
-
-            clearInterval(
-                previewTimer
-            );
-
-            /*
-             * Agora o número assenta no valor verdadeiro.
-             */
-            this.deathRollPreview =
-                roll;
-
-            this.deathRollResult =
-                roll;
-
-            this.deathRollSettled =
-                true;
-
-            /*
-             * Deixa o resultado final respirar antes de alterar os contadores
-             * ou fechar a gaveta por estabilização/morte.
-             */
-            await new Promise(
-                resolve =>
-                    setTimeout(
-                        resolve,
-                        850
-                    )
-            );
-
-
-            const exhaustionAdjustedRoll =
-                roll
-                - this.exhaustionRollPenalty;
-
-
-            if (roll === 20) {
-                this.currentHp =
-                    1;
-
-                this.directHp =
-                    1;
-
-                this.ghostHp =
-                    1;
-
-                this.deathSaveSuccesses =
-                    0;
-
-                this.deathSaveFailures =
-                    0;
-
-                await this.persistCombat({
-                    current_hp:
-                        1,
-
-                    death_save_successes:
-                        0,
-
-                    death_save_failures:
-                        0,
-                });
-
-                this.playHpImpact(
-                    'heal',
-                    Math.max(
-                        1,
-                        this.currentHp
-                    ),
-                    0,
-                    'medium'
-                );
-
-                this.deathDrawerOpen =
-                    false;
-
-            } else if (roll === 1) {
-                /*
-                 * 1 natural continua valendo duas falhas.
-                 * A Regra Morquen altera crítico recebido, não o 1 natural.
-                 */
-                this.deathSaveFailures =
-                    Math.min(
-                        this.deathFailureLimit,
-                        this.deathSaveFailures +
-                            2
-                    );
-
-                await this.persistCombat({
-                    death_save_failures:
-                        this.deathSaveFailures,
-                });
-
-                if (this.isDead) {
-                    this.deathDrawerOpen =
-                        false;
-                }
-
-            } else if (exhaustionAdjustedRoll >= 10) {
-                this.deathSaveSuccesses =
-                    Math.min(
-                        this.deathSuccessLimit,
-                        this.deathSaveSuccesses +
-                            1
-                    );
-
-                await this.persistCombat({
-                    death_save_successes:
-                        this.deathSaveSuccesses,
-                });
-
-                if (this.isStable) {
-                    this.triggerStabilizationEffect();
-
-                    this.deathDrawerOpen =
-                        false;
-                }
-
-            } else {
-                this.deathSaveFailures =
-                    Math.min(
-                        this.deathFailureLimit,
-                        this.deathSaveFailures +
-                            1
-                    );
-
-                await this.persistCombat({
-                    death_save_failures:
-                        this.deathSaveFailures,
-                });
-
-                if (this.isDead) {
-                    this.deathDrawerOpen =
-                        false;
-                }
-            }
-
-            this.deathRolling =
-                false;
         },
 
+        async commitDeathSaveRoll() {
+            const roll=Number(this.deathRollPendingResult);
+            if (!this.isDying || !Number.isInteger(roll) || roll<1 || roll>20) return;
+            this.deathRollError=null;
+            const adjustedRoll=roll-this.exhaustionRollPenalty;
+            const changes=roll===20
+                ? {current_hp:1,death_save_successes:0,death_save_failures:0}
+                : roll===1
+                    ? {death_save_failures:Math.min(this.deathFailureLimit,this.deathSaveFailures+2)}
+                    : adjustedRoll>=10
+                        ? {death_save_successes:Math.min(this.deathSuccessLimit,this.deathSaveSuccesses+1)}
+                        : {death_save_failures:Math.min(this.deathFailureLimit,this.deathSaveFailures+1)};
+            // Persistência antes da alteração local: evita falsos sucessos ou mortes.
+            const saved=await this.persistCombat(changes);
+            if (!saved) {
+                this.deathRollError='O resultado foi obtido, mas não foi salvo. Tente salvar novamente.';
+                return;
+            }
+            this.deathRollPendingResult=null;
+            this.deathTurnResolved=true;
+            if (roll===20) {
+                const previousHp=this.currentHp;
+                this.currentHp=1;
+                this.directHp=1;
+                this.ghostHp=1;
+                this.deathSaveSuccesses=0;
+                this.deathSaveFailures=0;
+                this.deathByRoll=false;
+                this.deathDrawerOpen=false;
+                this.dispatchCharacterHpChanged(previousHp,1);
+                this.playHpImpact('heal',1,0,'medium');
+                return;
+            }
+            if (changes.death_save_successes!==undefined)
+                this.deathSaveSuccesses=changes.death_save_successes;
+            if (changes.death_save_failures!==undefined) {
+                const lethal=changes.death_save_failures>=this.deathFailureLimit;
+                this.deathByRoll=lethal;
+                this.deathSaveFailures=changes.death_save_failures;
+            }
+            if (this.isStable) {
+                this.triggerStabilizationEffect();
+                this.deathDrawerOpen = false;
+                this.deathTurnResolved = true;
+                this.cancelDeathDieDrag();
+            }
+            if (this.isDead) {
+                this.deathDrawerOpen = false;
+                this.cancelDeathDieDrag();
+            }
+        },
 
         /*
         |--------------------------------------------------------------------------
@@ -5625,19 +6094,13 @@
         */
 
         syncSheetDeathVisual(dead) {
-            const sheet =
-                this.$root.closest(
-                    '.character-sheet-page'
-                );
-
-            if (!sheet) {
-                return;
-            }
-
-            sheet.classList.toggle(
-                'character-sheet-dead',
-                !!dead
-            );
+            const deceased = !!dead;
+            const showingFarewell = deceased && !this.deathSequenceDismissed;
+            const sheet = this.$root.closest('.character-sheet-page');
+            sheet?.classList.toggle('character-sheet-dead', deceased);
+            // Persistir a homenagem visual sem bloquear leitura ou navegação.
+            document.body.classList.toggle('sb-character-deceased', deceased);
+            document.body.classList.toggle('sheet-death-screen-active', showingFarewell);
         },
 
 
@@ -5673,6 +6136,28 @@
                 null;
         },
 
+        dismissDeathSequence() {
+            if (!this.isDead) return;
+            this.deathSequenceDismissed = true;
+            try { sessionStorage.setItem('spellbound-death-ack-{{ (int) $character->id }}','1'); }
+            catch (_error) {}
+            this.clearDeathSequence();
+            this.syncSheetDeathVisual(true);
+        },
+
+        reopenDeathSequence() {
+            if (!this.isDead) return;
+            this.deathSequenceDismissed = false;
+            try { sessionStorage.removeItem('spellbound-death-ack-{{ (int) $character->id }}'); }
+            catch (_error) {}
+            this.clearDeathSequence();
+            // Quem revisita um personagem falecido não espera novamente 5 segundos.
+            this.deathSequenceStarted = true;
+            this.deathHopeVisible = !this.morquenRuleActive;
+            this.deathReviveVisible = !this.morquenRuleActive;
+            this.syncSheetDeathVisual(true);
+        },
+
 
         syncDeathSequence(dead) {
             /*
@@ -5683,6 +6168,11 @@
                 !dead ||
                 this.morquenRuleActive
             ) {
+                if (!dead) {
+                    this.deathSequenceDismissed = false;
+                    try { sessionStorage.removeItem('spellbound-death-ack-{{ (int) $character->id }}'); }
+                    catch (_error) {}
+                }
                 if (
                     this.deathSequenceStarted ||
                     this.deathHopeVisible ||
@@ -5691,6 +6181,10 @@
                     this.clearDeathSequence();
                 }
 
+                return;
+            }
+
+            if (this.deathSequenceDismissed) {
                 return;
             }
 
@@ -5807,6 +6301,9 @@
             this.deathSaveFailures =
                 0;
 
+            this.deathSequenceDismissed =
+                false;
+
             this.deathDrawerOpen =
                 false;
 
@@ -5820,6 +6317,10 @@
                 false;
 
             this.clearDeathSequence();
+            this.deathByRoll = false;
+            try { sessionStorage.removeItem('spellbound-death-ack-{{ (int) $character->id }}'); }
+            catch (_error) {}
+            this.syncSheetDeathVisual(false);
 
             this.playHpImpact(
                 'heal',
@@ -6579,7 +7080,55 @@
         |--------------------------------------------------------------------------
         */
 
-        async changeHp(amount) {
+        // Um personagem morto não pode voltar por um clique acidental em Cura.
+        // O pedido conserva o valor exato; nenhuma mutação acontece até confirmar.
+        requestReviveHealing(amount) {
+            const parsed = Math.max(0, Math.trunc(Number(amount) || 0));
+            if (!this.isDead || parsed < 1) return false;
+            this.reviveHealPrompt = { amount: parsed };
+            this.reviveHealError = null;
+            this.directHp = this.currentHp;
+            return true;
+        },
+
+        cancelReviveHealing() {
+            if (this.reviveHealBusy) return;
+            this.reviveHealPrompt = null;
+            this.reviveHealError = null;
+            this.directHp = this.currentHp;
+        },
+
+        async confirmReviveHealing() {
+            if (this.reviveHealBusy || !this.reviveHealPrompt) return;
+            const amount = this.reviveHealPrompt.amount;
+            this.reviveHealBusy = true;
+            this.reviveHealError = null;
+            try {
+                // 6 níveis de exaustão continuam fatais; cura de PV não os remove.
+                if (this.exhaustionLevel >= 6) {
+                    this.reviveHealError = 'É necessário reduzir a exaustão fatal antes de curar.';
+                    return;
+                }
+                const saved = await this.changeHp(amount, true);
+                if (saved === false) {
+                    this.reviveHealError = 'Não foi possível salvar a cura. Tente novamente.';
+                    return;
+                }
+                this.reviveHealPrompt = null;
+                this.deathSequenceDismissed = false;
+                this.clearDeathSequence();
+                try { sessionStorage.removeItem('spellbound-death-ack-{{ (int) $character->id }}'); } catch (_error) {}
+                this.syncSheetDeathVisual(false);
+            } finally {
+                this.reviveHealBusy = false;
+            }
+        },
+
+        async changeHp(amount, reviveConfirmed = false) {
+            if (amount > 0 && this.isDead && !reviveConfirmed) {
+                this.requestReviveHealing(amount);
+                return false;
+            }
 
             if (amount < 0) {
 
@@ -6835,65 +7384,35 @@
 
 
             if (amount > 0) {
+                const previousHp = this.currentHp;
+                const nextHp = Math.min(this.effectiveMaxHp, previousHp + amount);
+                const healedAmount = Math.max(0, nextHp - previousHp);
+                if (healedAmount < 1) return true;
+                const nextSuccesses = nextHp > 0 ? 0 : this.deathSaveSuccesses;
+                const nextFailures = nextHp > 0 ? 0 : this.deathSaveFailures;
 
-                const previousHp =
-                    this.currentHp;
+                // Salvar ANTES de alterar os PV locais. Erro não ressuscita
+                // visualmente nem libera a temática cinza por engano.
+                const healSaved = await this.persistCombat({
+                    current_hp: nextHp,
+                    death_save_successes: nextSuccesses,
+                    death_save_failures: nextFailures,
+                });
+                if (!healSaved) return false;
 
-                this.currentHp =
-                    Math.min(
-                        this.effectiveMaxHp,
-                        this.currentHp +
-                        amount
-                    );
-
-                const healedAmount =
-                    Math.max(
-                        0,
-                        this.currentHp -
-                        previousHp
-                    );
-
-
-                this.directHp =
-                    this.currentHp;
-
-                this.ghostHp =
-                    this.currentHp;
-
-
-                if (this.currentHp > 0) {
-
-                    this.deathSaveSuccesses = 0;
-                    this.deathSaveFailures = 0;
-
+                this.currentHp = nextHp;
+                this.directHp = nextHp;
+                this.ghostHp = nextHp;
+                this.deathSaveSuccesses = nextSuccesses;
+                this.deathSaveFailures = nextFailures;
+                if (nextHp > 0) {
                     this.deathDrawerOpen = false;
                     this.deathRollResult = null;
+                    this.deathByRoll = false;
                 }
-
-
-                if (healedAmount > 0) {
-                    this.playHpImpact(
-                        'heal',
-                        healedAmount
-                    );
-
-                    this.playHpFeedback(
-                        'heal',
-                        healedAmount
-                    );
-                }
-
-
-                await this.persistCombat({
-                    current_hp:
-                        this.currentHp,
-
-                    death_save_successes:
-                        this.deathSaveSuccesses,
-
-                    death_save_failures:
-                        this.deathSaveFailures
-                });
+                this.playHpImpact('heal', healedAmount);
+                this.playHpFeedback('heal', healedAmount);
+                return true;
             }
         },
 
@@ -6941,6 +7460,10 @@
                 return;
             }
 
+            if (this.isDead && targetHp > this.currentHp) {
+                this.requestReviveHealing(targetHp - this.currentHp);
+                return;
+            }
 
             const previousHp =
                 this.currentHp;
@@ -7911,12 +8434,18 @@
         }
     }"
 
+    x-init="clearOrphanDeathPanels()"
+
     x-effect="
-        syncExhaustionGlobal(
-            exhaustionLevel
-        )
+        syncExhaustionGlobal(exhaustionLevel);
+        syncDeathSaveAvailability(isDying)
     "
 
+    @character-turn-state.window="syncDeathTurnState($event.detail)"
+    @pointermove.window="moveDeathDieDrag($event); moveDeathPanelDrag($event)"
+    @pointerup.window="releaseDeathDieDrag($event); endDeathPanelDrag()"
+    @pointercancel.window="cancelDeathDieDrag(); endDeathPanelDrag()"
+    @resize.window="clampDeathPanelPosition()"
     @character-equipment-updated.window="
         syncDefenseEquipment(
             $event.detail?.item
@@ -7995,6 +8524,10 @@
 
                     xl:pr-0
                 "
+                :class="{'sb-identity-deceased':isDead}"
+                @click="if (isDead && $event.target.closest('.hero-data-status-strip')) reopenDeathSequence()"
+                @keydown.enter="if (isDead && $event.target.classList.contains('hero-data-status-strip')) reopenDeathSequence()"
+                x-effect="const strip=$el.querySelector('.hero-data-status-strip'); if(strip){strip.setAttribute('role',isDead?'button':'status');strip.tabIndex=isDead?0:-1;strip.title=isDead?'Falecido · Rever despedida':'';}"
             >
 
                 @include(
@@ -9233,6 +9766,166 @@
 
 
     {{-- ============================================================
+         REABRIR GAVETA — sem aumentar a altura do cabeçalho
+    ============================================================= --}}
+    <div
+        x-show="isDying && !isStable && !isDead && deathSaveSuccesses < deathSuccessLimit && deathSaveFailures < deathFailureLimit"
+
+        x-cloak
+        x-transition
+        data-theme="{{ $characterTheme }}"
+
+        class="
+            death-tab-enter
+            sb-death-compact-tab
+            character-sheet-theme
+            absolute
+            z-50
+
+            mx-auto
+            mt-2
+            w-fit
+        "
+    >
+
+        <button
+            type="button"
+
+            @click="deathDrawerOpen ? closeDeathDrawer() : openDeathDrawer()"
+
+             :class="{'is-open':deathDrawerOpen}"
+            class="
+                hero-death-tab-button
+                group
+                relative
+
+                flex
+                h-8
+                items-center
+                gap-2.5
+
+                overflow-hidden
+
+                rounded-xl
+
+                border
+                border-[#c9ad8a]/80
+
+                bg-[#fffaf2]/95
+
+                px-4
+
+                text-[8px]
+                font-black
+                uppercase
+                tracking-[0.12em]
+
+                text-[#6f4f38]
+
+                shadow-[0_7px_18px_rgba(91,67,49,.13),inset_0_1px_0_rgba(255,255,255,.88)]
+
+                backdrop-blur-sm
+
+                transition-all
+                duration-200
+
+                hover:-translate-y-0.5
+                hover:border-[#aa845f]
+                hover:bg-[#fffdf8]
+                hover:shadow-[0_9px_22px_rgba(91,67,49,.17),inset_0_1px_0_rgba(255,255,255,.92)]
+            "
+        >
+
+            <span
+                class="
+                    flex
+                    h-3
+                    w-3
+                    shrink-0
+                    items-center
+                    justify-center
+
+                    rounded-full
+
+                    border
+                    border-[#9b7655]/35
+
+                    bg-[#ead8bd]
+
+                    shadow-[inset_0_0_0_2px_rgba(255,250,242,.75)]
+                "
+            >
+                <span
+                    class="
+                        h-1
+                        w-1
+
+                        rounded-full
+
+                        bg-[#8c6239]
+                    "
+                ></span>
+            </span>
+
+            <span x-text="morquenRuleActive ? 'Cicatrizes' : 'Último fôlego'"></span>
+            <span class="sb-death-tab-count" x-text="deathSaveSuccesses+' / '+deathSaveFailures"></span>
+
+            <svg
+                class="
+                    h-3
+                    w-3
+
+                    text-[#9a7656]
+
+                    transition-transform
+                    duration-200
+
+                    group-hover:-translate-y-0.5
+                "
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+            >
+
+                <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 15l7-7 7 7"
+                />
+
+            </svg>
+
+        </button>
+
+    </div>
+
+
+
+
+    {{-- Confirmação obrigatória: cura em personagem já falecido. --}}
+    <template x-teleport="body">
+        <div x-show="reviveHealPrompt !== null" x-cloak
+             class="sb-revive-confirm-layer character-sheet-theme"
+             data-theme="{{ $characterTheme }}"
+             role="dialog" aria-modal="true" aria-labelledby="sb-revive-confirm-title"
+             @keydown.escape.window="if (reviveHealPrompt && !reviveHealBusy) cancelReviveHealing()">
+            <div class="sb-revive-confirm-backdrop" @click="cancelReviveHealing()"></div>
+            <div class="sb-revive-confirm-card">
+                <div class="sb-revive-confirm-seal" aria-hidden="true">✝</div>
+                <p class="sb-revive-confirm-overline">Cura de personagem falecido</p>
+                <h2 id="sb-revive-confirm-title">Deseja reviver o personagem?</h2>
+                <p class="sb-revive-confirm-copy">A cura irá devolver <strong x-text="reviveHealPrompt?.amount ?? 0"></strong> PV e limpar os salvamentos contra a morte.</p>
+                <p class="sb-revive-confirm-error" x-show="reviveHealError" x-text="reviveHealError" role="alert"></p>
+                <div class="sb-revive-confirm-actions">
+                    <button type="button" class="sb-revive-confirm-cancel" @click="cancelReviveHealing()" :disabled="reviveHealBusy">Cancelar</button>
+                    <button type="button" class="sb-revive-confirm-accept" @click="confirmReviveHealing()" :disabled="reviveHealBusy" x-text="reviveHealBusy?'Reviver…':'Sim, reviver'"></button>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    {{-- ============================================================
          EFEITO GLOBAL — ESTABILIZADO
     ============================================================= --}}
 
@@ -9374,7 +10067,8 @@
 
         <div
             x-show="
-                isDead
+                isDead &&
+                !deathSequenceDismissed
             "
             x-cloak
 
@@ -9388,7 +10082,8 @@
                 )
             "
 
-            class="
+            :class="{'death-save-last-breath':deathByRoll}"
+            class="sb-death-finale
                 pointer-events-none
 
                 fixed
@@ -9408,6 +10103,7 @@
             <div
                 class="
                     death-card-arrive
+                    sb-death-final-card
 
                     pointer-events-auto
                     relative
@@ -9443,6 +10139,7 @@
 
                     <div
                         class="
+                            sb-death-final-seal
                             mx-auto
 
                             flex
@@ -9471,19 +10168,41 @@
                         </span>
                     </div>
 
-
-                    <p
+                    <button
+                        type="button"
+                        @click="dismissDeathSequence()"
                         class="
-                            mt-4
+                            absolute
+                            right-5
+                            top-5
 
-                            text-[10px]
+                            rounded-full
+                            border
+                            border-white/10
+
+                            bg-white/5
+
+                            px-3
+                            py-1.5
+
+                            text-[9px]
                             font-black
                             uppercase
-                            tracking-[0.32em]
+                            tracking-[0.14em]
 
-                            text-red-400
+                            text-[#d8c5bc]
+
+                            transition
+                            hover:border-[#d9b77b]/35
+                            hover:bg-white/10
+                            hover:text-white
                         "
                     >
+                        Continuar na ficha
+                    </button>
+
+
+                    <p class="sb-death-final-eyebrow mt-4 text-[10px] font-black uppercase tracking-[0.28em] text-red-300">
                         O último fôlego se foi
                     </p>
 
@@ -9667,7 +10386,7 @@
                                         !deathReviving
                                     "
                                 >
-                                    Reviver !!
+                                    Reviver
                                 </span>
 
                                 <span
@@ -9676,7 +10395,7 @@
                                     "
                                     x-cloak
                                 >
-                                    Retornando...
+                                    Revivendo...
                                 </span>
                             </button>
 
@@ -9937,1424 +10656,95 @@
 
 
     {{-- ============================================================
-         GAVETA DE MORTE
+         V66.2.179 — D20 manual, painel flutuante fora do fluxo do header.
+         O componente visual usa a física única de SpellboundDiceFX.
     ============================================================= --}}
-
-    <div
-        x-show="
-            isDying &&
-            deathDrawerOpen
-        "
-
+    <template x-teleport="body">
+    {{-- O x-if desmonta o portal por completo ao recuperar PV / estabilizar.
+         O x-show sozinho não basta quando Alpine mantém DOM teletransportado
+         durante algumas navegações internas. --}}
+    <template x-if="deathSavePanelVisible()">
+    <section
+        x-show="deathSavePanelVisible()"
+        :data-death-visible="deathSavePanelVisible() ? 'true' : 'false'"
         x-cloak
-
-        x-transition:enter="
-            transition-[transform,opacity]
-            duration-300
-            ease-out
-        "
-
-        x-transition:enter-start="
-            translate-y-[-18px]
-            opacity-0
-            scale-[.98]
-        "
-
-        x-transition:enter-end="
-            translate-y-0
-            opacity-100
-            scale-100
-        "
-
-        x-transition:leave="
-            transition-[transform,opacity]
-            duration-200
-            ease-in
-        "
-
-        x-transition:leave-start="
-            translate-y-0
-            opacity-100
-            scale-100
-        "
-
-        x-transition:leave-end="
-            translate-y-[-12px]
-            opacity-0
-            scale-[.99]
-        "
-
-        class="
-            relative
-            z-50
-
-            mx-auto
-            w-full
-            max-w-[40rem]
-        "
+        x-transition:enter="transition ease-out duration-250"
+        x-transition:enter-start="opacity-0 -translate-y-2"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="sb-death-strip sb-death-floating character-sheet-theme"
+        data-theme="{{ $characterTheme }}"
+        x-ref="deathFloatingPanel"
+        :style="deathPanelStyle()"
+        x-init="restoreDeathPanelPosition()"
+        aria-label="Salvamentos contra a morte"
     >
-
-        <div
-            class="
-                death-drawer-active
-                hero-death-drawer-panel
-
-                overflow-hidden
-
-                rounded-b-3xl
-
-                border
-                border-t-0
-                border-[#b08c62]/45
-
-                bg-[linear-gradient(180deg,#fbf8f1_0%,#f4eadc_100%)]
-
-                shadow-[0_22px_55px_rgba(72,20,15,.18)]
-            "
-        >
-
-            {{-- FAIXA SUPERIOR --}}
-
-            <div
-                class="
-                    hero-death-drawer-band
-                    relative
-
-                    overflow-hidden
-
-                    bg-[linear-gradient(90deg,#725943_0%,#927257_50%,#725943_100%)]
-
-                    px-4
-                    pb-3
-                    pt-2.5
-
-                    text-[#fffaf2]
-                "
-            >
-
-                <div
-                    class="
-                        pointer-events-none
-                        absolute
-                        inset-0
-
-                        opacity-25
-
-                        bg-[radial-gradient(circle_at_50%_0%,rgba(255,248,232,.72),transparent_45%)]
-                    "
-                ></div>
-
-
-                <button
-                    type="button"
-
-                    @click="
-                        closeDeathDrawer()
-                    "
-
-                    class="
-                        relative
-                        z-10
-
-                        mx-auto
-
-                        flex
-                        h-5
-                        w-16
-                        items-center
-                        justify-center
-
-                        rounded-full
-
-                        border
-                        border-white/12
-
-                        bg-white/7
-
-                        transition
-
-                        hover:bg-white/12
-                    "
-
-                    title="Recolher"
-                >
-                    <span
-                        class="
-                            h-1
-                            w-7
-
-                            rounded-full
-
-                            bg-[#e7cfb7]/75
-                        "
-                    ></span>
+        <div class="sb-death-strip-inner">
+            <div class="sb-death-strip-heading" @pointerdown="beginDeathPanelDrag($event)" :class="{'is-moving':!!deathPanelDragging}">
+                <div class="sb-death-strip-identity">
+                    <div>
+                        <strong x-text="morquenRuleActive ? 'Cicatrizes do Passado' : 'Último fôlego'">Salvamentos contra a morte</strong>
+                        <p class="sb-death-strip-subtitle"
+                           x-text="deathRolling ? 'Rolando…' : deathTurnSeen && deathTurnResolved ? 'Turno resolvido' : 'Arraste e solte o d20'"></p>
+                    </div>
+                </div>
+                <button type="button" class="sb-death-strip-collapse" @click="closeDeathDrawer()"
+                        :disabled="deathRolling" aria-label="Recolher salvamentos" title="Recolher">
+                    <span aria-hidden="true">−</span>
                 </button>
-
-
-                <div
-                    class="
-                        relative
-                        z-10
-
-                        mt-2.5
-
-                        text-center
-                    "
-                >
-
-                    <p
-                        class="
-                            text-[9px]
-                            font-black
-                            uppercase
-                            tracking-[0.20em]
-
-                            text-[#f0d5ad]
-                        "
-                    >
-                        Limiar entre vida e morte
-                    </p>
-
-                    <h3
-                        class="
-                            mt-1
-
-                            font-serif
-                            text-[20px]
-                            font-black
-                            leading-none
-                        "
-
-                        x-text="
-                            morquenRuleActive
-                                ? 'Cicatrizes do Passado'
-                                : 'Salvamentos Contra a Morte'
-                        "
-                    ></h3>
-
-                </div>
-
             </div>
-
-
-            <div
-                class="
-                    px-4
-                    pb-4
-                    pt-3.5
-
-                    sm:px-4
-                "
-            >
-
-                {{-- MORQUEN ORGANIZADO --}}
-
-                <div
-                    x-show="
-                        morquenRuleActive
-                    "
-
-                    x-cloak
-
-                    class="
-                        relative
-
-                        overflow-hidden
-
-                        rounded-2xl
-                        border
-                        border-amber-700/20
-
-                        bg-[linear-gradient(135deg,#fff8e8_0%,#f7ead0_100%)]
-
-                        px-4
-                        py-3.5
-
-                        shadow-[inset_0_1px_0_rgba(255,255,255,.75)]
-                    "
-                >
-
-                    <div
-                        class="
-                            absolute
-                            bottom-0
-                            left-0
-                            top-0
-
-                            w-1
-
-                            bg-[#8c6239]
-                        "
-                    ></div>
-
-
-                    <div
-                        class="
-                            flex
-                            items-start
-                            justify-between
-                            gap-4
-                        "
-                    >
-
-                        <div class="min-w-0">
-
-                            <p
-                                class="
-                                    text-[8px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.18em]
-
-                                    text-[#8c6239]
-                                "
-                            >
-                                Regra Morquen
-                            </p>
-
-                            <p
-                                class="
-                                    mt-0.5
-
-                                    font-serif
-                                    text-[15px]
-                                    font-black
-
-                                    text-[#53150f]
-                                "
-                            >
-                                Espírito Inquebrável
-                            </p>
-
-                            <p
-                                class="
-                                    mt-1
-
-                                    text-[10px]
-                                    leading-relaxed
-
-                                    text-[#765846]
-                                "
-                            >
-                                Com 0 PV você permanece consciente, pode agir normalmente e continua realizando testes contra a morte no início de cada turno.
-                            </p>
-
-                        </div>
-
-
-                        <div
-                            x-show="
-                                exhaustionLevel > 0
-                            "
-
-                            x-cloak
-
-                            class="
-                                shrink-0
-
-                                rounded-lg
-                                border
-                                border-amber-700/20
-
-                                bg-white/55
-
-                                px-2.5
-                                py-2
-
-                                text-center
-                            "
-                        >
-                            <p
-                                class="
-                                    text-[7px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.10em]
-
-                                    text-amber-900
-                                "
-                            >
-                                Exaustão
-                            </p>
-
-                            <p
-                                class="
-                                    mt-0.5
-
-                                    font-serif
-                                    text-[18px]
-                                    font-black
-                                    leading-none
-
-                                    text-[#6f4f38]
-                                "
-
-                                x-text="
-                                    exhaustionLevel
-                                "
-                            ></p>
-                        </div>
-
+            <div class="sb-death-strip-action">
+                <div class="sb-death-track is-success" aria-label="Sucessos">
+                    <div class="sb-death-track-head"><span>Sucessos</span><strong x-text="deathSaveSuccesses + '/' + deathSuccessLimit"></strong></div>
+                    <div class="sb-death-track-pips">
+                        <template x-for="n in deathSuccessLimit" :key="'sb-ds-ok-'+n">
+                            <button type="button" :disabled="deathRolling" @click="setDeathSave('success',n)"
+                                    class="sb-death-pip" :class="n <= deathSaveSuccesses ? 'is-filled' : ''"
+                                    :aria-label="'Ajustar sucessos para '+n"><span x-show="n <= deathSaveSuccesses" aria-hidden="true">✓</span></button>
+                        </template>
                     </div>
-
-
-                    <div
-                        class="
-                            mt-3
-
-                            grid
-                            grid-cols-3
-                            gap-2
-                        "
-                    >
-
-                        <div
-                            class="
-                                rounded-lg
-                                border
-                                border-[#d8c7ab]/55
-
-                                bg-white/55
-
-                                px-2
-                                py-2
-
-                                text-center
-                            "
-                        >
-                            <p
-                                class="
-                                    font-serif
-                                    text-[14px]
-                                    font-black
-
-                                    text-[#53150f]
-                                "
-                            >
-                                0 PV
-                            </p>
-
-                            <p
-                                class="
-                                    mt-0.5
-
-                                    text-[7px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.08em]
-
-                                    text-[#8c6239]
-                                "
-                            >
-                                Consciente
-                            </p>
-                        </div>
-
-
-                        <div
-                            class="
-                                rounded-lg
-                                border
-                                border-emerald-700/15
-
-                                bg-emerald-50/70
-
-                                px-2
-                                py-2
-
-                                text-center
-                            "
-                        >
-                            <p
-                                class="
-                                    font-serif
-                                    text-[14px]
-                                    font-black
-
-                                    text-emerald-800
-                                "
-                            >
-                                2
-                            </p>
-
-                            <p
-                                class="
-                                    mt-0.5
-
-                                    text-[7px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.08em]
-
-                                    text-emerald-800/75
-                                "
-                            >
-                                Sucessos
-                            </p>
-                        </div>
-
-
-                        <div
-                            class="
-                                rounded-lg
-                                border
-                                border-red-700/15
-
-                                bg-red-50/70
-
-                                px-2
-                                py-2
-
-                                text-center
-                            "
-                        >
-                            <p
-                                class="
-                                    font-serif
-                                    text-[14px]
-                                    font-black
-
-                                    text-red-800
-                                "
-                            >
-                                6
-                            </p>
-
-                            <p
-                                class="
-                                    mt-0.5
-
-                                    text-[7px]
-                                    font-black
-                                    uppercase
-                                    tracking-[0.08em]
-
-                                    text-red-800/75
-                                "
-                            >
-                                Falhas
-                            </p>
-                        </div>
-
-                    </div>
-
                 </div>
 
-
-                {{-- ÁREA PRINCIPAL --}}
-
-                <div
-                    class="
-                        mt-4
-
-                        grid
-                        grid-cols-[minmax(0,1fr)_116px_minmax(0,1fr)]
-
-                        items-center
-                        gap-4
-                    "
-                >
-
-                    {{-- SUCESSOS --}}
-
-                    <div
-                        class="
-                            rounded-2xl
-                            border
-                            border-emerald-700/15
-
-                            bg-[linear-gradient(180deg,#f4fbf6_0%,#eaf6ee_100%)]
-
-                            px-3
-                            py-3.5
-
-                            text-center
-
-                            shadow-[inset_0_1px_0_rgba(255,255,255,.75)]
-                        "
-                    >
-
-                        <p
-                            class="
-                                text-[9px]
-                                font-black
-                                uppercase
-                                tracking-[0.16em]
-
-                                text-emerald-800
-                            "
-                        >
-                            Sucessos
-                        </p>
-
-                        <p
-                            class="
-                                mt-0.5
-
-                                font-serif
-                                text-[17px]
-                                font-black
-
-                                text-emerald-900
-                            "
-                        >
-                            <span
-                                x-text="
-                                    deathSaveSuccesses
-                                "
-                            ></span>
-                            <span class="opacity-45">/</span>
-                            <span
-                                x-text="
-                                    deathSuccessLimit
-                                "
-                            ></span>
-                        </p>
-
-
-                        <div
-                            class="
-                                mt-3
-
-                                flex
-                                flex-wrap
-                                items-center
-                                justify-center
-                                gap-2
-                            "
-                        >
-
-                            <template
-                                x-for="
-                                    n in deathSuccessLimit
-                                "
-                                :key="
-                                    'success-' + n
-                                "
-                            >
-
-                                <button
-                                    type="button"
-
-                                    @click="
-                                        setDeathSave(
-                                            'success',
-                                            n
-                                        )
-                                    "
-
-                                    :disabled="
-                                        deathRolling
-                                    "
-
-                                    class="
-                                        relative
-
-                                        flex
-                                        h-9
-                                        w-9
-                                        items-center
-                                        justify-center
-
-                                        rounded-full
-                                        border-2
-
-                                        transition-all
-                                        duration-200
-
-                                        disabled:cursor-wait
-                                        disabled:opacity-55
-                                    "
-
-                                    :class="
-                                        n <= deathSaveSuccesses
-                                            ? 'border-emerald-600 bg-emerald-600 text-white shadow-[0_5px_14px_rgba(5,150,105,.20)] scale-105'
-                                            : 'border-emerald-700/20 bg-white/75 text-transparent hover:border-emerald-600/45 hover:bg-white'
-                                    "
-                                >
-                                    <span
-                                        x-show="
-                                            n <= deathSaveSuccesses
-                                        "
-
-                                        class="
-                                            text-[15px]
-                                            font-black
-                                        "
-                                    >
-                                        ✓
-                                    </span>
-                                </button>
-
-                            </template>
-
-                        </div>
-
-                    </div>
-
-
-                    {{-- ============================================================
-                         D20 — SALVAMENTO CONTRA A MORTE
-                         Usa o componente central de dados do Spellbound.
-                    ============================================================= --}}
-
-                    <div
-                        class="
-                            flex
-                            flex-col
-                            items-center
-                            justify-center
-                        "
-                    >
-
-                        <div
-                            class="
-                                relative
-
-                                flex
-                                h-[116px]
-                                w-[116px]
-                                items-center
-                                justify-center
-                            "
-                        >
-
-                            {{-- Órbita discreta durante o suspense --}}
-                            <span
-                                x-show="
-                                    deathRolling
-                                "
-
-                                x-cloak
-
-                                class="
-                                    death-roll-orbit
-
-                                    pointer-events-none
-                                    absolute
-                                    inset-[2px]
-
-                                    rounded-full
-                                    border
-                                    border-dashed
-                                    border-[#8c6239]/35
-                                "
-                            ></span>
-
-
-                            <button
-                                type="button"
-
-                                @click="
-                                    rollDeathSave()
-                                "
-
-                                :disabled="
-                                    deathRolling
-                                "
-
-                                class="
-                                    group
-                                    relative
-
-                                    flex
-                                    h-[108px]
-                                    w-[108px]
-                                    items-center
-                                    justify-center
-
-                                    rounded-full
-                                    bg-transparent
-
-                                    outline-none
-
-                                    transition
-                                    duration-200
-
-                                    hover:scale-[1.035]
-
-                                    focus-visible:ring-2
-                                    focus-visible:ring-[#7f261d]/30
-                                    focus-visible:ring-offset-2
-
-                                    disabled:cursor-wait
-                                "
-                            >
-
-                                {{-- Halo de fundo --}}
-                                <span
-                                    class="
-                                        pointer-events-none
-                                        absolute
-                                        inset-[5px]
-
-                                        rounded-full
-                                        border
-                                        border-[#cda979]/30
-
-                                        bg-[#eadbc8]/20
-
-                                        transition
-                                        duration-200
-
-                                        group-hover:border-[#a0523d]/35
-                                        group-hover:bg-[#eadbc8]/30
-                                    "
-                                ></span>
-
-
-                                {{-- D20 oficial --}}
-                                <div
-                                    class="
-                                        relative
-                                        z-10
-
-                                        flex
-                                        items-center
-                                        justify-center
-
-                                        transition
-                                        duration-200
-                                    "
-
-                                    :class="{
-                                        'scale-[1.045]':
-                                            deathRolling,
-
-                                        'death-d20-breathe':
-                                            !deathRolling
-                                    }"
-                                >
-                                    <x-dice.polyhedral
-                                        :sides="20"
-                                        :size="96"
-                                    >
-                                        <span
-                                            class="
-                                                tabular-nums
-                                            "
-
-                                            :class="
-                                                deathRollSettled
-                                                    ? 'death-roll-number-settled'
-                                                    : (
-                                                        deathRolling
-                                                            ? 'death-roll-number-active'
-                                                            : ''
-                                                    )
-                                            "
-
-                                            x-text="
-                                                deathRolling
-                                                    ? (
-                                                        deathRollPreview
-                                                        ?? 20
-                                                    )
-                                                    : (
-                                                        deathRollResult
-                                                        ?? '?'
-                                                    )
-                                            "
-                                        ></span>
-                                    </x-dice.polyhedral>
-                                </div>
-
-                            </button>
-
-                        </div>
-
-
-                        <div
-                            class="
-                                min-h-[38px]
-
-                                text-center
-                            "
-                        >
-
-                            <template
-                                x-if="
-                                    deathRolling &&
-                                    !deathRollSettled
-                                "
-                            >
-                                <div>
-
-                                    <p
-                                        class="
-                                            text-[8px]
-                                            font-black
-                                            uppercase
-                                            tracking-[0.13em]
-
-                                            text-[#6f4f38]
-                                        "
-                                    >
-                                        O destino está girando...
-                                    </p>
-
-                                    <div
-                                        class="
-                                            mx-auto
-                                            mt-1.5
-
-                                            flex
-                                            w-[68px]
-                                            items-center
-                                            gap-1
-                                        "
-                                    >
-                                        <span
-                                            class="
-                                                h-1
-                                                flex-1
-
-                                                animate-pulse
-
-                                                rounded-full
-
-                                                bg-[#d8c7ab]
-                                            "
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                h-1
-                                                flex-1
-
-                                                animate-pulse
-
-                                                rounded-full
-
-                                                bg-[#b08c62]
-
-                                                [animation-delay:180ms]
-                                            "
-                                        ></span>
-
-                                        <span
-                                            class="
-                                                h-1
-                                                flex-1
-
-                                                animate-pulse
-
-                                                rounded-full
-
-                                                bg-[#6b1d14]
-
-                                                [animation-delay:360ms]
-                                            "
-                                        ></span>
-                                    </div>
-
-                                </div>
-                            </template>
-
-
-                            <template
-                                x-if="
-                                    !deathRolling &&
-                                    deathRollResult === null
-                                "
-                            >
-                                <button
-                                    type="button"
-
-                                    @click="
-                                        rollDeathSave()
-                                    "
-
-                                    class="
-                                        rounded-full
-
-                                        border
-                                        border-[#b79a77]/45
-
-                                        bg-white/65
-
-                                        px-3
-                                        py-1.5
-
-                                        text-[8px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.11em]
-
-                                        text-[#6f4f38]
-
-                                        shadow-sm
-
-                                        transition
-
-                                        hover:bg-white
-                                    "
-                                >
-                                    Rolar contra a morte
-                                </button>
-                            </template>
-
-
-                            <template
-                                x-if="
-                                    deathRollSettled &&
-                                    deathRollResult !== null
-                                "
-                            >
-                                <div
-                                    class="
-                                        rounded-full
-
-                                        px-3
-                                        py-1.5
-
-                                        text-[9px]
-                                        font-black
-                                        uppercase
-                                        tracking-[0.10em]
-                                    "
-
-                                    :class="
-                                        deathRollResult >= 10
-                                            ? 'bg-emerald-50 text-emerald-800'
-                                            : 'bg-red-50 text-red-800'
-                                    "
-
-                                    x-text="
-                                        deathRollResult === 20
-                                            ? '20 natural · 1 PV'
-                                            : (
-                                                deathRollResult === 1
-                                                    ? '1 natural · 2 falhas'
-                                                    : (
-                                                        deathRollResult >= 10
-                                                            ? 'Sucesso'
-                                                            : 'Falha'
-                                                    )
-                                            )
-                                    "
-                                ></div>
-                            </template>
-
-                        </div>
-
-                    </div>
-
-
-                    {{-- FALHAS --}}
-
-                    <div
-                        class="
-                            rounded-2xl
-                            border
-                            border-red-700/15
-
-                            bg-[linear-gradient(180deg,#fff7f6_0%,#fbeceb_100%)]
-
-                            px-3
-                            py-3.5
-
-                            text-center
-
-                            shadow-[inset_0_1px_0_rgba(255,255,255,.75)]
-                        "
-                    >
-
-                        <p
-                            class="
-                                text-[9px]
-                                font-black
-                                uppercase
-                                tracking-[0.16em]
-
-                                text-red-800
-                            "
-                        >
-                            Falhas
-                        </p>
-
-                        <p
-                            class="
-                                mt-0.5
-
-                                font-serif
-                                text-[17px]
-                                font-black
-
-                                text-red-900
-                            "
-                        >
-                            <span
-                                x-text="
-                                    deathSaveFailures
-                                "
-                            ></span>
-                            <span class="opacity-45">/</span>
-                            <span
-                                x-text="
-                                    deathFailureLimit
-                                "
-                            ></span>
-                        </p>
-
-
-                        <div
-                            class="
-                                mt-3
-
-                                flex
-                                flex-wrap
-                                items-center
-                                justify-center
-                                gap-2
-                            "
-                        >
-
-                            <template
-                                x-for="
-                                    n in deathFailureLimit
-                                "
-                                :key="
-                                    'failure-' + n
-                                "
-                            >
-
-                                <button
-                                    type="button"
-
-                                    @click="
-                                        setDeathSave(
-                                            'failure',
-                                            n
-                                        )
-                                    "
-
-                                    :disabled="
-                                        deathRolling
-                                    "
-
-                                    class="
-                                        relative
-
-                                        flex
-                                        h-9
-                                        w-9
-                                        items-center
-                                        justify-center
-
-                                        rounded-full
-                                        border-2
-
-                                        transition-all
-                                        duration-200
-
-                                        disabled:cursor-wait
-                                        disabled:opacity-55
-                                    "
-
-                                    :class="
-                                        n <= deathSaveFailures
-                                            ? 'border-red-600 bg-red-600 text-white shadow-[0_5px_14px_rgba(220,38,38,.18)] scale-105'
-                                            : 'border-red-700/20 bg-white/75 text-transparent hover:border-red-600/45 hover:bg-white'
-                                    "
-                                >
-                                    <span
-                                        x-show="
-                                            n <= deathSaveFailures
-                                        "
-
-                                        class="
-                                            text-[15px]
-                                            font-black
-                                        "
-                                    >
-                                        ×
-                                    </span>
-                                </button>
-
-                            </template>
-
-                        </div>
-
-                    </div>
-
+                <div class="sb-death-die-home">
+                    <button type="button" x-ref="deathSaveDie" class="sb-death-die-launch"
+                            :class="{'is-busy':deathRolling, 'is-grabbed':!!deathDieDrag}"
+                            :disabled="deathRolling || deathRollPendingResult!==null || (deathTurnSeen && deathTurnResolved)"
+                            @pointerdown.stop.prevent="beginDeathDieDrag($event)"
+                            :style="deathDieStyle()"
+                            aria-label="Arrastar e lançar o d20 de salvamento contra a morte" title="Segure e arremesse o d20 para realizar o salvamento">
+                        <x-ui.poly-die :sides="20" size="100">
+                            <span class="tabular-nums" x-text="deathRollResult === null ? '?' : String(deathRollResult)"></span>
+                        </x-ui.poly-die>
+                    </button>
+                    <span class="sb-death-die-home-hint" x-show="deathRolling" x-cloak>Rolando…</span>
                 </div>
 
-
-                {{-- RODAPÉ EXPLICATIVO --}}
-
-                <div
-                    class="
-                        mt-4
-
-                        border-t
-                        border-[#b08c62]/24
-
-                        pt-3
-                    "
-                >
-
-                    <div
-                        class="
-                            mx-auto
-
-                            flex
-                            w-fit
-                            max-w-full
-                            items-center
-                            justify-center
-                            gap-2.5
-
-                            rounded-full
-                            border
-                            border-[#cdbb9f]/75
-
-                            bg-[#fffaf2]/92
-
-                            px-4
-                            py-2
-
-                            shadow-[0_2px_8px_rgba(91,67,49,.08)]
-                        "
-                    >
-
-                        <span
-                            class="
-                                flex
-                                h-5
-                                w-5
-                                shrink-0
-                                items-center
-                                justify-center
-
-                                rounded-full
-                                border
-                                border-[#b08c62]/35
-
-                                bg-[#ead8bd]
-
-                                font-serif
-                                text-[11px]
-                                font-black
-                                leading-none
-
-                                text-[#6f4f38]
-                            "
-                            aria-hidden="true"
-                        >
-                            !
-                        </span>
-
-
-                        <p
-                            class="
-                                text-center
-                                text-[11px]
-                                font-semibold
-                                leading-snug
-
-                                text-[#5f4031]
-                            "
-                        >
-                            <strong
-                                class="
-                                    font-serif
-                                    text-[12px]
-                                    font-black
-
-                                    text-emerald-800
-                                "
-
-                                x-text="
-                                    deathSuccessLimit
-                                "
-                            ></strong>
-
-                            <span>
-                                sucessos estabilizam
-                            </span>
-
-                            <span
-                                class="
-                                    mx-1.5
-
-                                    text-[#b08c62]
-                                "
-                            >
-                                •
-                            </span>
-
-                            <strong
-                                class="
-                                    font-serif
-                                    text-[12px]
-                                    font-black
-
-                                    text-red-800
-                                "
-
-                                x-text="
-                                    deathFailureLimit
-                                "
-                            ></strong>
-
-                            <span>
-                                falhas levam à morte
-                            </span>
-                        </p>
-
+                <div class="sb-death-track is-failure" aria-label="Falhas">
+                    <div class="sb-death-track-head"><span>Falhas</span><strong x-text="deathSaveFailures + '/' + deathFailureLimit"></strong></div>
+                    <div class="sb-death-track-pips">
+                        <template x-for="n in deathFailureLimit" :key="'sb-ds-fail-'+n">
+                            <button type="button" :disabled="deathRolling" @click="setDeathSave('failure',n)"
+                                    class="sb-death-pip" :class="n <= deathSaveFailures ? 'is-filled' : ''"
+                                    :aria-label="'Ajustar falhas para '+n"><span x-show="n <= deathSaveFailures" aria-hidden="true">×</span></button>
+                        </template>
                     </div>
-
                 </div>
-
             </div>
-
+            <div class="sb-death-strip-feedback" aria-live="polite">
+                <span x-show="deathRollResult!==null && !deathRollError" x-cloak
+                      :class="deathRollResult===20?'is-gold':deathRollResult===1?'is-red':''"
+                      x-text="deathRollResult===20?'20 natural · +1 PV':deathRollResult===1?'1 natural · +2 falhas':((deathRollResult-exhaustionRollPenalty)>=10?'Sucesso':'Falha')"></span>
+                <span x-show="morquenRuleActive && !deathRollError && deathRollResult===null" x-cloak>Regra Morquen ativa</span>
+                <span x-show="deathRollError" x-cloak class="is-error" role="alert" x-text="deathRollError"></span>
+                <button type="button" x-show="deathRollPendingResult!==null && !deathRolling" x-cloak
+                        class="sb-death-save-retry" @click="commitDeathSaveRoll()">Salvar resultado</button>
+            </div>
         </div>
-
-    </div>
-
-
-    {{-- ============================================================
-         REABRIR GAVETA
-    ============================================================= --}}
-
-    <div
-        x-show="
-            isDying &&
-            !deathDrawerOpen
-        "
-
-        x-cloak
-        x-transition
-
-        class="
-            death-tab-enter
-            relative
-            z-50
-
-            mx-auto
-            mt-2
-            w-fit
-        "
-    >
-
-        <button
-            type="button"
-
-            @click="
-                openDeathDrawer()
-            "
-
-            class="
-                hero-death-tab-button
-                group
-                relative
-
-                flex
-                h-8
-                items-center
-                gap-2.5
-
-                overflow-hidden
-
-                rounded-xl
-
-                border
-                border-[#c9ad8a]/80
-
-                bg-[#fffaf2]/95
-
-                px-4
-
-                text-[8px]
-                font-black
-                uppercase
-                tracking-[0.12em]
-
-                text-[#6f4f38]
-
-                shadow-[0_7px_18px_rgba(91,67,49,.13),inset_0_1px_0_rgba(255,255,255,.88)]
-
-                backdrop-blur-sm
-
-                transition-all
-                duration-200
-
-                hover:-translate-y-0.5
-                hover:border-[#aa845f]
-                hover:bg-[#fffdf8]
-                hover:shadow-[0_9px_22px_rgba(91,67,49,.17),inset_0_1px_0_rgba(255,255,255,.92)]
-            "
-        >
-
-            <span
-                class="
-                    flex
-                    h-3
-                    w-3
-                    shrink-0
-                    items-center
-                    justify-center
-
-                    rounded-full
-
-                    border
-                    border-[#9b7655]/35
-
-                    bg-[#ead8bd]
-
-                    shadow-[inset_0_0_0_2px_rgba(255,250,242,.75)]
-                "
-            >
-                <span
-                    class="
-                        h-1
-                        w-1
-
-                        rounded-full
-
-                        bg-[#8c6239]
-                    "
-                ></span>
-            </span>
-
-            <span
-                x-text="
-                    morquenRuleActive
-                        ? 'Cicatrizes do Passado'
-                        : 'Salvamentos contra a Morte'
-                "
-            ></span>
-
-            <svg
-                class="
-                    h-3
-                    w-3
-
-                    text-[#9a7656]
-
-                    transition-transform
-                    duration-200
-
-                    group-hover:-translate-y-0.5
-                "
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M5 15l7-7 7 7"
-                />
-
-            </svg>
-
-        </button>
-
-    </div>
+    </section>
+    </template>
+    </template>
 
 
     {{-- ============================================================

@@ -11488,3 +11488,860 @@
 .master-vault-v4-modal .vault-v275-spell-defaults button {margin-left:auto;padding:6px 9px;border:1px solid #c99e77;border-radius:8px;background:#fffaf2;color:#7e3f2c;font-weight:700;cursor:pointer}
 .master-vault-v4-modal .vault-v275-spell-defaults button:hover {background:#f3e0ca}
 @media(max-width:640px){.master-vault-v4-modal .vault-v275-spell-defaults>span:nth-child(2){border:0;padding-left:0}.master-vault-v4-modal .vault-v275-spell-defaults button{margin-left:0}}
+
+/* V66.2.76 — Pergaminho: três passos claros, sem cartões redundantes. */
+.master-vault-v4-modal .vault-v276-scroll-builder {
+    display:grid;gap:0;padding:0;overflow:visible;
+    border:1px solid #ddc2a1;border-radius:15px;
+    background:linear-gradient(145deg,#fffdf9,#faf4ea 92%);
+    box-shadow:inset 0 1px 0 #fff;
+}
+.master-vault-v4-modal .vault-v276-step-title {
+    display:flex;align-items:center;gap:11px;min-width:0;padding:15px 17px 11px;
+}
+.master-vault-v4-modal .vault-v276-step-number {
+    display:grid;place-items:center;flex:none;width:33px;height:33px;
+    border:1px solid #d4b28b;border-radius:10px;
+    background:linear-gradient(145deg,#f6e7d2,#fffaf2);
+    color:#a2754d;font:700 11px Georgia,serif;letter-spacing:.04em;
+}
+.master-vault-v4-modal .vault-v276-step-copy {display:grid;gap:3px;min-width:0;flex:1}
+.master-vault-v4-modal .vault-v276-step-copy strong {color:#673126;font:700 16px/1.18 Georgia,serif}
+.master-vault-v4-modal .vault-v276-step-copy small {color:#9b7559;font:500 10px/1.4 Arial,sans-serif}
+.master-vault-v4-modal .vault-v276-collection-status {
+    flex:none;border:1px solid #e4ceb2;border-radius:999px;
+    padding:5px 10px;background:#fffaf2;color:#977052;
+    font:700 10px/1.25 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v276-search-controls {padding:0 17px 14px}
+.master-vault-v4-modal .vault-v276-search-controls .vault-v267-quick-search,
+.master-vault-v4-modal .vault-v276-search-controls .vault-v267-open-book {height:43px}
+.master-vault-v4-modal .vault-v276-search-controls .vault-v267-open-book {
+    min-width:138px;border-radius:10px;background:linear-gradient(145deg,#f7ebdc,#eddbc6);
+}
+.master-vault-v4-modal .vault-v276-selected {
+    display:flex;align-items:center;gap:12px;margin:0 17px 15px;padding:10px 12px;
+    border:1px solid #dcc09d;border-radius:11px;
+    background:linear-gradient(105deg,#f4e7d7,#fcf7ef);
+}
+.master-vault-v4-modal .vault-v276-selected-check {
+    display:grid;place-items:center;flex:none;width:30px;height:30px;
+    border-radius:9px;background:#956343;color:#fffaf5;font:700 13px Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v276-selected-details {display:grid;flex:1;gap:4px;min-width:0}
+.master-vault-v4-modal .vault-v276-selected-details strong {font:700 16px/1.18 Georgia,serif;color:#613025;overflow-wrap:anywhere}
+.master-vault-v4-modal .vault-v276-selected-details small {color:#8d6a50;font:600 10px/1.35 Arial,sans-serif}
+.master-vault-v4-modal .vault-v276-selected>button {
+    flex:none;padding:7px 12px;border-radius:8px;
+    border:1px solid #d1ad85;background:#fffaf2;color:#76452f;
+    font:700 11px Arial,sans-serif;transition:background .15s,border-color .15s;
+}
+.master-vault-v4-modal .vault-v276-selected>button:hover {background:#f2ddc6;border-color:#ae7a51}
+.master-vault-v4-modal .vault-v276-configuration,
+.master-vault-v4-modal .vault-v276-features {border-top:1px solid #e6d0b5;padding:0 17px 15px}
+.master-vault-v4-modal .vault-v276-subheading {padding:15px 0 12px}
+.master-vault-v4-modal .vault-v276-subheading .vault-v276-step-number {
+    width:30px;height:30px;border-color:#dfc8ad;background:#fff9ef;color:#9b7456;
+}
+.master-vault-v4-modal .vault-v276-subheading .vault-v276-step-copy strong {font-size:14px}
+.master-vault-v4-modal .vault-v276-stat-grid {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.master-vault-v4-modal .vault-v276-stat {
+    min-width:0;display:grid;align-content:center;gap:6px;
+    min-height:64px;padding:10px 12px;border:1px solid #e1c9aa;
+    border-radius:10px;background:#fffdf9;box-shadow:inset 0 1px 0 #fff;
+}
+.master-vault-v4-modal .vault-v276-stat>span {text-transform:uppercase;letter-spacing:.055em;color:#9b785d;font:700 9px/1.2 Arial,sans-serif}
+.master-vault-v4-modal .vault-v276-stat>strong {color:#69352a;font:700 16px/1.2 Georgia,serif;overflow-wrap:anywhere}
+.master-vault-v4-modal .vault-v276-stat:last-child>strong {font:700 11px/1.4 Arial,sans-serif}
+.master-vault-v4-modal .vault-v276-advanced {margin-top:9px;background:transparent;border-color:#e5d2bc}
+.master-vault-v4-modal .vault-v276-advanced summary {display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;font-size:10px}
+.master-vault-v4-modal .vault-v276-advanced summary::before {display:none}
+.master-vault-v4-modal .vault-v276-advanced summary svg {height:14px;width:14px;transition:transform .2s;flex:none}
+.master-vault-v4-modal .vault-v276-advanced[open] summary svg {transform:rotate(180deg)}
+.master-vault-v4-modal .vault-v276-feature-list {
+    overflow:hidden;border:1px solid #dec5a5;border-radius:11px;background:#fffdf9;
+}
+.master-vault-v4-modal .vault-v276-feature-row {
+    display:flex;align-items:center;gap:12px;padding:12px 13px;
+}
+.master-vault-v4-modal .vault-v276-feature-row+.vault-v276-feature-row {border-top:1px solid #e9d8c3}
+.master-vault-v4-modal .vault-v276-feature-index {
+    display:grid;place-items:center;flex:none;width:31px;height:31px;
+    border-radius:9px;background:#f5e9d9;border:1px solid #ddc1a0;
+    font:700 11px Georgia,serif;color:#a26f43;
+}
+.master-vault-v4-modal .vault-v276-feature-content {flex:1;min-width:0;display:grid;gap:5px}
+.master-vault-v4-modal .vault-v276-feature-content strong {color:#643126;font:700 12px/1.3 Georgia,serif;overflow-wrap:anywhere}
+.master-vault-v4-modal .vault-v276-feature-content small {font:500 10px/1.4 Arial,sans-serif;color:#977356}
+.master-vault-v4-modal .vault-v276-feature-row button {
+    flex:none;display:inline-flex;align-items:center;gap:10px;min-height:32px;
+    border:1px solid #d9b994;border-radius:8px;padding:7px 10px;
+    background:#fff9ef;font:700 10px Arial,sans-serif;color:#7a452d;
+}
+.master-vault-v4-modal .vault-v276-feature-row button:hover {background:#f2e1cb;border-color:#b78b66}
+.master-vault-v4-modal .vault-v276-feature-row button span {font-size:17px;line-height:0}
+.master-vault-v4-modal .vault-v276-scroll-builder>.vault-v267-quick-empty {margin:0 17px 16px}
+@media(max-width:850px){
+    .master-vault-v4-modal .vault-v276-stat-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:580px){
+    .master-vault-v4-modal .vault-v276-step-title {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v276-collection-status {margin-left:43px}
+    .master-vault-v4-modal .vault-v276-search-controls {grid-template-columns:minmax(0,1fr)}
+    .master-vault-v4-modal .vault-v276-feature-row {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v276-feature-row button {margin-left:43px}
+    .master-vault-v4-modal .vault-v276-selected {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v276-selected>button {margin-left:auto}
+}
+@media(prefers-reduced-motion:reduce){
+    .master-vault-v4-modal .vault-v276-scroll-builder *{transition:none!important}
+}
+
+/* V66.2.78 — Editor de pergaminhos: consulta e parâmetros em duas zonas,
+   com habilidades em sequência. Mantém a mecânica Alpine existente. */
+.master-vault-v4-modal .vault-v278-builder {
+    display:block;overflow:visible;padding:0;border:1px solid #dfc7a9;
+    border-radius:15px;background:linear-gradient(145deg,#fffdf9,#fcf8f2);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+}
+.master-vault-v4-modal .vault-v278-columns {
+    display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.85fr);
+    min-width:0;gap:0;
+}
+.master-vault-v4-modal .vault-v278-selection {padding:20px 20px 19px;min-width:0}
+.master-vault-v4-modal .vault-v278-section-head {display:flex;align-items:center;gap:11px;margin-bottom:17px;min-width:0}
+.master-vault-v4-modal .vault-v278-section-icon {
+    display:grid;place-items:center;flex:none;width:39px;height:39px;border:1px solid #dbc2a4;
+    border-radius:11px;background:linear-gradient(140deg,#fffaf1,#f3e5d2);color:#a16c42;
+}
+.master-vault-v4-modal .vault-v278-section-icon svg {width:21px;height:21px}
+.master-vault-v4-modal .vault-v278-section-head>div {display:grid;gap:3px;min-width:0;flex:1}
+.master-vault-v4-modal .vault-v278-section-head strong {
+    font:700 18px/1.12 Georgia,'Times New Roman',serif;color:#6a3225;
+}
+.master-vault-v4-modal .vault-v278-section-head small {font:500 11px/1.35 Arial,sans-serif;color:#956f53}
+.master-vault-v4-modal .vault-v278-count {
+    flex:none;border-radius:999px;border:1px solid #e4d1b9;padding:5px 9px;
+    background:#fffaf3;color:#927354;font:700 10px/1.3 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v278-search-row {grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.master-vault-v4-modal .vault-v278-search-row .vault-v267-quick-search {height:44px;border-radius:10px}
+.master-vault-v4-modal .vault-v278-search-row .vault-v267-open-book {
+    height:44px;min-width:116px;gap:8px;border-radius:10px;border:1px solid #bd8b65;
+    background:linear-gradient(115deg,#f0dfcb,#f8ecdc);color:#754329;
+    font:700 11px/1 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v278-search-row .vault-v267-open-book:hover {
+    background:#e9cfb2;border-color:#a36d4b;
+}
+.master-vault-v4-modal .vault-v278-selected {
+    display:flex;align-items:center;gap:11px;min-width:0;margin-top:14px;
+    padding:12px 14px;border:1px solid #dcc2a1;border-radius:11px;
+    background:linear-gradient(105deg,#f6ead8,#fcf8f1);
+}
+.master-vault-v4-modal .vault-v278-selected-symbol {
+    display:grid;place-items:center;flex:none;width:34px;height:34px;border-radius:10px;
+    border:1px solid #d8b88f;background:#fff7eb;color:#b47a42;font-size:19px;
+}
+.master-vault-v4-modal .vault-v278-selected-copy {display:grid;gap:4px;flex:1;min-width:0}
+.master-vault-v4-modal .vault-v278-selected-copy>small {
+    color:#9d7958;font:800 9px/1.2 Arial,sans-serif;letter-spacing:.095em;
+}
+.master-vault-v4-modal .vault-v278-selected-copy>strong {
+    font:700 17px/1.22 Georgia,serif;color:#653022;overflow-wrap:anywhere;
+}
+.master-vault-v4-modal .vault-v278-selected-copy>span {
+    font:500 11px/1.25 Arial,sans-serif;color:#8e674d;
+}
+.master-vault-v4-modal .vault-v278-selected button {
+    flex:none;border:1px solid #d4b18a;border-radius:8px;background:#fffaf3;
+    color:#804e33;padding:8px 12px;font:700 11px/1 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v278-selected button:hover {background:#f3e2cd}
+.master-vault-v4-modal .vault-v278-empty {
+    border:1px dashed #e4d0b5;border-radius:10px;background:#fffcf8;
+    margin-top:14px;padding:15px;font:500 11px/1.55 Arial,sans-serif;color:#9a7759;
+}
+.master-vault-v4-modal .vault-v278-parameters {
+    padding:20px 18px 18px;min-width:0;border-left:1px solid #e4cfb4;
+    background:linear-gradient(125deg,#f8efe2,#fcf6ed 75%);
+    border-top-right-radius:14px;
+}
+.master-vault-v4-modal .vault-v278-side-head {display:grid;gap:4px;margin-bottom:15px}
+.master-vault-v4-modal .vault-v278-side-head strong {
+    font:700 17px/1.1 Georgia,serif;color:#673126;
+}
+.master-vault-v4-modal .vault-v278-side-head small {
+    color:#9b7658;font:500 11px/1.3 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v278-metric-grid {
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+}
+.master-vault-v4-modal .vault-v278-metric-grid>div {
+    min-width:0;min-height:65px;display:grid;align-content:center;gap:6px;
+    border:1px solid #e0c9aa;border-radius:10px;background:#fffdf9;padding:11px 12px;
+}
+.master-vault-v4-modal .vault-v278-metric-grid>div>span {
+    color:#a17c5d;font:800 9px/1.2 Arial,sans-serif;text-transform:uppercase;letter-spacing:.055em;
+}
+.master-vault-v4-modal .vault-v278-metric-grid>div>strong {
+    font:700 19px/1.05 Georgia,serif;color:#6a3429;overflow-wrap:anywhere;
+}
+.master-vault-v4-modal .vault-v278-metric-grid>div:last-child>strong {font:700 12px/1.28 Arial,sans-serif}
+.master-vault-v4-modal .vault-v278-adjust {
+    margin-top:11px;border:1px solid #dec5a5;border-radius:10px;background:#fffaf2;
+}
+.master-vault-v4-modal .vault-v278-adjust>summary {
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 12px;color:#854e34;font:700 11px/1.2 Arial,sans-serif;cursor:pointer;
+}
+.master-vault-v4-modal .vault-v278-adjust>summary::before {display:none}
+.master-vault-v4-modal .vault-v278-adjust>summary svg {width:16px;height:16px;transition:transform .2s}
+.master-vault-v4-modal .vault-v278-adjust[open]>summary svg {transform:rotate(180deg)}
+.master-vault-v4-modal .vault-v278-adjust .vault-v274-scroll-stats-grid {padding:4px 11px 11px}
+.master-vault-v4-modal .vault-v278-features {
+    border-top:1px solid #e5d0b5;padding:17px 20px 20px;
+    background:linear-gradient(120deg,#fffdf9,#fcf8f2);
+    border-radius:0 0 14px 14px;
+}
+.master-vault-v4-modal .vault-v278-features-heading {
+    display:flex;align-items:center;gap:10px;justify-content:space-between;margin-bottom:11px;
+}
+.master-vault-v4-modal .vault-v278-features-heading>div {display:grid;gap:4px;min-width:0}
+.master-vault-v4-modal .vault-v278-features-heading strong {font:700 15px/1.1 Georgia,serif;color:#6a3429}
+.master-vault-v4-modal .vault-v278-features-heading small {font:500 10px/1.3 Arial,sans-serif;color:#99765a}
+.master-vault-v4-modal .vault-v278-features-heading>span {
+    flex:none;color:#a27a56;font:700 9px/1.3 Arial,sans-serif;letter-spacing:.06em;
+}
+.master-vault-v4-modal .vault-v278-feature-list {
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;
+}
+.master-vault-v4-modal .vault-v278-feature {
+    min-width:0;display:flex;gap:10px;align-items:center;padding:13px;
+    border:1px solid #e0c8a9;border-radius:11px;background:#fffdfa;
+}
+.master-vault-v4-modal .vault-v278-feature-mark {
+    display:grid;place-items:center;flex:none;width:33px;height:33px;border-radius:10px;
+    border:1px solid #dec3a0;background:linear-gradient(130deg,#faf0e1,#fff9ef);
+    color:#a37148;font:700 14px/1 Georgia,serif;
+}
+.master-vault-v4-modal .vault-v278-feature-copy {display:grid;gap:5px;flex:1;min-width:0}
+.master-vault-v4-modal .vault-v278-feature-copy strong {
+    font:700 13px/1.2 Georgia,serif;color:#603024;overflow-wrap:anywhere;
+}
+.master-vault-v4-modal .vault-v278-feature-copy small {
+    font:500 10px/1.25 Arial,sans-serif;color:#9c785b;
+}
+.master-vault-v4-modal .vault-v278-feature button {
+    flex:none;padding:9px 10px;border-radius:8px;border:1px solid #d2ad85;
+    background:#f9efe3;color:#78442d;font:700 10px/1 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v278-feature button:hover {background:#f2dcc2}
+@media(max-width:1120px) {
+    .master-vault-v4-modal .vault-v278-columns {grid-template-columns:minmax(0,1fr)}
+    .master-vault-v4-modal .vault-v278-parameters {
+        border-left:0;border-top:1px solid #e4cfb4;border-radius:0;
+    }
+    .master-vault-v4-modal .vault-v278-metric-grid {grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+@media(max-width:790px) {
+    .master-vault-v4-modal .vault-v278-feature-list {grid-template-columns:1fr}
+    .master-vault-v4-modal .vault-v278-metric-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px) {
+    .master-vault-v4-modal .vault-v278-selection,
+    .master-vault-v4-modal .vault-v278-parameters,
+    .master-vault-v4-modal .vault-v278-features {padding:14px}
+    .master-vault-v4-modal .vault-v278-count {display:none}
+    .master-vault-v4-modal .vault-v278-search-row {grid-template-columns:1fr}
+    .master-vault-v4-modal .vault-v278-selected {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v278-selected button {margin-left:auto}
+    .master-vault-v4-modal .vault-v278-feature {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v278-feature button {margin-left:auto}
+}
+@media(prefers-reduced-motion:reduce) {
+    .master-vault-v4-modal .vault-v278-builder * {transition:none!important}
+}
+
+
+/* V66.2.80 — Verbete do Grimório integrado à Parte II e à Visualização do Mestre */
+.master-vault-v4-modal .vault-v280-reader,
+.master-vault-v9-preview .vault-v280-reader {
+    min-width:0;overflow:hidden;
+    border:1px solid #dfc5a4;border-radius:12px;
+    background:linear-gradient(160deg,#fffdf8,#fbf4e8);
+    box-shadow:inset 0 1px rgba(255,255,255,.8);
+    color:#553627;
+}
+.master-vault-v4-modal .vault-v280-reader {margin-top:13px}
+.master-vault-v4-modal .vault-v280-reader-top,
+.master-vault-v9-preview .vault-v280-reader-top {
+    display:flex;align-items:center;justify-content:space-between;gap:15px;
+    padding:15px 17px;border-bottom:1px solid #e8d7bd;
+    background:linear-gradient(110deg,#f5e8d7,#fcf8f0);
+}
+.master-vault-v4-modal .vault-v280-reader-top>div,
+.master-vault-v9-preview .vault-v280-reader-top>div {display:grid;gap:5px;min-width:0}
+.master-vault-v4-modal .vault-v280-eyebrow,
+.master-vault-v9-preview .vault-v280-eyebrow {color:#a2754e;font:800 9px/1.2 Arial,sans-serif;letter-spacing:.11em;text-transform:uppercase}
+.master-vault-v4-modal .vault-v280-reader-top h4 {margin:0;font:700 19px/1.2 Georgia,serif;color:#632c1e}
+.master-vault-v4-modal .vault-v280-reader-top em,
+.master-vault-v9-preview .vault-v280-reader-top em {font:italic 13px/1.3 Georgia,serif;color:#87583f}
+.master-vault-v4-modal .vault-v280-reader-action,
+.master-vault-v9-preview .vault-v280-reader-fallback button {
+    flex:none;border:1px solid #cda47c;border-radius:9px;
+    color:#793b27;background:#fff8ee;padding:9px 12px;
+    font:700 11px/1.2 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v280-reader-action:hover,
+.master-vault-v9-preview .vault-v280-reader-fallback button:hover {background:#f3e4d2}
+.master-vault-v4-modal .vault-v280-facts,
+.master-vault-v9-preview .vault-v280-facts {
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px 18px;padding:14px 17px;
+}
+.master-vault-v4-modal .vault-v280-facts>div,
+.master-vault-v9-preview .vault-v280-facts>div {display:flex;align-items:baseline;gap:8px;min-width:0;font:12px/1.5 Arial,sans-serif}
+.master-vault-v4-modal .vault-v280-facts strong,
+.master-vault-v9-preview .vault-v280-facts strong {flex:none;font-weight:700;color:#78452f}
+.master-vault-v4-modal .vault-v280-facts span,
+.master-vault-v9-preview .vault-v280-facts span {overflow-wrap:anywhere;color:#6f5542}
+.master-vault-v4-modal .vault-v280-reader-badges,
+.master-vault-v9-preview .vault-v280-reader-badges {display:flex;gap:7px;flex-wrap:wrap;padding:0 17px 11px}
+.master-vault-v4-modal .vault-v280-reader-badges span,
+.master-vault-v9-preview .vault-v280-reader-badges span {border:1px solid #dfc4a3;border-radius:7px;padding:4px 8px;background:#f5e5d4;color:#8d5838;font:700 10px Arial,sans-serif}
+.master-vault-v4-modal .vault-v280-scroll-body,
+.master-vault-v9-preview .vault-v280-scroll-body {border-top:1px solid #e8d7bd;padding:18px 19px 20px}
+.master-vault-v4-modal .vault-v280-spell-prose,
+.master-vault-v9-preview .vault-v280-spell-prose {font:14px/1.76 Georgia,'Times New Roman',serif;color:#4c3529;overflow-wrap:anywhere;white-space:normal}
+.master-vault-v4-modal .vault-v280-spell-prose p,
+.master-vault-v9-preview .vault-v280-spell-prose p {margin:0 0 12px}
+.master-vault-v4-modal .vault-v280-spell-prose p:last-child,
+.master-vault-v9-preview .vault-v280-spell-prose p:last-child {margin-bottom:0}
+.master-vault-v4-modal .vault-v280-spell-prose ul,
+.master-vault-v9-preview .vault-v280-spell-prose ul {margin:8px 0 13px 21px;list-style:disc}
+.master-vault-v4-modal .vault-v280-spell-prose ol,
+.master-vault-v9-preview .vault-v280-spell-prose ol {margin:8px 0 13px 21px;list-style:decimal}
+.master-vault-v4-modal .vault-v280-spell-prose li,
+.master-vault-v9-preview .vault-v280-spell-prose li {margin-bottom:7px}
+.master-vault-v4-modal .vault-v280-spell-prose strong,
+.master-vault-v9-preview .vault-v280-spell-prose strong {color:#5a2b1f}
+.master-vault-v4-modal .vault-v280-higher,
+.master-vault-v9-preview .vault-v280-higher {margin-top:19px;padding-top:16px;border-top:1px solid #dfc5a4}
+.master-vault-v4-modal .vault-v280-higher h5,
+.master-vault-v9-preview .vault-v280-higher h5 {margin:0 0 10px;color:#693023;font:700 15px/1.3 Georgia,serif}
+.master-vault-v4-modal .vault-v280-reader-notice,
+.master-vault-v9-preview .vault-v280-reader-notice {color:#997254;font:12px/1.5 Arial,sans-serif}
+.master-vault-v4-modal .vault-v280-reader-fallback,
+.master-vault-v9-preview .vault-v280-reader-fallback {display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:#9b795e;font:12px/1.4 Arial,sans-serif}
+.master-vault-v9-preview .vault-v280-preview-source {font:800 10px Arial,sans-serif;color:#a27650;letter-spacing:.04em}
+.master-vault-v9-preview .vault-v280-reader {margin-top:10px}
+@media(max-width:650px) {
+    .master-vault-v4-modal .vault-v280-facts,
+    .master-vault-v9-preview .vault-v280-facts {grid-template-columns:1fr}
+    .master-vault-v4-modal .vault-v280-reader-top,
+    .master-vault-v9-preview .vault-v280-reader-top {flex-wrap:wrap}
+}
+
+/* ================================================================
+   Spellbound V66.2.81 — Pergaminhos: seleção limpa e leitor editorial.
+   O verbo "Ler" abre um único modal, em vez de reproduzir o conteúdo
+   completo dentro dos cards e gavetas do editor.
+   ================================================================ */
+.master-vault-v4-modal .vault-v281-scroll-builder {
+    padding:20px 22px 17px;
+    border:1px solid #e2c8a8;
+    border-radius:14px;
+    background:linear-gradient(150deg,#fffdf9 0%,#fcf7ef 100%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.95);
+}
+.master-vault-v4-modal .vault-v281-topline,
+.master-vault-v4-modal .vault-v281-topline-title,
+.master-vault-v4-modal .vault-v281-current,
+.master-vault-v4-modal .vault-v281-rules-link {
+    display:flex;align-items:center;min-width:0;
+}
+.master-vault-v4-modal .vault-v281-topline {justify-content:space-between;gap:14px;margin-bottom:14px}
+.master-vault-v4-modal .vault-v281-topline-title {gap:11px}
+.master-vault-v4-modal .vault-v281-book-emblem {
+    display:grid;place-items:center;flex:none;width:42px;height:42px;
+    border:1px solid #e1c4a2;border-radius:12px;
+    background:linear-gradient(150deg,#f8e9d6,#fffaf2);color:#9f6844;
+}
+.master-vault-v4-modal .vault-v281-book-emblem svg {width:22px;height:22px}
+.master-vault-v4-modal .vault-v281-topline-title h4 {
+    margin:0;color:#632c21;font:700 20px/1.16 Georgia,'Times New Roman',serif;
+}
+.master-vault-v4-modal .vault-v281-topline-title>div>span {
+    display:block;margin-top:4px;color:#937154;font:500 11px/1.35 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v281-library-action {
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;flex:none;
+    border:1px solid #ceaa84;border-radius:10px;padding:10px 14px;
+    background:#fff9ef;color:#7e4930;font:700 11px/1 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v281-library-action:hover {background:#f6e8d7;border-color:#a77752}
+.master-vault-v4-modal .vault-v281-library-action svg {width:17px;height:17px}
+.master-vault-v4-modal .vault-v281-quick-choice {position:relative;z-index:2}
+.master-vault-v4-modal .vault-v281-search {height:47px;border-radius:10px}
+.master-vault-v4-modal .vault-v281-current {gap:10px;align-items:stretch}
+.master-vault-v4-modal .vault-v281-current-spell {
+    display:flex;align-items:center;gap:14px;flex:1;min-width:0;text-align:left;
+    padding:15px 16px;border:1px solid #dbc1a0;border-radius:12px;
+    background:linear-gradient(110deg,#f8eddf,#fff9f1);
+    box-shadow:inset 0 1px rgba(255,255,255,.75);
+    transition:border-color .16s ease,background .16s ease,transform .16s ease;
+}
+.master-vault-v4-modal .vault-v281-current-spell:hover,
+.master-vault-v4-modal .vault-v281-feature-open:hover {
+    border-color:#b58159;background:#f7e7d1;transform:translateY(-1px);
+}
+.master-vault-v4-modal .vault-v281-current-spell:focus-visible,
+.master-vault-v4-modal .vault-v281-feature-open:focus-visible,
+.master-vault-v4-modal .vault-v281-library-action:focus-visible {
+    outline:2px solid #a76f48;outline-offset:3px;
+}
+.master-vault-v4-modal .vault-v281-current-mark,
+.master-vault-v4-modal .vault-v281-feature-open-symbol {
+    display:grid;place-items:center;flex:none;width:38px;height:38px;
+    border:1px solid #d9b990;border-radius:11px;background:#fff9ef;
+    color:#a57645;font:700 22px Georgia,serif;
+}
+.master-vault-v4-modal .vault-v281-current-copy,
+.master-vault-v4-modal .vault-v281-feature-open-copy {display:grid;gap:5px;min-width:0;flex:1}
+.master-vault-v4-modal .vault-v281-current-copy strong,
+.master-vault-v4-modal .vault-v281-feature-open-copy strong {
+    font:700 17px/1.16 Georgia,serif;color:#642f24;overflow-wrap:anywhere;
+}
+.master-vault-v4-modal .vault-v281-current-copy small,
+.master-vault-v4-modal .vault-v281-feature-open-copy small {
+    font:italic 12px/1.3 Georgia,serif;color:#926c50;
+}
+.master-vault-v4-modal .vault-v281-read-call,
+.master-vault-v4-modal .vault-v281-feature-open-action {
+    display:flex;align-items:center;gap:5px;white-space:nowrap;
+    font:700 11px/1.2 Arial,sans-serif;color:#8c5b37;
+}
+.master-vault-v4-modal .vault-v281-read-call svg,
+.master-vault-v4-modal .vault-v281-feature-open-action svg {width:17px;height:17px}
+.master-vault-v4-modal .vault-v281-change-spell {
+    flex:none;align-self:stretch;padding:0 17px;border-radius:10px;
+    border:1px solid #e2cbb0;background:#fffdf9;color:#795038;
+    font:700 11px Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v281-change-spell:hover {border-color:#b3855e;background:#f9efe3}
+.master-vault-v4-modal .vault-v281-settings {
+    margin-top:11px;border:1px solid #e5d2ba;border-radius:11px;
+    background:rgba(255,254,251,.95);overflow:hidden;
+}
+.master-vault-v4-modal .vault-v281-settings>summary {
+    display:flex;gap:14px;align-items:center;min-height:46px;
+    padding:10px 13px;cursor:pointer;list-style:none;
+}
+.master-vault-v4-modal .vault-v281-settings>summary::-webkit-details-marker {display:none}
+.master-vault-v4-modal .vault-v281-settings>summary:hover {background:#fcf5eb}
+.master-vault-v4-modal .vault-v281-settings-label {
+    display:flex;align-items:center;gap:8px;flex:none;
+    font:700 11px/1.2 Arial,sans-serif;color:#713d2c;
+}
+.master-vault-v4-modal .vault-v281-settings-label svg {width:17px;height:17px;color:#a87650}
+.master-vault-v4-modal .vault-v281-settings-values {
+    display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;min-width:0;
+    flex-wrap:wrap;
+}
+.master-vault-v4-modal .vault-v281-settings-values span {
+    display:inline-flex;align-items:center;line-height:1.1;
+    border-left:1px solid #dfc9af;padding-left:8px;
+    color:#8c6c52;font:600 10px/1.25 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v281-settings-values span:first-child {border-left:0}
+.master-vault-v4-modal .vault-v281-settings-arrow {width:16px;height:16px;color:#a27451;transition:transform .18s}
+.master-vault-v4-modal .vault-v281-settings[open] .vault-v281-settings-arrow {transform:rotate(180deg)}
+.master-vault-v4-modal .vault-v281-settings-content {
+    padding:14px;border-top:1px solid #ebdac5;background:#fdf9f3;
+}
+.master-vault-v4-modal .vault-v281-settings-grid {
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;
+}
+.master-vault-v4-modal .vault-v281-settings-grid>div {
+    min-width:0;display:grid;gap:6px;padding:12px;
+    border:1px solid #e3cdb0;border-radius:10px;background:#fffdfa;
+}
+.master-vault-v4-modal .vault-v281-settings-grid small {
+    text-transform:uppercase;letter-spacing:.075em;font:700 9px Arial,sans-serif;color:#9a7658;
+}
+.master-vault-v4-modal .vault-v281-settings-grid strong {
+    font:700 17px/1.3 Georgia,serif;color:#683126;overflow-wrap:anywhere;
+}
+.master-vault-v4-modal .vault-v281-settings-grid>div:last-child strong {font:700 11px/1.5 Arial,sans-serif}
+.master-vault-v4-modal .vault-v281-custom-fields {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:13px}
+.master-vault-v4-modal .vault-v281-custom-fields label {display:grid;gap:5px}
+.master-vault-v4-modal .vault-v281-custom-fields label span {font:700 10px Arial,sans-serif;color:#70432e}
+.master-vault-v4-modal .vault-v281-custom-fields input {
+    width:100%;min-height:39px;border:1px solid #dec4a5;border-radius:8px;
+    padding:7px 10px;background:#fffdf9;color:#5c2e22;font:700 15px Georgia,serif;
+}
+.master-vault-v4-modal .vault-v281-settings-actions {display:flex;flex-wrap:wrap;gap:9px;margin-top:11px}
+.master-vault-v4-modal .vault-v281-settings-actions button {
+    padding:8px 10px;border:1px solid #ddc6ab;border-radius:8px;
+    background:#fff9f0;color:#795037;font:700 10px Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v281-settings-actions button:hover {background:#f4e4d0}
+.master-vault-v4-modal .vault-v281-rules-link {
+    gap:12px;justify-content:space-between;margin-top:11px;padding:9px 2px 0;
+    border-top:1px solid #eddcc8;
+}
+.master-vault-v4-modal .vault-v281-rules-link>span {display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap}
+.master-vault-v4-modal .vault-v281-rules-link strong {font:700 11px Georgia,serif;color:#70422d}
+.master-vault-v4-modal .vault-v281-rules-link small {color:#9b7d63;font:500 10px Arial,sans-serif}
+.master-vault-v4-modal .vault-v281-rules-link button {
+    white-space:nowrap;border:0;background:transparent;color:#975d38;
+    font:700 11px Arial,sans-serif;text-decoration:underline;text-underline-offset:3px;
+}
+.master-vault-v4-modal .vault-v281-feature-reader {display:grid;gap:10px}
+.master-vault-v4-modal .vault-v281-feature-open {
+    display:flex;align-items:center;gap:13px;width:100%;min-width:0;
+    padding:13px 15px;border:1px solid #dfc8aa;border-radius:12px;
+    background:linear-gradient(135deg,#fcf5ea,#fffdf9);text-align:left;
+    transition:transform .16s,border-color .16s,background .16s;
+}
+.master-vault-v9-preview .vault-v281-preview-spell {
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:13px 15px;background:linear-gradient(125deg,#fcf5e9,#fdfaf4);
+    border-top:1px solid #e8d6bf;
+}
+.master-vault-v9-preview .vault-v281-preview-spell-info {min-width:0;flex:1}
+.master-vault-v9-preview .vault-v281-preview-spell-info em {
+    color:#875539;font:italic 12px Georgia,serif;
+}
+.master-vault-v9-preview .vault-v281-preview-facts {display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:7px}
+.master-vault-v9-preview .vault-v281-preview-facts span {
+    color:#8b674d;font:500 10px/1.4 Arial,sans-serif;
+}
+.master-vault-v9-preview .vault-v281-preview-spell button {
+    display:flex;align-items:center;gap:6px;flex:none;padding:9px 12px;
+    border:1px solid #cba47e;border-radius:9px;background:#f8e9d7;
+    color:#75422e;font:700 11px Arial,sans-serif;
+}
+.master-vault-v9-preview .vault-v281-preview-spell button:hover {background:#f2dbbd}
+.master-vault-v9-preview .vault-v281-preview-spell button svg {width:15px;height:15px}
+
+/* Leitor flutuante, inspirado na hierarquia editorial do Grimório do Player. */
+.vault-v281-reader-layer {
+    position:fixed;inset:0;z-index:2147481200;
+    display:flex;align-items:center;justify-content:center;padding:20px;
+    color:#4f3328;font-family:Arial,sans-serif;
+}
+.vault-v281-reader-layer[x-cloak] {display:none!important}
+.vault-v281-reader-backdrop {position:absolute;inset:0;background:rgba(25,16,12,.69);backdrop-filter:blur(3px)}
+.vault-v281-reader-dialog {
+    position:relative;z-index:1;width:min(830px,100%);max-height:min(91dvh,970px);
+    display:flex;flex-direction:column;overflow:hidden;
+    border:1px solid #b99570;border-radius:17px;
+    background:#fbf7ef;box-shadow:0 24px 80px rgba(0,0,0,.36),inset 0 1px rgba(255,255,255,.9);
+}
+.vault-v281-reader-head {
+    flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;
+    min-height:54px;padding:10px 19px;border-bottom:1px solid #e5ceb1;
+    background:linear-gradient(120deg,#f2e6d7,#fcf8f1);
+}
+.vault-v281-reader-brand {display:flex;gap:10px;align-items:center;color:#915f41;font:800 10px Arial,sans-serif;text-transform:uppercase;letter-spacing:.1em}
+.vault-v281-reader-brand-icon {font:700 22px Georgia,serif;color:#a97744}
+.vault-v281-reader-close {display:grid;place-items:center;width:34px;height:34px;border:1px solid #dfc5a4;border-radius:9px;background:#fffaf3;color:#8c5f47}
+.vault-v281-reader-close:hover {background:#f0ddc5}
+.vault-v281-reader-close svg {width:18px;height:18px}
+.vault-v281-reader-scroll {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+.vault-v281-reader-article {max-width:755px;margin:0 auto;padding:30px 28px 38px}
+.vault-v281-reader-title-row {display:flex;align-items:flex-start;gap:18px;justify-content:space-between;margin-bottom:22px}
+.vault-v281-reader-title-row h3 {margin:0 0 8px;font:700 clamp(27px,3.6vw,35px)/1.14 Georgia,serif;color:#57291f;letter-spacing:-.018em}
+.vault-v281-reader-title-row em {color:#885839;font:italic 15px/1.2 Georgia,serif}
+.vault-v281-reader-title-row>small {padding-top:7px;color:#a17959;font:800 10px/1.3 Arial,sans-serif;letter-spacing:.04em;white-space:nowrap}
+.vault-v281-reader-statlines {display:grid;gap:7px;margin:0 0 23px}
+.vault-v281-reader-statlines div {display:flex;align-items:baseline;gap:9px;min-width:0}
+.vault-v281-reader-statlines dt {flex:none;font:700 13px/1.45 Georgia,serif;color:#613024}
+.vault-v281-reader-statlines dd {min-width:0;margin:0;font:13px/1.5 Arial,sans-serif;color:#604736;overflow-wrap:anywhere}
+.vault-v281-reader-flags {display:flex;gap:7px;flex-wrap:wrap;margin:-7px 0 21px}
+.vault-v281-reader-flags span {padding:5px 8px;border:1px solid #dec6a8;border-radius:7px;background:#f7ecde;color:#96633c;font:700 10px Arial,sans-serif}
+.vault-v281-reader-prose {
+    font:15px/1.7 Georgia,'Times New Roman',serif;color:#45372f;
+    overflow-wrap:anywhere;white-space:normal;
+}
+.vault-v281-reader-prose p {margin:0 0 13px}
+.vault-v281-reader-prose p:last-child {margin-bottom:0}
+.vault-v281-reader-prose h3,.vault-v281-reader-prose h4 {margin:16px 0 8px;font:700 16px Georgia,serif;color:#6e3729}
+.vault-v281-reader-prose ul {list-style:disc;margin:9px 0 14px 22px}
+.vault-v281-reader-prose ol {list-style:decimal;margin:9px 0 14px 22px}
+.vault-v281-reader-prose li {margin:0 0 7px}
+.vault-v281-reader-prose strong {font-weight:700;color:#653025}
+.vault-v281-reader-prose br+br {display:none}
+.vault-v281-reader-higher {margin-top:20px;border-top:1px solid #dec7aa;padding-top:17px}
+.vault-v281-reader-higher>h4 {margin:0 0 10px;color:#693325;font:700 17px Georgia,serif}
+.vault-v281-reader-loading,.vault-v281-reader-unavailable {color:#906c51;font:12px/1.5 Arial,sans-serif}
+.vault-v281-reader-unavailable {display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.vault-v281-reader-unavailable button {text-decoration:underline;color:#78402d}
+.vault-v281-reader-foot {
+    flex:none;display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:12px 20px;border-top:1px solid #e4ceb1;background:#f5ebdf;
+}
+.vault-v281-reader-foot>span {font:500 10px/1.4 Arial,sans-serif;color:#9a785b}
+.vault-v281-reader-foot>div {display:flex;gap:7px;flex:none}
+.vault-v281-reader-change,.vault-v281-reader-done {padding:10px 13px;border:1px solid #d7b995;border-radius:9px;background:#fff9f1;color:#794732;font:700 11px Arial,sans-serif}
+.vault-v281-reader-done {border-color:#6d3022;background:#713324;color:#fff9f1}
+.vault-v281-reader-change:hover {background:#f3e1c7}
+.vault-v281-reader-done:hover {background:#59261a}
+@media(max-width:750px) {
+    .master-vault-v4-modal .vault-v281-settings-values span:nth-child(3),
+    .master-vault-v4-modal .vault-v281-settings-values span:nth-child(4) {display:none}
+    .master-vault-v4-modal .vault-v281-settings-grid {grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:520px) {
+    .master-vault-v4-modal .vault-v281-scroll-builder {padding:15px 14px}
+    .master-vault-v4-modal .vault-v281-current {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v281-current-spell {flex-basis:100%}
+    .master-vault-v4-modal .vault-v281-current-spell,.master-vault-v4-modal .vault-v281-feature-open {flex-wrap:wrap}
+    .master-vault-v4-modal .vault-v281-read-call,.master-vault-v4-modal .vault-v281-feature-open-action {margin-left:auto}
+    .master-vault-v4-modal .vault-v281-change-spell {min-height:34px;margin-left:auto}
+    .master-vault-v4-modal .vault-v281-topline-title h4 {font-size:17px}
+    .master-vault-v4-modal .vault-v281-settings-values span:nth-child(n+2) {display:none}
+    .master-vault-v4-modal .vault-v281-custom-fields {grid-template-columns:1fr}
+    .vault-v281-reader-layer {padding:7px}
+    .vault-v281-reader-dialog {max-height:96dvh;border-radius:11px}
+    .vault-v281-reader-article {padding:21px 18px}
+    .vault-v281-reader-foot {flex-wrap:wrap}
+    .vault-v281-reader-foot>span {flex:1 1 100%}
+    .master-vault-v9-preview .vault-v281-preview-spell {flex-wrap:wrap}
+    .master-vault-v9-preview .vault-v281-preview-spell button {margin-left:auto}
+}
+@media(prefers-reduced-motion:reduce) {
+    .vault-v281-reader-layer *, .vault-v281-current-spell,.vault-v281-feature-open {transition:none!important}
+}
+
+.master-vault-v4-modal .master-vault-v5-ability-content-grid.vault-v281-feature-grid {grid-template-columns:minmax(0,1fr);gap:0}
+
+
+/* Spellbound V66.2.82 — resumo do feitiço e edição de título. */
+.master-vault-v9-preview .vault-v282-preview-action {
+    padding:12px 14px;
+    border-top:1px solid #e6d4bc;
+    background:linear-gradient(105deg,#fffcf7,#faf2e7);
+}
+.master-vault-v9-preview .vault-v282-preview-read {
+    width:100%;min-height:54px;display:flex;align-items:center;gap:13px;
+    padding:9px 13px;border:1px solid #cda783;border-radius:11px;
+    background:linear-gradient(115deg,#f4e2c9,#fbf1e4);
+    text-align:left;color:#713b29;
+    box-shadow:inset 0 1px rgba(255,255,255,.8);
+    transition:border-color .18s,background .18s,box-shadow .18s,transform .18s;
+}
+.master-vault-v9-preview .vault-v282-preview-read:hover {
+    border-color:#9c694a;background:linear-gradient(115deg,#eed2b0,#f8e6d0);
+    box-shadow:0 5px 17px rgba(85,45,24,.09);transform:translateY(-1px);
+}
+.master-vault-v9-preview .vault-v282-preview-read:focus-visible {
+    outline:2px solid #a57753;outline-offset:3px;
+}
+.master-vault-v9-preview .vault-v282-preview-read strong {
+    font:700 14px/1.2 Georgia,'Times New Roman',serif;color:#623024;
+}
+.master-vault-v9-preview .vault-v282-preview-book {
+    flex:none;display:grid;place-items:center;width:34px;height:34px;
+    border:1px solid #dab991;border-radius:9px;background:#fff9f0;color:#9b6846;
+}
+.master-vault-v9-preview .vault-v282-preview-book svg {width:19px;height:19px}
+.master-vault-v9-preview .vault-v282-preview-chevron {width:19px;height:19px;margin-left:auto;color:#9c6b49}
+
+.master-vault-v4-modal .vault-v282-title-panel {
+    min-width:0;border:1px solid #e4c9a8;border-radius:12px;
+    background:linear-gradient(135deg,#fffdf9,#fcf5eb);
+    box-shadow:inset 0 1px rgba(255,255,255,.85);overflow:hidden;
+}
+.master-vault-v4-modal .vault-v282-title-panel>summary {
+    display:flex;align-items:center;gap:12px;min-height:65px;
+    padding:11px 15px;list-style:none;cursor:pointer;
+    transition:background .17s;
+}
+.master-vault-v4-modal .vault-v282-title-panel>summary::-webkit-details-marker {display:none}
+.master-vault-v4-modal .vault-v282-title-panel>summary:hover {background:#f9ecdc}
+.master-vault-v4-modal .vault-v282-title-panel>summary:focus-visible {outline:2px solid #a67650;outline-offset:-3px}
+.master-vault-v4-modal .vault-v282-title-icon {
+    display:grid;place-items:center;flex:none;width:38px;height:38px;
+    border-radius:10px;border:1px solid #e0c2a1;background:linear-gradient(#fffaf3,#f6e8d4);color:#996545;
+}
+.master-vault-v4-modal .vault-v282-title-icon svg {width:19px;height:19px}
+.master-vault-v4-modal .vault-v282-title-copy {display:grid;gap:4px;flex:1;min-width:0}
+.master-vault-v4-modal .vault-v282-title-copy strong {color:#663327;font:700 14px/1.2 Georgia,serif}
+.master-vault-v4-modal .vault-v282-title-copy small {color:#977253;font:500 10px/1.3 Arial,sans-serif}
+.master-vault-v4-modal .vault-v282-title-tag {
+    padding:5px 8px;border:1px solid #e3ccb1;border-radius:99px;
+    background:#fff8ef;color:#986e52;font:700 10px/1 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v282-title-chevron {width:17px;height:17px;flex:none;color:#996c50;transition:transform .18s}
+.master-vault-v4-modal .vault-v282-title-panel[open] .vault-v282-title-chevron {transform:rotate(180deg)}
+.master-vault-v4-modal .vault-v282-title-panel[open]>summary {border-bottom:1px solid #ead6bc}
+.master-vault-v4-modal .vault-v282-title-body {
+    display:flex;align-items:end;gap:10px;padding:16px;background:#fffaf4;
+}
+.master-vault-v4-modal .vault-v282-title-label {display:grid;gap:7px;flex:1;min-width:0}
+.master-vault-v4-modal .vault-v282-title-label>span {
+    font:700 11px/1.2 Arial,sans-serif;color:#80513a;
+}
+.master-vault-v4-modal .vault-v282-title-label>input {
+    display:block;width:100%;min-width:0;min-height:44px;
+    padding:10px 12px;border:1px solid #dec2a0;border-radius:9px;
+    background:#fffefe;color:#653226;font:500 13px/1.4 Arial,sans-serif;
+    transition:border-color .15s,box-shadow .15s;
+}
+.master-vault-v4-modal .vault-v282-title-label>input:focus {
+    outline:none;border-color:#ad7955;box-shadow:0 0 0 3px rgba(174,119,82,.14);
+}
+.master-vault-v4-modal .vault-v282-title-reset {
+    flex:none;min-height:44px;padding:10px 14px;
+    border:1px solid #d9b996;border-radius:9px;
+    background:#f7e9d8;color:#7d482e;font:700 11px/1.2 Arial,sans-serif;
+}
+.master-vault-v4-modal .vault-v282-title-reset:hover {background:#efd8bc;border-color:#cba17a}
+@media(max-width:580px) {
+    .master-vault-v4-modal .vault-v282-title-body {flex-direction:column;align-items:stretch}
+    .master-vault-v4-modal .vault-v282-title-reset {align-self:flex-end}
+    .master-vault-v4-modal .vault-v282-title-panel>summary {gap:9px;padding:10px}
+}
+@media(prefers-reduced-motion:reduce) {
+    .master-vault-v9-preview .vault-v282-preview-read,
+    .master-vault-v4-modal .vault-v282-title-panel * {transition:none!important}
+}
+
+
+
+/* Spellbound V66.2.83 — Pergaminhos: ações discretas, habilidades no editor principal. */
+.master-vault-v9-preview .vault-v282-preview-action {
+    display:flex;
+    justify-content:flex-end;
+    align-items:center;
+    padding:9px 14px 11px;
+    border-top:1px solid #eadbc8;
+    background:transparent;
+}
+.master-vault-v9-preview .vault-v282-preview-read {
+    width:auto;
+    min-height:36px;
+    display:inline-flex;
+    flex:none;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:5px 11px;
+    border:1px solid #ddc5a9;
+    border-radius:8px;
+    background:#fffaf3;
+    color:#78513e;
+    box-shadow:none;
+    text-align:center;
+    transition:border-color .16s,background .16s,color .16s;
+}
+.master-vault-v9-preview .vault-v282-preview-read:hover {
+    border-color:#b99471;
+    background:#f7ecde;
+    box-shadow:none;
+    transform:none;
+}
+.master-vault-v9-preview .vault-v282-preview-read strong {
+    color:inherit;
+    font:700 11px/1.2 Arial,sans-serif;
+}
+.master-vault-v9-preview .vault-v282-preview-book {
+    width:23px;height:23px;
+    border:0;border-radius:5px;
+    background:transparent;color:#996e50;
+}
+.master-vault-v9-preview .vault-v282-preview-book svg {width:16px;height:16px}
+.master-vault-v9-preview .vault-v282-preview-chevron {
+    width:14px;height:14px;margin-left:2px;color:#996e50;
+}
+.master-vault-v4-modal .vault-v283-scroll-abilities {
+    margin-top:12px;
+    border-color:#e2c7a8;
+    background:linear-gradient(130deg,#fffdf9,#faf3e9);
+}
+.master-vault-v4-modal .vault-v283-scroll-abilities .master-vault-v5-abilities-head {
+    background:linear-gradient(110deg,#f4e9dc,#fcf8f3);
+    border-bottom:1px solid #e8d1b5;
+}
+.master-vault-v4-modal .vault-v283-scroll-abilities .master-vault-v5-ability-drawer {
+    border-color:#dfc6a8;
+    background:#fffcf8;
+}
+.master-vault-v4-modal .vault-v283-scroll-abilities .master-vault-v5-ability-title strong {
+    color:#683426;
+}
+@media(max-width:650px) {
+    .master-vault-v9-preview .vault-v282-preview-action {padding:8px 10px 10px}
+    .master-vault-v9-preview .vault-v282-preview-read {min-height:35px}
+}
+
+
+/* V66.2.84 — No pergaminho, a habilidade de feitiço é uma só linha.
+   O verbete completo continua acessível no mesmo leitor da V66.2.83. */
+.master-vault-v9-preview .master-vault-v9-preview-feature.vault-v284-scroll-compact {
+    overflow:hidden;
+}
+.master-vault-v9-preview .vault-v284-scroll-compact > .master-vault-v9-preview-feature-head {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px 16px;
+    padding:10px 13px;
+    border-bottom:0;
+    min-height:51px;
+}
+.master-vault-v9-preview .vault-v284-scroll-compact .master-vault-v9-preview-feature-head h4 {
+    margin:0;
+    flex:1 1 240px;
+    min-width:0;
+    overflow-wrap:anywhere;
+}
+.master-vault-v9-preview .vault-v284-preview-read {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-height:34px;
+    padding:7px 11px;
+    flex:none;
+    border:1px solid #d9bfa0;
+    border-radius:8px;
+    background:#fff9f2;
+    color:#7b4b32;
+    font:700 11px/1.15 Arial,sans-serif;
+    cursor:pointer;
+    transition:background .16s ease,border-color .16s ease,color .16s ease;
+}
+.master-vault-v9-preview .vault-v284-preview-read svg {
+    width:15px;height:15px;flex:none;
+}
+.master-vault-v9-preview .vault-v284-preview-read svg:last-child {
+    width:12px;height:12px;color:#a37557;
+}
+.master-vault-v9-preview .vault-v284-preview-read:hover {
+    border-color:#b78d66;
+    background:#f5e8d7;
+    color:#672f22;
+}
+.master-vault-v9-preview .vault-v284-preview-read:focus-visible {
+    outline:2px solid #a87853;
+    outline-offset:2px;
+}
+@media (max-width:530px) {
+    .master-vault-v9-preview .vault-v284-scroll-compact > .master-vault-v9-preview-feature-head {
+        gap:8px;
+    }
+    .master-vault-v9-preview .vault-v284-scroll-compact .master-vault-v9-preview-feature-head h4 {
+        flex-basis:100%;
+    }
+    .master-vault-v9-preview .vault-v284-preview-read {
+        margin-left:auto;
+    }
+}
+@media (prefers-reduced-motion:reduce) {
+    .master-vault-v9-preview .vault-v284-preview-read {transition:none}
+}
